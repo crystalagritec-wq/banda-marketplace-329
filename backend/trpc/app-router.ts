@@ -149,6 +149,13 @@ import { getDisputesProcedure } from "@/backend/trpc/routes/tradeguard/get-dispu
 import { releaseOrderReserveProcedure } from "@/backend/trpc/routes/orders/release-order-reserve";
 import { detectFraudProcedure } from "@/backend/trpc/routes/agripay/detect-fraud";
 import { agripayHealthCheckProcedure } from "@/backend/trpc/routes/system/agripay-health";
+import { uploadPhotoProcedure } from "@/backend/trpc/routes/profile/upload-photo";
+import { getActivityLogProcedure } from "@/backend/trpc/routes/profile/get-activity-log";
+import { exportDataProcedure } from "@/backend/trpc/routes/profile/export-data";
+import { getPreferencesProcedure } from "@/backend/trpc/routes/settings/get-preferences";
+import { updatePreferencesProcedure } from "@/backend/trpc/routes/settings/update-preferences";
+import { enable2FAProcedure } from "@/backend/trpc/routes/settings/enable-2fa";
+import { verify2FAProcedure } from "@/backend/trpc/routes/settings/verify-2fa";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -169,6 +176,9 @@ export const appRouter = createTRPCRouter({
   profile: createTRPCRouter({
     update: updateProfileProcedure,
     fetchSession: fetchUserSessionProcedure,
+    uploadPhoto: uploadPhotoProcedure,
+    getActivityLog: getActivityLogProcedure,
+    exportData: exportDataProcedure,
   }),
   products: createTRPCRouter({
     addToCart: addToCartProcedure,
@@ -368,6 +378,12 @@ export const appRouter = createTRPCRouter({
     raiseDispute: tradeguardRaiseDisputeProcedure,
     resolveDispute: resolveDisputeProcedure,
     getDisputes: getDisputesProcedure,
+  }),
+  settings: createTRPCRouter({
+    getPreferences: getPreferencesProcedure,
+    updatePreferences: updatePreferencesProcedure,
+    enable2FA: enable2FAProcedure,
+    verify2FA: verify2FAProcedure,
   }),
 });
 
