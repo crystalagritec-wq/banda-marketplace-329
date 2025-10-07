@@ -114,12 +114,6 @@ export default function OrderSuccessScreen() {
     }
   }, [order?.id, releaseMutation, router, user?.id]);
 
-  const orderQuery = trpc.orders.getDetailedOrder.useQuery(
-    { order_id: orderId },
-    { enabled: !!orderId, refetchOnMount: true }
-  );
-  
-  const order = orderQuery.data?.order;
   const reserveHeld = useMemo(() => {
     try {
       const paymentReserved = (order as any)?.payment?.status === 'reserved';
@@ -183,6 +177,28 @@ export default function OrderSuccessScreen() {
     }
   }, [orderId]);
 
+  const downloadReceipt = useCallback(async (format: 'jpg' | 'pdf') => {
+    try {
+      console.log(`Downloading receipt as ${format.toUpperCase()} for order:`, orderId);
+      
+      const { data, error } = await supabase
+        .rpc('generate_digital_receipt', {
+          order_id: orderId,
+          format: format,
+          include_qr: true
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      Alert.alert('Success', `Receipt downloaded as ${format.toUpperCase()}`);
+    } catch (error) {
+      console.error('Error downloading receipt:', error);
+      Alert.alert('Error', `Failed to download ${format.toUpperCase()} receipt`);
+    }
+  }, [orderId]);
+
   const handleDownloadReceipt = useCallback(async () => {
     try {
       console.log('Generating digital receipt for order:', orderId);
@@ -243,30 +259,8 @@ export default function OrderSuccessScreen() {
       console.error('Error in handleDownloadReceipt:', error);
       Alert.alert('Error', 'Failed to generate receipt');
     }
-  }, [orderId, order, downloadReceipt]);
+  }, [orderId, order]);
 
-  const downloadReceipt = useCallback(async (format: 'jpg' | 'pdf') => {
-    try {
-      console.log(`Downloading receipt as ${format.toUpperCase()} for order:`, orderId);
-      
-      const { data, error } = await supabase
-        .rpc('generate_digital_receipt', {
-          order_id: orderId,
-          format: format,
-          include_qr: true
-        });
-
-      if (error) {
-        throw error;
-      }
-
-      // In a real app, you would handle the file download here
-      Alert.alert('Success', `Receipt downloaded as ${format.toUpperCase()}`);
-    } catch (error) {
-      console.error('Error downloading receipt:', error);
-      Alert.alert('Error', `Failed to download ${format.toUpperCase()} receipt`);
-    }
-  }, [orderId]);
 
   const handleGenerateQR = useCallback(async () => {
     try {
@@ -293,7 +287,7 @@ export default function OrderSuccessScreen() {
       console.error('Error generating QR code:', error);
       Alert.alert('Error', 'Failed to generate QR code');
     }
-  }, [orderId, order, downloadReceipt]);
+  }, [orderId, order]);
 
   if (orderQuery.isLoading) {
     return (
