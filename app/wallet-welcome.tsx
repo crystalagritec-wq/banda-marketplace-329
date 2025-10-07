@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,19 +11,37 @@ import { Wallet, Shield, TrendingUp, Lock } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import WalletOnboardingModal from '@/components/WalletOnboardingModal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function WalletWelcomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
+  useEffect(() => {
+    checkOnboardingStatus();
+  }, []);
+
+  const checkOnboardingStatus = async () => {
+    try {
+      const completed = await AsyncStorage.getItem('wallet_onboarding_completed');
+      if (completed === 'true') {
+        console.log('[WalletWelcome] Onboarding already completed, redirecting...');
+        router.replace('/(tabs)/wallet' as any);
+      }
+    } catch (error) {
+      console.error('[WalletWelcome] Error checking onboarding status:', error);
+    }
+  };
+
   const handleCreateWallet = () => {
     console.log('[WalletWelcome] Opening wallet onboarding modal...');
     setShowOnboarding(true);
   };
 
-  const handleOnboardingSuccess = () => {
+  const handleOnboardingSuccess = async () => {
     console.log('[WalletWelcome] Onboarding complete, navigating to wallet...');
+    await AsyncStorage.setItem('wallet_onboarding_completed', 'true');
     router.replace('/(tabs)/wallet' as any);
   };
 

@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import {
   Store,
@@ -22,7 +23,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/providers/auth-provider';
 import { useOnboarding } from '@/providers/onboarding-provider';
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
+import { trpc } from '@/lib/trpc';
 
 
 
@@ -44,33 +46,60 @@ export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { getRoleProgress, getRoleStatus } = useOnboarding();
+  const [isLoading, setIsLoading] = useState(true);
+
+  const walletQuery = trpc.agripay.getWallet.useQuery(
+    { userId: user?.id || '' },
+    { enabled: !!user?.id }
+  );
+
+  const shopQuery = trpc.shop.getMyShop.useQuery(
+    undefined,
+    { enabled: !!user?.id }
+  );
+
+  const serviceQuery = trpc.serviceProviders.getMyProfile.useQuery(
+    undefined,
+    { enabled: !!user?.id }
+  );
+
+  // Logistics query removed - will use onboarding provider data
+
+  useEffect(() => {
+    if (!walletQuery.isLoading) {
+      setIsLoading(false);
+    }
+  }, [walletQuery.isLoading]);
+
+  const shopData = shopQuery.data;
+  const serviceData = serviceQuery.data;
 
   const businessUnits: BusinessUnit[] = [
     {
       id: 'shop',
       name: 'Shop',
       icon: Store,
-      status: getRoleStatus('shop'),
-      progress: getRoleProgress('shop'),
-      stats: [
-        { label: 'Products', value: 15 },
-        { label: 'Orders', value: 32 },
-      ],
-      walletBalance: 12500,
-      route: '/my-products',
+      status: shopData ? 'active' : getRoleStatus('shop'),
+      progress: shopData ? 100 : getRoleProgress('shop'),
+      stats: shopData?.exists ? [
+        { label: 'Products', value: shopData.hasProducts ? '1+' : '0' },
+        { label: 'Status', value: 'Active' },
+      ] : [],
+      walletBalance: 0,
+      route: shopData ? '/shop-dashboard' : '/onboarding/shop/profile',
     },
     {
       id: 'service',
       name: 'Service',
       icon: Wrench,
-      status: getRoleStatus('service'),
-      progress: getRoleProgress('service'),
-      stats: [
-        { label: 'Bookings', value: 2 },
-        { label: 'Earnings', value: 'KSh 3,200' },
-      ],
-      walletBalance: 7800,
-      route: '/post-service',
+      status: serviceData ? 'active' : getRoleStatus('service'),
+      progress: serviceData ? 100 : getRoleProgress('service'),
+      stats: serviceData?.exists ? [
+        { label: 'Status', value: 'Active' },
+        { label: 'Profile', value: 'Complete' },
+      ] : [],
+      walletBalance: 0,
+      route: serviceData ? '/service-provider-dashboard' : '/inboarding/service-role',
     },
     {
       id: 'logistics',
@@ -78,13 +107,9 @@ export default function DashboardScreen() {
       icon: Truck,
       status: getRoleStatus('logistics'),
       progress: getRoleProgress('logistics'),
-      stats: [
-        { label: 'Vehicles', value: 3 },
-        { label: 'Drivers', value: 2 },
-        { label: 'Deliveries', value: 7 },
-      ],
-      walletBalance: 18600,
-      route: '/logistics',
+      stats: [],
+      walletBalance: 0,
+      route: '/inboarding/logistics-role',
     },
     {
       id: 'farm',
@@ -97,7 +122,10 @@ export default function DashboardScreen() {
     },
   ];
 
-  const totalWalletBalance = 38900;
+  const walletData = walletQuery.data;
+  const totalWalletBalance = (walletData && 'wallet' in walletData && walletData.wallet) 
+    ? walletData.wallet.balance || 0 
+    : 0;
   const userTier = user?.tier || 'verified';
   const nextTierGoal = 'Complete 50 Deliveries';
 
@@ -197,8 +225,22 @@ export default function DashboardScreen() {
     </TouchableOpacity>
   );
 
+  if (isLoading) {
+    return (
+      <>
+        <Stack.Screen options={{ title: 'Dashboard' }} />
+        <View style={[styles.container, styles.centerContent]}>
+          <ActivityIndicator size="large" color="#2D5016" />
+          <Text style={styles.loadingText}>Loading dashboard...</Text>
+        </View>
+      </>
+    );
+  }
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <>
+      <Stack.Screen options={{ title: 'Dashboard' }} />
+      <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -259,6 +301,7 @@ export default function DashboardScreen() {
         <View style={styles.divider} />
       </ScrollView>
     </View>
+    </>
   );
 }
 
@@ -266,6 +309,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
+  },
+  centerContent: {
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#6B7280',
   },
   scrollView: {
     flex: 1,
