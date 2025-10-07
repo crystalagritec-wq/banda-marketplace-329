@@ -104,6 +104,12 @@ export default function CheckoutScreen() {
     refetchOnMount: true,
     refetchOnWindowFocus: true,
   });
+  const agripayWalletQuery = trpc.agripay.getWallet.useQuery(
+    { userId: user?.id ?? "" },
+    { enabled: !!user?.id, refetchOnMount: true, refetchOnWindowFocus: true }
+  );
+  const fundWalletMutation = trpc.agripay.fundWallet.useMutation();
+  const processAgriPayPaymentMutation = trpc.checkout.processAgriPayPayment.useMutation();
   const { addresses } = useAddresses();
   const {
     getDeliveryQuotes,
@@ -118,11 +124,14 @@ export default function CheckoutScreen() {
   const checkoutOrderMutation = trpc.checkout.checkoutOrder.useMutation();
   
   useEffect(() => {
-    if (walletBalanceQuery.data?.wallet) {
+    if (agripayWalletQuery.data?.wallet) {
+      const balance = Number(agripayWalletQuery.data.wallet.balance ?? 0);
+      updateAgriPayBalance(balance);
+    } else if (walletBalanceQuery.data?.wallet) {
       const balance = walletBalanceQuery.data.wallet.trading_balance || 0;
       updateAgriPayBalance(balance);
     }
-  }, [walletBalanceQuery.data, updateAgriPayBalance]);
+  }, [agripayWalletQuery.data, walletBalanceQuery.data, updateAgriPayBalance]);
   
   const [selectedAddress, setSelectedAddress] = useState<UnifiedAddress | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
@@ -719,6 +728,32 @@ export default function CheckoutScreen() {
       );
 
       let stkCheckoutId: string | undefined;
+
+      if (selectedPaymentMethod!.type === 'agripay') {
+        try {
+          const sellerId = groupedBySeller.length > 0 ? groupedBySeller[0].sellerId : (cartItems[0]?.sellerId || "");
+          const sellerAmount = cartSummary.subtotal;
+          const driverAmount = 0;
+          const platformFee = 0;
+          const res = await processAgriPayPaymentMutation.mutateAsync({
+            userId: user?.id || "",
+            orderId: checkoutResult.orderId,
+            amount: finalTotal,
+            sellerId: sellerId,
+            sellerAmount,
+            driverAmount,
+            platformFee,
+          });
+          if (res?.success) {
+            updateAgriPayBalance(Math.max(0, (agriPayBalance ?? 0) - finalTotal));
+          }
+        } catch (e: any) {
+          Alert.alert('Payment Failed', e?.message || 'Failed to process AgriPay payment');
+          setIsProcessing(false);
+          return;
+        }
+      }
+
       if (selectedPaymentMethod!.type === 'mpesa') {
         try {
           const stk = await initiateMpesaStk({
@@ -1328,12 +1363,25 @@ export default function CheckoutScreen() {
                           transactionDesc: `AgriPay Wallet Top-up`,
                         });
                         Alert.alert('✅ Payment Initiated', 'Please complete the M-Pesa payment on your phone');
-                        setTimeout(() => {
-                          depositAgriPay(amount);
-                          setShowTopUpModal(false);
-                          setTopUpAmount('');
-                          Alert.alert('🎉 Success', `Your wallet has been topped up with ${formatPrice(amount)}`);
-                        }, 3000);
+                        setTimeout(async () => {
+                          try {
+                            const walletId = agripayWalletQuery.data?.wallet?.id;
+                            if (!walletId) throw new Error('Wallet not found');
+                            const result = await fundWalletMutation.mutateAsync({
+                              walletId,
+                              amount,
+                              paymentMethod: { type: 'mpesa', details: { phone: mpesaNumber } },
+                              externalProvider: 'mpesa',
+                            });
+                            updateAgriPayBalance(result?.newBalance ?? (agriPayBalance + amount));
+                            setShowTopUpModal(false);
+                            setTopUpAmount('');
+                            Alert.alert('🎉 Success', `Your wallet has been topped up with ${formatPrice(amount)}`);
+                            agripayWalletQuery.refetch();
+                          } catch (err: any) {
+                            Alert.alert('Top-up Error', err?.message || 'Failed to record top-up');
+                          }
+                        }, 1500);
                       } else if (topUpMethod === 'card') {
                         const session = await createCardCheckoutSession({ 
                           orderId: `TOPUP-${Date.now()}`, 
@@ -1342,10 +1390,24 @@ export default function CheckoutScreen() {
                         });
                         const result = await WebBrowser.openAuthSessionAsync(session.redirectUrl, undefined, { showInRecents: true });
                         if (result.type === 'success') {
-                          depositAgriPay(amount);
-                          setShowTopUpModal(false);
-                          setTopUpAmount('');
-                          Alert.alert('🎉 Success', `Your wallet has been topped up with ${formatPrice(amount)}`);
+                          try {
+                            const walletId = agripayWalletQuery.data?.wallet?.id;
+                            if (!walletId) throw new Error('Wallet not found');
+                            const fund = await fundWalletMutation.mutateAsync({
+                              walletId,
+                              amount,
+                              paymentMethod: { type: 'card', details: { ref: session.reference } },
+                              externalProvider: 'card',
+                              externalTransactionId: session.reference,
+                            });
+                            updateAgriPayBalance(fund?.newBalance ?? (agriPayBalance + amount));
+                            setShowTopUpModal(false);
+                            setTopUpAmount('');
+                            Alert.alert('🎉 Success', `Your wallet has been topped up with ${formatPrice(amount)}`);
+                            agripayWalletQuery.refetch();
+                          } catch (err: any) {
+                            Alert.alert('Top-up Error', err?.message || 'Failed to record top-up');
+                          }
                         } else {
                           Alert.alert('❌ Cancelled', 'Card payment was cancelled');
                         }
