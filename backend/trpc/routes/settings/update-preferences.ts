@@ -5,7 +5,7 @@ export const updatePreferencesProcedure = protectedProcedure
   .input(
     z.object({
       category: z.enum(['notifications', 'privacy', 'appearance', 'accessibility', 'security']),
-      preferences: z.record(z.any()),
+      preferences: z.record(z.string(), z.unknown()),
     })
   )
   .mutation(async ({ input, ctx }) => {
