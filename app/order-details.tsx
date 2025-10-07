@@ -18,7 +18,7 @@ import {
   Eye,
   Navigation,
 } from 'lucide-react-native';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -35,6 +35,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCart, type Order } from '@/providers/cart-provider';
 import { trpc } from '@/lib/trpc';
+import { useAuth } from '@/providers/auth-provider';
 
 function formatPrice(amount: number) {
   try {
@@ -145,13 +146,15 @@ export default function OrderDetailsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { orders } = useCart();
+  const { user } = useAuth();
   const params = useLocalSearchParams<{ orderId?: string }>();
   
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isReleasing, setIsReleasing] = useState<boolean>(false);
   
   const orderId = params?.orderId || '';
-  const order = orders.find(o => o.id === orderId);
+  const order = useMemo(() => orders.find(o => o.id === orderId), [orders, orderId]);
 
   const fetchOrderDetails = trpc.orders.fetchOrderDetails.useQuery(
     { 
@@ -214,8 +217,8 @@ export default function OrderDetailsScreen() {
     const shareText = `Order #${orderId} - Total: ${formatPrice(order?.total || 0)}`;
     
     if (Platform.OS === 'web') {
-      if (navigator.share) {
-        navigator.share({
+      if ((navigator as any).share) {
+        (navigator as any).share({
           title: 'Banda Order',
           text: shareText,
         });
@@ -230,6 +233,39 @@ export default function OrderDetailsScreen() {
   const handleRateOrder = useCallback(() => {
     Alert.alert('Rate Order', 'Rating feature coming soon!');
   }, []);
+
+  const releaseMutation = trpc.orders.releaseReserve.useMutation();
+
+  const handleConfirmDelivery = useCallback(async () => {
+    if (!orderId) {
+      Alert.alert('Error', 'Missing order ID');
+      return;
+    }
+    if (!user?.id) {
+      Alert.alert('Not signed in', 'Please sign in to confirm delivery');
+      return;
+    }
+    try {
+      setIsReleasing(true);
+      console.log('🔓 Releasing reserve for order', orderId);
+      const res = await releaseMutation.mutateAsync({
+        orderId,
+        userId: user.id,
+        releaseReason: 'Buyer confirmed delivery',
+      });
+      if ((res as any)?.success) {
+        Alert.alert('Success', 'Funds released to the seller');
+        await fetchOrderDetails.refetch();
+      } else {
+        Alert.alert('Notice', 'Request sent');
+      }
+    } catch (e: any) {
+      console.error('Release error', e);
+      Alert.alert('Error', e?.message ?? 'Failed to release funds');
+    } finally {
+      setIsReleasing(false);
+    }
+  }, [orderId, user?.id, releaseMutation, fetchOrderDetails]);
 
   if (loading || !order) {
     return (
@@ -453,13 +489,33 @@ export default function OrderDetailsScreen() {
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
           {(order.status === 'confirmed' || order.status === 'packed' || order.status === 'shipped') && (
-            <TouchableOpacity style={styles.trackButton} onPress={handleTrackOrder}>
+            <TouchableOpacity
+              testID="track-order-button"
+              style={styles.trackButton}
+              onPress={handleTrackOrder}
+            >
               <Navigation size={20} color="white" />
               <Text style={styles.trackButtonText}>Track Order</Text>
             </TouchableOpacity>
           )}
+
+          {(order.status === 'shipped' || order.status === 'packed' || order.status === 'confirmed') && (
+            <TouchableOpacity
+              testID="confirm-delivery-button"
+              style={[styles.confirmButton, isReleasing && styles.confirmButtonDisabled]}
+              onPress={handleConfirmDelivery}
+              disabled={isReleasing}
+            >
+              <CheckCircle2 size={20} color="#fff" />
+              <Text style={styles.confirmButtonText}>{isReleasing ? 'Releasing…' : 'Confirm Delivery'}</Text>
+            </TouchableOpacity>
+          )}
           
-          <TouchableOpacity style={styles.helpButton} onPress={() => router.push('/(tabs)/chat')}>
+          <TouchableOpacity
+            testID="need-help-button"
+            style={styles.helpButton}
+            onPress={() => router.push('/(tabs)/chat')}
+          >
             <MessageCircle size={20} color="#2D5016" />
             <Text style={styles.helpButtonText}>Need Help?</Text>
           </TouchableOpacity>
@@ -962,6 +1018,28 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 2,
     borderColor: '#2D5016',
+  },
+  confirmButton: {
+    backgroundColor: '#10B981',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
+  confirmButtonDisabled: {
+    opacity: 0.6,
+  },
+  confirmButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '700',
   },
   helpButtonText: {
     color: '#2D5016',
