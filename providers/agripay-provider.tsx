@@ -99,10 +99,11 @@ export const [AgriPayProvider, useAgriPay] = createContextHook(() => {
       hasError: !!walletQuery.error,
       isQueryLoading: walletQuery.isLoading,
       userId: user?.id,
-      isFetching: walletQuery.isFetching
+      isFetching: walletQuery.isFetching,
+      isSuccess: walletQuery.isSuccess
     });
     
-    if (walletQuery.data) {
+    if (walletQuery.isSuccess && walletQuery.data) {
       if (walletQuery.data.wallet) {
         console.log('[AgriPayProvider] Wallet found:', walletQuery.data.wallet.id);
         setWallet(walletQuery.data.wallet);
@@ -115,17 +116,19 @@ export const [AgriPayProvider, useAgriPay] = createContextHook(() => {
       }
       setIsLoading(false);
       setError(null);
-    } else if (walletQuery.error) {
-      console.error('[AgriPayProvider] Wallet query error:', walletQuery.error.message);
-      setError(walletQuery.error.message);
+    } else if (walletQuery.isError) {
+      console.error('[AgriPayProvider] Wallet query error:', walletQuery.error?.message);
+      setError(walletQuery.error?.message || 'Failed to load wallet');
       setIsLoading(false);
       setWallet(null);
-    } else if (!walletQuery.isLoading && !walletQuery.isFetching && user?.id) {
-      console.log('[AgriPayProvider] Query finished, no data');
+    } else if (walletQuery.isLoading || walletQuery.isFetching) {
+      setIsLoading(true);
+    } else if (!user?.id) {
+      console.log('[AgriPayProvider] No user ID');
       setIsLoading(false);
       setWallet(null);
     }
-  }, [walletQuery.data, walletQuery.error, walletQuery.isLoading, walletQuery.isFetching, user?.id]);
+  }, [walletQuery.data, walletQuery.error, walletQuery.isLoading, walletQuery.isFetching, walletQuery.isSuccess, walletQuery.isError, user?.id]);
 
   useEffect(() => {
     if (!wallet?.id) return;
