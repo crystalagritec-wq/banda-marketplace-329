@@ -71,10 +71,12 @@ export default function WalletScreen() {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   
   const walletLoadingFallback = !agriPayContext;
-  const { wallet, fundWallet, verifyPin, refreshWallet, isLoading: ctxLoading } = agriPayContext ?? ({} as any);
+  const { wallet, fundWallet, verifyPin, refreshWallet, isLoading: ctxLoading, hasWallet } = agriPayContext ?? ({} as any);
 
   useEffect(() => {
-    if (!ctxLoading && !wallet) {
+    console.log('[WalletScreen] State check:', { ctxLoading, hasWallet, walletId: wallet?.id });
+    
+    if (!ctxLoading && !hasWallet) {
       console.log('[WalletScreen] No wallet found, redirecting to wallet-welcome');
       try {
         router.replace('/wallet-welcome' as any);
@@ -82,7 +84,7 @@ export default function WalletScreen() {
         console.warn('[WalletScreen] Navigation error to wallet-welcome:', e);
       }
     }
-  }, [ctxLoading, wallet]);
+  }, [ctxLoading, hasWallet, wallet?.id]);
 
   const transactionsQuery = trpc.agripay.getTransactions.useQuery(
     { walletId: wallet?.id ?? '' },
@@ -279,11 +281,11 @@ export default function WalletScreen() {
     }
   }
 
-  if (walletLoading || ctxLoading) {
+  if (walletLoading || ctxLoading || walletLoadingFallback) {
     return (
       <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]} testID="wallet-loading-state">
         <ActivityIndicator size="large" color="#2D5016" />
-        <Text style={{ marginTop: 16, color: '#666' }}>Loading wallet...</Text>
+        <Text style={{ marginTop: 16, color: '#666', fontSize: 16 }}>Loading wallet...</Text>
       </View>
     );
   }
