@@ -26,6 +26,7 @@ import { useAuth } from '@/providers/auth-provider';
 import { useAgriPay } from '@/providers/agripay-provider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
+import { trpc } from '@/lib/trpc';
 
 type OnboardingStep = 'phone' | 'pin' | 'terms' | 'success' | 'dashboard';
 
@@ -33,7 +34,8 @@ export default function WalletOnboardingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { createWallet, setPin: setPinMutation } = useAgriPay();
+  const { createWallet } = useAgriPay();
+  const setPinMutation = trpc.agripay.setPin.useMutation();
 
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('phone');
   const [phoneNumber, setPhoneNumber] = useState<string>(user?.phone || '');
@@ -104,11 +106,16 @@ export default function WalletOnboardingScreen() {
       console.log('[WalletOnboarding] Wallet created:', walletResult.wallet.id);
       setCreatedWallet(walletResult.wallet);
 
-      console.log('[WalletOnboarding] Setting PIN...');
-      const pinResult = await setPinMutation(pin);
+      console.log('[WalletOnboarding] Setting PIN for wallet:', walletResult.wallet.id);
+      const pinResult = await setPinMutation.mutateAsync({
+        walletId: walletResult.wallet.id,
+        pin: pin,
+      });
 
       if (!pinResult.success) {
         console.warn('[WalletOnboarding] PIN creation failed, but wallet exists');
+      } else {
+        console.log('[WalletOnboarding] PIN set successfully');
       }
 
       setCurrentStep('success');

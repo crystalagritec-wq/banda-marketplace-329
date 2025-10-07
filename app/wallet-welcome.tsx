@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,14 +10,21 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Wallet, Shield, TrendingUp, Lock } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import WalletOnboardingModal from '@/components/WalletOnboardingModal';
 
 export default function WalletWelcomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const handleCreateWallet = () => {
-    console.log('[WalletWelcome] Navigating to wallet onboarding...');
-    router.push('/wallet-onboarding' as any);
+    console.log('[WalletWelcome] Opening wallet onboarding modal...');
+    setShowOnboarding(true);
+  };
+
+  const handleOnboardingSuccess = () => {
+    console.log('[WalletWelcome] Onboarding complete, navigating to wallet...');
+    router.replace('/(tabs)/wallet' as any);
   };
 
   return (
@@ -97,6 +104,12 @@ export default function WalletWelcomeScreen() {
           </TouchableOpacity>
         </View>
       </LinearGradient>
+
+      <WalletOnboardingModal
+        visible={showOnboarding}
+        onClose={() => setShowOnboarding(false)}
+        onSuccess={handleOnboardingSuccess}
+      />
     </View>
   );
 }
