@@ -79,14 +79,10 @@ export const withdrawFundsProcedure = protectedProcedure
           details: input.payoutDetails,
         },
         description: `Withdrawal to ${input.payoutMethod}`,
-        created_by: ctx.user.id,
         metadata: {
           payout_request_id: payoutRequest.id,
           fee,
           net_amount: netAmount,
-          user_id: ctx.user.id,
-          wallet_id: input.walletId,
-          timestamp: new Date().toISOString(),
         },
       })
       .select()
@@ -102,10 +98,8 @@ export const withdrawFundsProcedure = protectedProcedure
       .update({
         balance: balanceAfter,
         last_transaction_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       })
-      .eq("id", input.walletId)
-      .eq("user_id", ctx.user.id);
+      .eq("id", input.walletId);
 
     if (updateError) {
       console.error("Error updating wallet:", updateError);

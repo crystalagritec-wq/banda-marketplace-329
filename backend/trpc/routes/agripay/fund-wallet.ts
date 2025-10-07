@@ -48,12 +48,6 @@ export const fundWalletProcedure = protectedProcedure
       external_provider: input.externalProvider,
       description: `Deposit via ${input.paymentMethod.type}`,
       completed_at: new Date().toISOString(),
-      created_by: ctx.user.id,
-      metadata: {
-        user_id: ctx.user.id,
-        wallet_id: input.walletId,
-        timestamp: new Date().toISOString(),
-      },
     } as const;
 
     const { data: transactions, error: txError } = await ctx.supabase
@@ -73,10 +67,8 @@ export const fundWalletProcedure = protectedProcedure
       .update({
         balance: balanceAfter,
         last_transaction_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       } as Record<string, unknown>)
-      .eq("id", input.walletId)
-      .eq("user_id", ctx.user.id);
+      .eq("id", input.walletId);
 
     if (updateError) {
       console.error("Error updating wallet:", updateError);
