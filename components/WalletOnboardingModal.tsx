@@ -27,7 +27,6 @@ import { useAuth } from '@/providers/auth-provider';
 import { useAgriPay } from '@/providers/agripay-provider';
 import * as Clipboard from 'expo-clipboard';
 import { trpc } from '@/lib/trpc';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type OnboardingStep = 'welcome' | 'phone' | 'pin' | 'terms' | 'success';
 
@@ -47,19 +46,16 @@ export default function WalletOnboardingModal({
   const setPinMutation = trpc.agripay.setPin.useMutation();
 
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
-  const [phoneNumber, setPhoneNumber] = useState<string>('');
-  const [isPhoneValid, setIsPhoneValid] = useState<boolean>(false);
+  const [phoneNumber, setPhoneNumber] = useState<string>(user?.phone || '');
   const [pin, setPin] = useState<string>('');
   const [confirmPin, setConfirmPin] = useState<string>('');
   const [showPin, setShowPin] = useState<boolean>(false);
   const [termsAccepted, setTermsAccepted] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [createdWallet, setCreatedWallet] = useState<any>(null);
-  const [walletDisplayId, setWalletDisplayId] = useState<string>('');
 
-  const handleClose = async () => {
+  const handleClose = () => {
     if (currentStep === 'success') {
-      await AsyncStorage.setItem('wallet_onboarding_completed', 'true');
       onSuccess?.();
     }
     setCurrentStep('welcome');
@@ -67,14 +63,12 @@ export default function WalletOnboardingModal({
     setConfirmPin('');
     setTermsAccepted(false);
     setCreatedWallet(null);
-    setWalletDisplayId('');
     onClose();
   };
 
   const handlePhoneVerification = () => {
-    const cleanPhone = phoneNumber.replace(/\D/g, '');
-    if (!cleanPhone.startsWith('07') || cleanPhone.length !== 10) {
-      Alert.alert('Invalid Phone', 'Phone number must start with 07 and be 10 digits');
+    if (!phoneNumber || phoneNumber.length < 10) {
+      Alert.alert('Invalid Phone', 'Please enter a valid phone number');
       return;
     }
     setCurrentStep('pin');
@@ -118,17 +112,12 @@ export default function WalletOnboardingModal({
       console.log('[WalletOnboardingModal] Wallet created:', walletResult.wallet.id);
       setCreatedWallet(walletResult.wallet);
 
-      const walletIdClean = walletResult.wallet.id.replace(/-/g, '');
-      const displayId = walletIdClean.substring(0, 12).toUpperCase();
-      setWalletDisplayId(displayId);
-
       console.log('[WalletOnboardingModal] Setting PIN...');
       await setPinMutation.mutateAsync({
         walletId: walletResult.wallet.id,
         pin: pin,
       });
 
-      console.log('[WalletOnboardingModal] Wallet creation complete!');
       setCurrentStep('success');
     } catch (error: any) {
       console.error('[WalletOnboardingModal] Error:', error);
@@ -139,8 +128,8 @@ export default function WalletOnboardingModal({
   };
 
   const copyWalletId = async () => {
-    if (walletDisplayId) {
-      await Clipboard.setStringAsync(walletDisplayId);
+    if (createdWallet?.id) {
+      await Clipboard.setStringAsync(createdWallet.id);
       Alert.alert('Copied!', 'Wallet ID copied to clipboard');
     }
   };
@@ -232,16 +221,11 @@ export default function WalletOnboardingModal({
           <TextInput
             style={styles.phoneInput}
             value={phoneNumber}
-            onChangeText={(text) => {
-              setPhoneNumber(text);
-              const cleanPhone = text.replace(/\D/g, '');
-              setIsPhoneValid(cleanPhone.startsWith('07') && cleanPhone.length === 10);
-            }}
-            placeholder="0712345678"
+            onChangeText={setPhoneNumber}
+            placeholder="+254 705 256 259"
             keyboardType="phone-pad"
-            maxLength={10}
           />
-          {isPhoneValid && <CheckCircle size={20} color="#10B981" />}
+          <CheckCircle size={20} color="#2D5016" />
         </View>
       </View>
 
@@ -256,10 +240,10 @@ export default function WalletOnboardingModal({
         <TouchableOpacity
           style={[styles.primaryButton, { flex: 1 }]}
           onPress={handlePhoneVerification}
-          disabled={!isPhoneValid}
+          disabled={!phoneNumber}
         >
           <LinearGradient
-            colors={isPhoneValid ? ['#2D5016', '#4A7C59'] : ['#D1D5DB', '#9CA3AF']}
+            colors={phoneNumber ? ['#2D5016', '#4A7C59'] : ['#D1D5DB', '#9CA3AF']}
             style={styles.buttonGradient}
           >
             <Text style={styles.primaryButtonText}>Continue</Text>
@@ -274,12 +258,12 @@ export default function WalletOnboardingModal({
       <Text style={styles.stepNumber}>Step 2 of 4</Text>
       <Text style={styles.title}>Create Your PIN</Text>
       <Text style={styles.subtitle}>
-        Choose a secure 4-digit PIN to protect your wallet
+        Choose a 4-digit PIN to secure your wallet
       </Text>
 
       <View style={styles.form}>
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Enter 4-Digit PIN</Text>
+          <Text style={styles.label}>Enter PIN</Text>
           <View style={styles.pinInputWrapper}>
             {[0, 1, 2, 3].map((index) => (
               <View
@@ -289,19 +273,17 @@ export default function WalletOnboardingModal({
                   pin.length > index && styles.pinDotFilled,
                 ]}
               >
-                {showPin && pin[index] ? (
+                {showPin && pin[index] && (
                   <Text style={styles.pinDigit}>{pin[index]}</Text>
-                ) : pin.length > index ? (
-                  <View style={styles.pinDotIndicator} />
-                ) : null}
+                )}
               </View>
             ))}
           </View>
           <TextInput
             style={styles.hiddenInput}
             value={pin}
-            onChangeText={(text) => setPin(text.replace(/\D/g, ''))}
-            keyboardType="number-pad"
+            onChangeText={setPin}
+            keyboardType="numeric"
             maxLength={4}
             secureTextEntry={!showPin}
             autoFocus
@@ -309,7 +291,7 @@ export default function WalletOnboardingModal({
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Confirm 4-Digit PIN</Text>
+          <Text style={styles.label}>Confirm PIN</Text>
           <View style={styles.pinInputWrapper}>
             {[0, 1, 2, 3].map((index) => (
               <View
@@ -317,32 +299,23 @@ export default function WalletOnboardingModal({
                 style={[
                   styles.pinDot,
                   confirmPin.length > index && styles.pinDotFilled,
-                  confirmPin.length === 4 && pin !== confirmPin && styles.pinDotError,
                 ]}
               >
-                {showPin && confirmPin[index] ? (
+                {showPin && confirmPin[index] && (
                   <Text style={styles.pinDigit}>{confirmPin[index]}</Text>
-                ) : confirmPin.length > index ? (
-                  <View style={styles.pinDotIndicator} />
-                ) : null}
+                )}
               </View>
             ))}
           </View>
           <TextInput
             style={styles.hiddenInput}
             value={confirmPin}
-            onChangeText={(text) => setConfirmPin(text.replace(/\D/g, ''))}
-            keyboardType="number-pad"
+            onChangeText={setConfirmPin}
+            keyboardType="numeric"
             maxLength={4}
             secureTextEntry={!showPin}
           />
         </View>
-
-        {confirmPin.length === 4 && pin !== confirmPin && (
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorText}>PINs do not match. Please try again.</Text>
-          </View>
-        )}
 
         <TouchableOpacity
           style={styles.showPinButton}
@@ -357,18 +330,10 @@ export default function WalletOnboardingModal({
         </TouchableOpacity>
       </View>
 
-      <View style={styles.pinRequirements}>
-        <Text style={styles.pinRequirementsTitle}>PIN Requirements:</Text>
-        <Text style={styles.pinRequirementItem}>• Must be exactly 4 digits</Text>
-        <Text style={styles.pinRequirementItem}>• Only numbers allowed (0-9)</Text>
-        <Text style={styles.pinRequirementItem}>• Avoid obvious patterns (1234, 0000)</Text>
-        <Text style={styles.pinRequirementItem}>• Never share with anyone</Text>
-      </View>
-
       <View style={styles.securityTip}>
         <Lock size={16} color="#F97316" />
         <Text style={styles.securityTipText}>
-          Security Tip: Choose a PIN that&apos;s easy to remember but hard to guess. Avoid birthdays or sequential numbers.
+          Never share your PIN with anyone
         </Text>
       </View>
 
@@ -409,54 +374,21 @@ export default function WalletOnboardingModal({
       </Text>
 
       <View style={styles.termsContainer}>
-        <Text style={styles.termsTitle}>AgriPay Wallet Terms & Conditions</Text>
+        <Text style={styles.termsTitle}>AgriPay Wallet Agreement</Text>
 
-        <Text style={styles.termsSection}>1. Account Security & PIN Protection</Text>
+        <Text style={styles.termsSection}>1. Account Security</Text>
         <Text style={styles.termsText}>
-          • You are solely responsible for maintaining the confidentiality of your 4-digit PIN
-          {"\n"}• Never share your PIN with anyone, including AgriPay staff
-          {"\n"}• You will be liable for all transactions made using your PIN
-          {"\n"}• Report lost or compromised PINs immediately
+          You are responsible for maintaining the confidentiality of your PIN.
         </Text>
 
-        <Text style={styles.termsSection}>2. Transaction Protection & TradeGuard</Text>
+        <Text style={styles.termsSection}>2. Transaction Protection</Text>
         <Text style={styles.termsText}>
-          • All payments are protected by our TradeGuard escrow system
-          {"\n"}• Funds are held securely until delivery confirmation
-          {"\n"}• Disputes must be raised within 48 hours of delivery
-          {"\n"}• Resolution process takes 3-5 business days
+          All payments are protected by TradeGuard escrow system.
         </Text>
 
-        <Text style={styles.termsSection}>3. Fees & Transaction Limits</Text>
+        <Text style={styles.termsSection}>3. Privacy & Data</Text>
         <Text style={styles.termsText}>
-          • Wallet deposits: Free for M-Pesa, 2% for cards
-          {"\n"}• Withdrawals: KES 25 flat fee per transaction
-          {"\n"}• Daily transaction limit: KES 150,000
-          {"\n"}• Single transaction limit: KES 50,000
-        </Text>
-
-        <Text style={styles.termsSection}>4. Privacy & Data Protection</Text>
-        <Text style={styles.termsText}>
-          • Your data is protected with bank-level 256-bit encryption
-          {"\n"}• We comply with Kenya Data Protection Act 2019
-          {"\n"}• Transaction data is stored for 7 years as per CBK regulations
-          {"\n"}• We never share your data without explicit consent
-        </Text>
-
-        <Text style={styles.termsSection}>5. Account Suspension & Termination</Text>
-        <Text style={styles.termsText}>
-          • Accounts may be suspended for suspicious activity
-          {"\n"}• You may close your account anytime with zero balance
-          {"\n"}• Remaining funds will be transferred to your M-Pesa
-          {"\n"}• Closed accounts cannot be reopened
-        </Text>
-
-        <Text style={styles.termsSection}>6. Liability & Indemnification</Text>
-        <Text style={styles.termsText}>
-          • AgriPay is not liable for losses due to PIN compromise
-          {"\n"}• You indemnify AgriPay against unauthorized use of your account
-          {"\n"}• Maximum liability is limited to your wallet balance
-          {"\n"}• Force majeure events exempt AgriPay from liability
+          We protect your data with bank-level 256-bit encryption.
         </Text>
       </View>
 
@@ -468,7 +400,7 @@ export default function WalletOnboardingModal({
           {termsAccepted && <CheckCircle size={18} color="white" />}
         </View>
         <Text style={styles.checkboxLabel}>
-          I have read and agree to all the Terms & Conditions, Privacy Policy, and understand my responsibilities regarding PIN security and transaction limits.
+          I agree to the Terms & Conditions
         </Text>
       </Pressable>
 
@@ -522,21 +454,17 @@ export default function WalletOnboardingModal({
 
       <View style={styles.walletCard}>
         <View style={styles.walletCardHeader}>
-          <Text style={styles.walletCardLabel}>YOUR 12-DIGIT WALLET ID</Text>
-          <TouchableOpacity onPress={copyWalletId} style={styles.copyIconButton}>
-            <Copy size={18} color="#F97316" />
+          <Text style={styles.walletCardLabel}>WALLET ID</Text>
+          <TouchableOpacity onPress={copyWalletId}>
+            <Copy size={18} color="white" />
           </TouchableOpacity>
         </View>
-        <Text style={styles.walletId}>
-          {walletDisplayId || 'GENERATING...'}
+        <Text style={styles.walletId} numberOfLines={1}>
+          {createdWallet?.id || 'N/A'}
         </Text>
         <Text style={styles.walletIdHint}>
-          Save this unique 12-digit ID - you&apos;ll need it to receive payments
+          Tap the copy icon to save your wallet ID
         </Text>
-        <TouchableOpacity style={styles.copyFullButton} onPress={copyWalletId}>
-          <Copy size={16} color="#2D5016" />
-          <Text style={styles.copyFullButtonText}>Copy Wallet ID</Text>
-        </TouchableOpacity>
       </View>
 
       <View style={styles.protectionBanner}>
@@ -743,16 +671,6 @@ const styles = StyleSheet.create({
     borderColor: '#2D5016',
     backgroundColor: 'rgba(45, 80, 22, 0.1)',
   },
-  pinDotError: {
-    borderColor: '#EF4444',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-  },
-  pinDotIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#2D5016',
-  },
   pinDigit: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -789,39 +707,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#F97316',
     fontWeight: '500',
-    lineHeight: 18,
-  },
-  pinRequirements: {
-    backgroundColor: 'rgba(45, 80, 22, 0.05)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#2D5016',
-  },
-  pinRequirementsTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#2D5016',
-    marginBottom: 8,
-  },
-  pinRequirementItem: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 4,
-    lineHeight: 18,
-  },
-  errorBanner: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-  },
-  errorText: {
-    fontSize: 13,
-    color: '#EF4444',
-    fontWeight: '600',
-    textAlign: 'center',
   },
   termsContainer: {
     backgroundColor: '#F9FAFB',
@@ -924,64 +809,32 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   walletCard: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 24,
+    backgroundColor: '#2D5016',
+    borderRadius: 16,
+    padding: 20,
     marginTop: 8,
-    borderWidth: 2,
-    borderColor: '#F97316',
-    elevation: 4,
-    shadowColor: '#F97316',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
   },
   walletCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   walletCardLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
-    color: '#F97316',
-    letterSpacing: 1.5,
-  },
-  copyIconButton: {
-    padding: 4,
-    backgroundColor: 'rgba(249, 115, 22, 0.1)',
-    borderRadius: 8,
+    color: 'rgba(255, 255, 255, 0.7)',
+    letterSpacing: 1,
   },
   walletId: {
-    fontSize: 28,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#2D5016',
-    marginBottom: 12,
-    letterSpacing: 4,
-    textAlign: 'center',
+    color: 'white',
+    marginBottom: 6,
   },
   walletIdHint: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  copyFullButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(45, 80, 22, 0.1)',
-    borderRadius: 12,
-    paddingVertical: 12,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: '#2D5016',
-  },
-  copyFullButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#2D5016',
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   protectionBanner: {
     flexDirection: 'row',
