@@ -335,7 +335,7 @@ export default function WalletOnboardingScreen() {
   );
 
   const renderTermsStep = () => (
-    <ScrollView style={styles.stepContainer}>
+    <View style={styles.stepContainer}>
       <View style={styles.stepHeader}>
         <TouchableOpacity
           style={styles.backButton}
@@ -354,39 +354,81 @@ export default function WalletOnboardingScreen() {
         Please review and accept our terms to continue
       </Text>
 
-      <View style={styles.termsContainer}>
-        <Text style={styles.termsTitle}>AgriPay Wallet Agreement</Text>
+      <ScrollView style={styles.termsScrollContainer} showsVerticalScrollIndicator={true}>
+        <View style={styles.termsContainer}>
+          <Text style={styles.termsTitle}>AgriPay Wallet Agreement</Text>
 
-        <Text style={styles.termsSection}>1. Account Security</Text>
-        <Text style={styles.termsText}>
-          You are responsible for maintaining the confidentiality of your PIN
-          and account credentials. Never share your PIN with anyone.
-        </Text>
+          <Text style={styles.termsSection}>1. Account Security</Text>
+          <Text style={styles.termsText}>
+            You are solely responsible for maintaining the confidentiality of your PIN
+            and account credentials. Never share your PIN with anyone, including AgriPay staff.
+            Any transactions made using your PIN will be considered authorized by you.
+          </Text>
 
-        <Text style={styles.termsSection}>2. Transaction Protection</Text>
-        <Text style={styles.termsText}>
-          All payments made through AgriPay are protected by TradeGuard escrow
-          system. Funds are held securely until delivery confirmation.
-        </Text>
+          <Text style={styles.termsSection}>2. Transaction Protection</Text>
+          <Text style={styles.termsText}>
+            All payments made through AgriPay are protected by our TradeGuard escrow
+            system. Funds are held securely in escrow until delivery confirmation is provided.
+            This protects both buyers and sellers in every transaction.
+          </Text>
 
-        <Text style={styles.termsSection}>3. Fees & Charges</Text>
-        <Text style={styles.termsText}>
-          In case of disputes, our automated system will review the transaction
-          and resolve within 48 hours.
-        </Text>
+          <Text style={styles.termsSection}>3. Fees & Charges</Text>
+          <Text style={styles.termsText}>
+            Standard transaction fees apply: 2% for deposits, 1.5% for withdrawals, and 0.5%
+            for wallet-to-wallet transfers. Fees are clearly displayed before confirming any transaction.
+            No hidden charges will be applied to your account.
+          </Text>
 
-        <Text style={styles.termsSection}>5. Privacy & Data</Text>
-        <Text style={styles.termsText}>
-          We protect your data with bank-level 256-bit encryption. We never
-          share your information without consent.
-        </Text>
+          <Text style={styles.termsSection}>4. Dispute Resolution</Text>
+          <Text style={styles.termsText}>
+            In case of disputes, our automated system will review the transaction evidence
+            and resolve within 48 hours. You must provide proof of delivery or non-delivery
+            to support your claim. Decisions are final and binding.
+          </Text>
 
-        <Text style={styles.termsSection}>6. Account Termination</Text>
-        <Text style={styles.termsText}>
-          You may close your account at any time. Remaining balance will be
-          transferred to your linked M-Pesa account.
-        </Text>
-      </View>
+          <Text style={styles.termsSection}>5. Privacy & Data Protection</Text>
+          <Text style={styles.termsText}>
+            We protect your data with bank-level 256-bit encryption. Your personal information
+            and transaction history are stored securely and never shared with third parties
+            without your explicit consent, except as required by law.
+          </Text>
+
+          <Text style={styles.termsSection}>6. Prohibited Activities</Text>
+          <Text style={styles.termsText}>
+            You may not use AgriPay for illegal activities, money laundering, fraud, or any
+            activities that violate Kenyan law. Violation will result in immediate account
+            suspension and reporting to relevant authorities.
+          </Text>
+
+          <Text style={styles.termsSection}>7. Account Termination</Text>
+          <Text style={styles.termsText}>
+            You may close your account at any time by contacting support. Any remaining balance
+            will be transferred to your linked M-Pesa account within 5-7 business days after
+            verification. Accounts inactive for 2 years may be closed automatically.
+          </Text>
+
+          <Text style={styles.termsSection}>8. Liability Limitations</Text>
+          <Text style={styles.termsText}>
+            AgriPay is not liable for losses resulting from unauthorized access due to your
+            failure to secure your credentials, network failures, or force majeure events.
+            Our maximum liability is limited to the transaction amount in dispute.
+          </Text>
+
+          <Text style={styles.termsSection}>9. Changes to Terms</Text>
+          <Text style={styles.termsText}>
+            We reserve the right to modify these terms at any time. You will be notified
+            of significant changes via email or in-app notification. Continued use of the
+            service after changes constitutes acceptance of the new terms.
+          </Text>
+
+          <Text style={styles.termsSection}>10. Governing Law</Text>
+          <Text style={styles.termsText}>
+            These terms are governed by the laws of Kenya. Any disputes shall be resolved
+            in Kenyan courts. By accepting these terms, you consent to the jurisdiction
+            of Kenyan courts for any legal proceedings.
+          </Text>
+        </View>
+      </ScrollView>
 
       <Pressable
         style={styles.checkboxContainer}
@@ -422,7 +464,7 @@ export default function WalletOnboardingScreen() {
           )}
         </LinearGradient>
       </TouchableOpacity>
-    </ScrollView>
+    </View>
   );
 
   const renderSuccessStep = () => (
@@ -691,13 +733,16 @@ const styles = StyleSheet.create({
     color: '#92400E',
     lineHeight: 20,
   },
-  termsContainer: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-    borderWidth: 1,
+  termsScrollContainer: {
+    maxHeight: 300,
+    marginBottom: 20,
+    borderWidth: 2,
     borderColor: '#E5E7EB',
+    borderRadius: 16,
+    backgroundColor: 'white',
+  },
+  termsContainer: {
+    padding: 20,
   },
   termsTitle: {
     fontSize: 18,
@@ -706,17 +751,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   termsSection: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#333',
     marginTop: 16,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   termsText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#666',
-    lineHeight: 20,
-    marginBottom: 12,
+    lineHeight: 19,
+    marginBottom: 10,
   },
   checkboxContainer: {
     flexDirection: 'row',
