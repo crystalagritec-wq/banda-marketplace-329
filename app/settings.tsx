@@ -19,6 +19,7 @@ import {
   ChevronRight,
   MessageCircle,
   Settings as SettingsIcon,
+  Activity,
 } from 'lucide-react-native';
 import { useAuth } from '@/providers/auth-provider';
 import { useStorage } from '@/providers/storage-provider';
@@ -149,6 +150,10 @@ export default function SettingsScreen() {
     { id: 'feedback', title: 'Submit Feedback', subtitle: 'Suggest a feature or report a bug', icon: SettingsIcon, onPress: () => router.push('/settings/feedback' as any) },
   ];
 
+  const systemItems: ListItem[] = [
+    { id: 'system-health', title: 'System Health Check', subtitle: 'Monitor AgriPay & TradeGuard status', icon: Activity, onPress: () => router.push('/system-test' as any) },
+  ];
+
   return (
     <View style={styles.container} testID="settings-screen">
       <ScrollView contentContainerStyle={styles.content}>
@@ -165,6 +170,10 @@ export default function SettingsScreen() {
 
         <Section title="Support & Feedback" description="Get help and share your thoughts with us.">
           {supportItems.map((it) => (<Row key={it.id} item={it} />))}
+        </Section>
+
+        <Section title="System" description="Monitor system health and performance.">
+          {systemItems.map((it) => (<Row key={it.id} item={it} />))}
         </Section>
 
         <Section title="About">
