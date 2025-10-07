@@ -146,6 +146,7 @@ import { resolveDisputeProcedure } from "@/backend/trpc/routes/tradeguard/resolv
 import { getDisputesProcedure } from "@/backend/trpc/routes/tradeguard/get-disputes";
 import { releaseOrderReserveProcedure } from "@/backend/trpc/routes/orders/release-order-reserve";
 import { detectFraudProcedure } from "@/backend/trpc/routes/agripay/detect-fraud";
+import { agripayHealthCheckProcedure } from "@/backend/trpc/routes/system/agripay-health";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -273,6 +274,7 @@ export const appRouter = createTRPCRouter({
   }),
   system: createTRPCRouter({
     health: healthCheckProcedure,
+    agripayHealth: agripayHealthCheckProcedure,
   }),
   activity: createTRPCRouter({
     getUserActivity: getUserActivityProcedure,

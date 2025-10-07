@@ -99,11 +99,6 @@ export default function CheckoutScreen() {
     groupedBySeller,
   } = useCart();
   
-  const walletBalanceQuery = trpc.wallet.getBalance.useQuery(undefined, {
-    enabled: !!user?.id,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-  });
   const agripayWalletQuery = trpc.agripay.getWallet.useQuery(
     { userId: user?.id ?? "" },
     { enabled: !!user?.id, refetchOnMount: true, refetchOnWindowFocus: true }
@@ -127,11 +122,8 @@ export default function CheckoutScreen() {
     if (agripayWalletQuery.data?.wallet) {
       const balance = Number(agripayWalletQuery.data.wallet.balance ?? 0);
       updateAgriPayBalance(balance);
-    } else if (walletBalanceQuery.data?.wallet) {
-      const balance = walletBalanceQuery.data.wallet.trading_balance || 0;
-      updateAgriPayBalance(balance);
     }
-  }, [agripayWalletQuery.data, walletBalanceQuery.data, updateAgriPayBalance]);
+  }, [agripayWalletQuery.data, updateAgriPayBalance]);
   
   const [selectedAddress, setSelectedAddress] = useState<UnifiedAddress | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
