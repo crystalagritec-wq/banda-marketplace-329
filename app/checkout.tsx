@@ -15,6 +15,7 @@ import {
   Zap,
   Plus,
   X,
+  Navigation,
 } from 'lucide-react-native';
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
@@ -28,6 +29,8 @@ import {
   TextInput,
   Modal,
   ActivityIndicator,
+  ToastAndroid,
+  Platform,
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { initiateMpesaStk, createCardCheckoutSession, validateAndFormatMpesaPhone } from '@/services/payments';
@@ -147,6 +150,14 @@ export default function CheckoutScreen() {
   const [isCalculatingDelivery, setIsCalculatingDelivery] = useState<boolean>(false);
   const [realTimeDeliveryFees, setRealTimeDeliveryFees] = useState<Map<string, number>>(new Map());
   const [realTimeETAs, setRealTimeETAs] = useState<Map<string, string>>(new Map());
+  const [showMpesaConfirmModal, setShowMpesaConfirmModal] = useState<boolean>(false);
+  const [showAirtelConfirmModal, setShowAirtelConfirmModal] = useState<boolean>(false);
+  const [showCardModal, setShowCardModal] = useState<boolean>(false);
+  const [airtelNumber, setAirtelNumber] = useState<string>(user?.phone ?? '+254700000000');
+  const [cardNumber, setCardNumber] = useState<string>('');
+  const [cardExpiry, setCardExpiry] = useState<string>('');
+  const [cardCvv, setCardCvv] = useState<string>('');
+  const [cardName, setCardName] = useState<string>('');
 
   const { userLocation, subscribeToLocationChanges, getCurrentLocation } = useLocation();
   
@@ -303,20 +314,22 @@ export default function CheckoutScreen() {
         if (lastAddressId && addresses.length > 0) {
           const lastAddress = addresses.find(addr => addr.id === lastAddressId);
           if (lastAddress) {
-            setSelectedAddress(prev => (prev?.id === lastAddress.id ? prev : lastAddress));
+            setSelectedAddress(lastAddress);
+            showToast('✅ Delivery address loaded');
             return;
           }
         }
         if (addresses.length > 0) {
           const defaultAddress = addresses.find(addr => addr.isDefault) || addresses[0];
-          setSelectedAddress(prev => (prev?.id === defaultAddress.id ? prev : defaultAddress));
+          setSelectedAddress(defaultAddress);
+          showToast('📍 Default address selected');
         }
       } catch (e) {
         console.log('[Checkout] Failed to load last address', e);
         if (!isActive) return;
         if (addresses.length > 0) {
           const defaultAddress = addresses.find(addr => addr.isDefault) || addresses[0];
-          setSelectedAddress(prev => (prev?.id === defaultAddress.id ? prev : defaultAddress));
+          setSelectedAddress(defaultAddress);
         }
       }
     };
@@ -477,6 +490,14 @@ export default function CheckoutScreen() {
     return selectedPaymentMethod?.type === 'agripay' && agriPayBalance < finalTotal;
   }, [selectedPaymentMethod, agriPayBalance, finalTotal]);
 
+  const showToast = (message: string) => {
+    if (Platform.OS === 'android') {
+      ToastAndroid.show(message, ToastAndroid.SHORT);
+    } else {
+      Alert.alert('', message, [{ text: 'OK' }]);
+    }
+  };
+
   const handlePlaceOrder = useCallback(async () => {
     if (!selectedAddress) {
       Alert.alert('Missing Information', 'Please select a delivery address.');
@@ -523,17 +544,7 @@ export default function CheckoutScreen() {
       }
     }
 
-    if (!selectedSlotLabel) {
-      Alert.alert(
-        '⏰ Delivery Time Required',
-        'Please select a delivery time slot before placing your order.',
-        [
-          { text: 'Cancel', style: 'cancel' as const },
-          { text: 'Choose Time', onPress: () => setShowDeliveryTimeModal(true), style: 'default' as const }
-        ]
-      );
-      return;
-    }
+
 
     if (selectedPaymentMethod.type === 'agripay' && agriPayBalance < finalTotal) {
       const shortfall = finalTotal - agriPayBalance;
@@ -566,6 +577,13 @@ export default function CheckoutScreen() {
         return;
       }
       setMpesaNumber(validation.formatted!);
+      setShowMpesaConfirmModal(true);
+      return;
+    }
+
+    if (selectedPaymentMethod.type === 'card') {
+      setShowCardModal(true);
+      return;
     }
 
     setShowPaymentModal(true);
@@ -573,7 +591,11 @@ export default function CheckoutScreen() {
 
   const confirmPayment = useCallback(async () => {
     setShowPaymentModal(false);
+    setShowMpesaConfirmModal(false);
+    setShowAirtelConfirmModal(false);
+    setShowCardModal(false);
     setIsProcessing(true);
+    showToast('🔄 Processing your order...');
 
     try {
       if (cartSummary.isSplitOrder) {
@@ -627,6 +649,7 @@ export default function CheckoutScreen() {
 
         if (selectedPaymentMethod!.type === 'mpesa') {
           try {
+            showToast('📱 Initiating M-Pesa payment...');
             const stk = await initiateMpesaStk({
               orderId: multiSellerResult.masterOrder.id,
               amount: finalTotal,
@@ -636,10 +659,12 @@ export default function CheckoutScreen() {
             });
             
             if (stk.message) {
-              Alert.alert('Payment Initiated', stk.message);
+              showToast('✅ M-Pesa prompt sent to ' + mpesaNumber);
             }
           } catch (e: any) {
+            showToast('❌ M-Pesa payment failed');
             Alert.alert('Payment Failed', e?.message || 'Failed to initiate M-Pesa payment. Please try again.');
+            setIsProcessing(false);
             return;
           }
         }
@@ -657,6 +682,7 @@ export default function CheckoutScreen() {
           console.error('[Checkout] Failed to award loyalty points:', err);
         });
 
+        showToast('🎉 Order placed successfully!');
         router.push({
           pathname: '/multi-seller-order-tracking',
           params: { 
@@ -727,6 +753,7 @@ export default function CheckoutScreen() {
           const sellerAmount = cartSummary.subtotal;
           const driverAmount = 0;
           const platformFee = 0;
+          showToast('💰 Processing AgriPay payment...');
           const res = await processAgriPayPaymentMutation.mutateAsync({
             userId: user?.id || "",
             orderId: checkoutResult.orderId,
@@ -738,8 +765,10 @@ export default function CheckoutScreen() {
           });
           if (res?.success) {
             updateAgriPayBalance(Math.max(0, (agriPayBalance ?? 0) - finalTotal));
+            showToast('✅ AgriPay payment successful');
           }
         } catch (e: any) {
+          showToast('❌ AgriPay payment failed');
           Alert.alert('Payment Failed', e?.message || 'Failed to process AgriPay payment');
           setIsProcessing(false);
           return;
@@ -748,6 +777,7 @@ export default function CheckoutScreen() {
 
       if (selectedPaymentMethod!.type === 'mpesa') {
         try {
+          showToast('📱 Sending M-Pesa prompt...');
           const stk = await initiateMpesaStk({
             orderId: order.id,
             amount: finalTotal,
@@ -758,23 +788,29 @@ export default function CheckoutScreen() {
           stkCheckoutId = stk.checkoutRequestID;
           
           if (stk.message) {
-            Alert.alert('Payment Initiated', stk.message);
+            showToast('✅ M-Pesa prompt sent to ' + mpesaNumber);
           }
         } catch (e: any) {
+          showToast('❌ M-Pesa payment failed');
           Alert.alert('Payment Failed', e?.message || 'Failed to initiate M-Pesa payment. Please try again.');
+          setIsProcessing(false);
           return;
         }
       }
 
       let cardReference: string | undefined;
       if (selectedPaymentMethod!.type === 'card') {
+        showToast('💳 Opening card payment...');
         const session = await createCardCheckoutSession({ orderId: order.id, amount: finalTotal, currency: 'KES' });
         cardReference = session.reference;
         const result = await WebBrowser.openAuthSessionAsync(session.redirectUrl, undefined, { showInRecents: true });
         if (result.type === 'success') {
           depositAgriPay(finalTotal);
+          showToast('✅ Card payment successful');
         } else {
+          showToast('❌ Card payment cancelled');
           Alert.alert('Payment Cancelled', 'Card payment was cancelled.');
+          setIsProcessing(false);
           return;
         }
       }
@@ -792,6 +828,7 @@ export default function CheckoutScreen() {
         console.error('[Checkout] Failed to award loyalty points:', err);
       });
 
+      showToast('🎉 Order placed successfully!');
       router.push({
         pathname: '/payment-processing',
         params: { 
@@ -809,6 +846,7 @@ export default function CheckoutScreen() {
       });
     } catch (error: any) {
       console.error('❌ Order creation failed:', error);
+      showToast('❌ Order failed');
       Alert.alert('Order Failed', error?.message || 'Failed to create order. Please try again.');
     } finally {
       setIsProcessing(false);
@@ -864,34 +902,7 @@ export default function CheckoutScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Delivery Time Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Delivery Time</Text>
-            <TouchableOpacity 
-              style={[styles.deliveryTimeCard, !selectedSlotLabel && styles.deliveryTimeCardError]}
-              onPress={() => setShowDeliveryTimeModal(true)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.deliveryTimeIcon}>
-                <Clock size={18} color={selectedSlotLabel ? "#10B981" : "#EF4444"} />
-              </View>
-              <View style={styles.deliveryTimeContent}>
-                {selectedSlotLabel ? (
-                  <>
-                    <Text style={styles.deliveryTimeLabel}>{selectedSlotLabel}</Text>
-                    {selectedSlotData && (
-                      <Text style={styles.deliveryTimeDate}>
-                        {new Date(selectedSlotData.start).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                      </Text>
-                    )}
-                  </>
-                ) : (
-                  <Text style={styles.deliveryTimePlaceholder}>Tap to select delivery time</Text>
-                )}
-              </View>
-              <ChevronRight size={16} color="#9CA3AF" />
-            </TouchableOpacity>
-          </View>
+
 
           {/* Delivery Provider Section */}
           {!cartSummary.isSplitOrder && (
@@ -1175,6 +1186,54 @@ export default function CheckoutScreen() {
               </View>
               
               <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+                <TouchableOpacity
+                  style={styles.currentLocationButton}
+                  onPress={async () => {
+                    try {
+                      const location = await getCurrentLocation();
+                      if (location && location.coordinates) {
+                        const currentLocationAddress: UnifiedAddress = {
+                          id: 'current-location',
+                          name: 'My Current Location',
+                          address: location.address || 'Current GPS Location',
+                          city: location.label || 'Current Location',
+                          phone: user?.phone || '',
+                          isDefault: false,
+                          coordinates: location.coordinates,
+                          country: 'Kenya',
+                          createdAt: Date.now(),
+                          updatedAt: Date.now(),
+                        };
+                        setSelectedAddress(currentLocationAddress);
+                        await storage.setItem('checkout:lastAddressId', currentLocationAddress.id);
+                        setShowAddressModal(false);
+                        showToast('📍 Using current GPS location');
+                        setSellerDeliveryQuotes(new Map());
+                        setSelectedDeliveryQuote(null);
+                      }
+                    } catch (error) {
+                      console.error('[Checkout] Failed to get current location:', error);
+                      Alert.alert('Location Error', 'Failed to get your current location. Please try again.');
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.currentLocationIcon}>
+                    <Navigation size={20} color="#10B981" />
+                  </View>
+                  <View style={styles.currentLocationContent}>
+                    <Text style={styles.currentLocationTitle}>Use My Current Location</Text>
+                    <Text style={styles.currentLocationSubtitle}>Get GPS location from device</Text>
+                  </View>
+                  <ChevronRight size={20} color="#10B981" />
+                </TouchableOpacity>
+
+                <View style={styles.addressDivider}>
+                  <View style={styles.addressDividerLine} />
+                  <Text style={styles.addressDividerText}>SAVED ADDRESSES</Text>
+                  <View style={styles.addressDividerLine} />
+                </View>
+
                 {addresses.map((address) => (
                   <TouchableOpacity
                     key={address.id}
@@ -1182,9 +1241,13 @@ export default function CheckoutScreen() {
                       styles.addressCard,
                       selectedAddress?.id === address.id && styles.addressCardSelected
                     ]}
-                    onPress={() => {
+                    onPress={async () => {
                       setSelectedAddress(address);
+                      await storage.setItem('checkout:lastAddressId', address.id);
                       setShowAddressModal(false);
+                      showToast('📍 Delivery address updated');
+                      setSellerDeliveryQuotes(new Map());
+                      setSelectedDeliveryQuote(null);
                     }}
                     activeOpacity={0.7}
                   >
@@ -1266,6 +1329,172 @@ export default function CheckoutScreen() {
                     <Text style={styles.providerModalFee}>{formatPrice(quote.totalFee)}</Text>
                   </TouchableOpacity>
                 ))}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
+        {/* M-Pesa Confirmation Modal */}
+        <Modal
+          visible={showMpesaConfirmModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowMpesaConfirmModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>📱 Confirm M-Pesa Number</Text>
+                <TouchableOpacity onPress={() => setShowMpesaConfirmModal(false)}>
+                  <X size={24} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.modalBody}>
+                <View style={styles.confirmSection}>
+                  <Text style={styles.confirmLabel}>M-Pesa Number</Text>
+                  <TextInput
+                    style={styles.confirmInput}
+                    value={mpesaNumber}
+                    onChangeText={setMpesaNumber}
+                    keyboardType="phone-pad"
+                    placeholder="+254700000000"
+                  />
+                  <Text style={styles.confirmHint}>
+                    You will receive an M-Pesa prompt on this number
+                  </Text>
+                </View>
+
+                <View style={styles.confirmSummary}>
+                  <View style={styles.confirmRow}>
+                    <Text style={styles.confirmRowLabel}>Amount to Pay:</Text>
+                    <Text style={styles.confirmRowValue}>{formatPrice(finalTotal)}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.confirmButtons}>
+                  <TouchableOpacity
+                    style={styles.confirmCancelButton}
+                    onPress={() => setShowMpesaConfirmModal(false)}
+                  >
+                    <Text style={styles.confirmCancelText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.confirmProceedButton}
+                    onPress={() => {
+                      setShowMpesaConfirmModal(false);
+                      setShowPaymentModal(true);
+                    }}
+                  >
+                    <Text style={styles.confirmProceedText}>Confirm & Continue</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Card Payment Modal */}
+        <Modal
+          visible={showCardModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowCardModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>💳 Card Payment</Text>
+                <TouchableOpacity onPress={() => setShowCardModal(false)}>
+                  <X size={24} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+              
+              <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+                <View style={styles.cardFormSection}>
+                  <Text style={styles.cardFormLabel}>Card Number</Text>
+                  <TextInput
+                    style={styles.cardFormInput}
+                    value={cardNumber}
+                    onChangeText={setCardNumber}
+                    keyboardType="numeric"
+                    placeholder="1234 5678 9012 3456"
+                    maxLength={19}
+                  />
+                </View>
+
+                <View style={styles.cardFormRow}>
+                  <View style={styles.cardFormHalf}>
+                    <Text style={styles.cardFormLabel}>Expiry Date</Text>
+                    <TextInput
+                      style={styles.cardFormInput}
+                      value={cardExpiry}
+                      onChangeText={setCardExpiry}
+                      placeholder="MM/YY"
+                      keyboardType="numeric"
+                      maxLength={5}
+                    />
+                  </View>
+                  <View style={styles.cardFormHalf}>
+                    <Text style={styles.cardFormLabel}>CVV</Text>
+                    <TextInput
+                      style={styles.cardFormInput}
+                      value={cardCvv}
+                      onChangeText={setCardCvv}
+                      placeholder="123"
+                      keyboardType="numeric"
+                      maxLength={3}
+                      secureTextEntry
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.cardFormSection}>
+                  <Text style={styles.cardFormLabel}>Cardholder Name</Text>
+                  <TextInput
+                    style={styles.cardFormInput}
+                    value={cardName}
+                    onChangeText={setCardName}
+                    placeholder="JOHN DOE"
+                    autoCapitalize="characters"
+                  />
+                </View>
+
+                <View style={styles.confirmSummary}>
+                  <View style={styles.confirmRow}>
+                    <Text style={styles.confirmRowLabel}>Amount to Pay:</Text>
+                    <Text style={styles.confirmRowValue}>{formatPrice(finalTotal)}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.cardSecurityNote}>
+                  <Shield size={16} color="#10B981" />
+                  <Text style={styles.cardSecurityText}>
+                    Your card details are encrypted and secure
+                  </Text>
+                </View>
+
+                <View style={styles.confirmButtons}>
+                  <TouchableOpacity
+                    style={styles.confirmCancelButton}
+                    onPress={() => setShowCardModal(false)}
+                  >
+                    <Text style={styles.confirmCancelText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.confirmProceedButton}
+                    onPress={() => {
+                      if (!cardNumber || !cardExpiry || !cardCvv || !cardName) {
+                        showToast('❌ Please fill all card details');
+                        return;
+                      }
+                      setShowCardModal(false);
+                      setShowPaymentModal(true);
+                    }}
+                  >
+                    <Text style={styles.confirmProceedText}>Pay {formatPrice(finalTotal)}</Text>
+                  </TouchableOpacity>
+                </View>
               </ScrollView>
             </View>
           </View>
@@ -2289,5 +2518,165 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#EF4444',
     fontWeight: '500' as const,
+  },
+  currentLocationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: '#10B981',
+  },
+  currentLocationIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  currentLocationContent: {
+    flex: 1,
+  },
+  currentLocationTitle: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#1F2937',
+    marginBottom: 2,
+  },
+  currentLocationSubtitle: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  addressDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  addressDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E7EB',
+  },
+  addressDividerText: {
+    marginHorizontal: 12,
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontWeight: '700' as const,
+    letterSpacing: 0.5,
+  },
+  confirmSection: {
+    marginBottom: 20,
+  },
+  confirmLabel: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  confirmInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    color: '#1F2937',
+    backgroundColor: '#FFFFFF',
+    marginBottom: 8,
+  },
+  confirmHint: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  confirmSummary: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  confirmRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  confirmRowLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  confirmRowValue: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: '#10B981',
+  },
+  confirmButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  confirmCancelButton: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  confirmCancelText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#6B7280',
+  },
+  confirmProceedButton: {
+    flex: 1,
+    backgroundColor: '#10B981',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  confirmProceedText: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  cardFormSection: {
+    marginBottom: 16,
+  },
+  cardFormLabel: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  cardFormInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    color: '#1F2937',
+    backgroundColor: '#FFFFFF',
+  },
+  cardFormRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  cardFormHalf: {
+    flex: 1,
+  },
+  cardSecurityNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 20,
+  },
+  cardSecurityText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#059669',
   },
 });
