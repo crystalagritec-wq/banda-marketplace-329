@@ -32,6 +32,7 @@ import { useWishlist } from '@/providers/wishlist-provider';
 import { useCart } from '@/providers/cart-provider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useWalletCheck } from '@/hooks/useWalletCheck';
+import WalletOnboardingModal from '@/components/WalletOnboardingModal';
 
 interface SideMenuProps {
   visible: boolean;
@@ -56,7 +57,8 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
   const { wishlistCount } = useWishlist();
   const { cartSummary } = useCart();
   const insets = useSafeAreaInsets();
-  const { checkWalletAndNavigate } = useWalletCheck();
+  const { wallet, hasWallet, isLoading } = useWalletCheck();
+  const [showWalletOnboarding, setShowWalletOnboarding] = React.useState(false);
   const slideAnim = React.useRef(new Animated.Value(-MENU_WIDTH)).current;
   const opacityAnim = React.useRef(new Animated.Value(0)).current;
 
@@ -90,6 +92,29 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
     }
   }, [visible, slideAnim, opacityAnim]);
 
+  const handleWalletNavigation = () => {
+    console.log('[SideMenu] Wallet tapped, checking wallet status...');
+    onClose();
+    
+    if (isLoading) {
+      console.log('[SideMenu] Wallet still loading...');
+      return;
+    }
+    
+    if (hasWallet && wallet?.id) {
+      console.log('[SideMenu] Wallet exists, navigating to wallet screen');
+      router.push('/(tabs)/wallet' as any);
+    } else {
+      console.log('[SideMenu] No wallet, showing onboarding modal');
+      setShowWalletOnboarding(true);
+    }
+  };
+
+  const handleWalletOnboardingSuccess = () => {
+    console.log('[SideMenu] Wallet onboarding complete, navigating to wallet');
+    router.push('/(tabs)/wallet' as any);
+  };
+
   const handleNavigation = (route: string) => {
     const trimmed = typeof route === 'string' ? route.trim() : '';
     if (!trimmed || trimmed.length > 128) {
@@ -98,8 +123,7 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
     }
     
     if (trimmed === '/(tabs)/wallet') {
-      onClose();
-      checkWalletAndNavigate();
+      handleWalletNavigation();
       return;
     }
     
@@ -340,6 +364,12 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
           </View>
         </Animated.View>
       </View>
+
+      <WalletOnboardingModal
+        visible={showWalletOnboarding}
+        onClose={() => setShowWalletOnboarding(false)}
+        onSuccess={handleWalletOnboardingSuccess}
+      />
     </Modal>
   );
 }
