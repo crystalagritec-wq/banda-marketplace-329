@@ -93,9 +93,21 @@ export const [AgriPayProvider, useAgriPay] = createContextHook(() => {
   const verifyPinMutation = trpc.agripay.verifyPin.useMutation();
 
   useEffect(() => {
+    console.log('[AgriPayProvider] Wallet query state:', {
+      hasData: !!walletQuery.data,
+      hasWallet: !!walletQuery.data?.wallet,
+      hasError: !!walletQuery.error,
+      isQueryLoading: walletQuery.isLoading,
+      userId: user?.id
+    });
+    
     if (walletQuery.data) {
       if (walletQuery.data.wallet) {
+        console.log('[AgriPayProvider] Wallet found:', walletQuery.data.wallet.id);
         setWallet(walletQuery.data.wallet);
+      } else {
+        console.log('[AgriPayProvider] No wallet in response');
+        setWallet(null);
       }
       if (walletQuery.data.trustScore) {
         setTrustScore(walletQuery.data.trustScore);
@@ -103,9 +115,12 @@ export const [AgriPayProvider, useAgriPay] = createContextHook(() => {
       setIsLoading(false);
       setError(null);
     } else if (walletQuery.error) {
+      console.error('[AgriPayProvider] Wallet query error:', walletQuery.error.message);
       setError(walletQuery.error.message);
       setIsLoading(false);
+      setWallet(null);
     } else if (!walletQuery.isLoading && user?.id) {
+      console.log('[AgriPayProvider] Query finished, no data');
       setIsLoading(false);
     }
   }, [walletQuery.data, walletQuery.error, walletQuery.isLoading, user?.id]);
