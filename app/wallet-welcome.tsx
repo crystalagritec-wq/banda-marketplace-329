@@ -28,21 +28,8 @@ export default function WalletWelcomeScreen() {
       console.log('[WalletWelcome] Create wallet result:', result);
       
       if (result.success) {
-        Alert.alert(
-          'Wallet Created!',
-          'Your AgriPay wallet has been created successfully.',
-          [
-            {
-              text: 'Get Started',
-              onPress: () => {
-                console.log('[WalletWelcome] Navigating to wallet screen');
-                setTimeout(() => {
-                  router.replace('/(tabs)/wallet' as any);
-                }, 200);
-              },
-            },
-          ]
-        );
+        console.log('[WalletWelcome] Wallet created successfully, navigating to wallet screen');
+        router.replace('/(tabs)/wallet' as any);
       } else {
         Alert.alert('Error', result.message || 'Failed to create wallet');
         setIsCreating(false);
