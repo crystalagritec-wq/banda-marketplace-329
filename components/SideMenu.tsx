@@ -96,12 +96,14 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
       onClose();
       return;
     }
-    onClose();
     
     if (trimmed === '/(tabs)/wallet') {
+      onClose();
       checkWalletAndNavigate();
       return;
     }
+    
+    onClose();
     
     const validRoutes = [
       '/dashboard',
