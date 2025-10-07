@@ -59,11 +59,11 @@ export default function WalletScreen() {
   const { user } = useAuth();
   const agriPayContext = useAgriPay();
   
-  const [showBalance, setShowBalance] = useState<boolean>(false);
+  const [showBalance, setShowBalance] = useState<boolean>(true);
   const [selectedTab, setSelectedTab] = useState<'all' | 'credit' | 'debit' | 'reserve'>('all');
   const [showPinModal, setShowPinModal] = useState<boolean>(false);
   const [pin, setPin] = useState<string>('');
-  const [pinAction, setPinAction] = useState<'view' | 'withdraw' | 'transfer' | null>(null);
+  const [pinAction, setPinAction] = useState<'withdraw' | 'transfer' | null>(null);
   const [showAddMoneyModal, setShowAddMoneyModal] = useState<boolean>(false);
   const [showSendMoneyModal, setShowSendMoneyModal] = useState<boolean>(false);
   const [amount, setAmount] = useState<string>('');
@@ -170,7 +170,7 @@ export default function WalletScreen() {
     </View>
   );
   
-  function handlePinAction(action: 'view' | 'withdraw' | 'transfer') {
+  function handlePinAction(action: 'withdraw' | 'transfer') {
     if (!hasPIN) {
       Alert.alert(
         'Create Wallet PIN',
@@ -203,9 +203,6 @@ export default function WalletScreen() {
       setPin('');
       
       switch (pinAction) {
-        case 'view':
-          setShowBalance(!showBalance);
-          break;
         case 'withdraw':
           setShowSendMoneyModal(true);
           break;
@@ -297,7 +294,7 @@ export default function WalletScreen() {
     return (
       <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 }]} testID="wallet-missing-state">
         <Text style={{ color: '#2D5016', fontSize: 18, fontWeight: '700', textAlign: 'center' }}>No wallet found</Text>
-        <Text style={{ color: '#666', marginTop: 8, textAlign: 'center' }}>We b4ll take you to set it up.</Text>
+        <Text style={{ color: '#666', marginTop: 8, textAlign: 'center' }}>We&apos;ll take you to set it up.</Text>
         <TouchableOpacity onPress={() => router.replace('/wallet-welcome' as any)} style={{ marginTop: 16, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#2D5016', borderRadius: 8 }} testID="go-wallet-welcome">
           <Text style={{ color: 'white', fontWeight: '700' }}>Go to Wallet Setup</Text>
         </TouchableOpacity>
@@ -330,7 +327,7 @@ export default function WalletScreen() {
                 <TouchableOpacity 
                   style={styles.eyeButton}
                   testID="toggle-balance-visibility"
-                  onPress={() => handlePinAction('view')}
+                  onPress={() => setShowBalance(!showBalance)}
                 >
                   {showBalance ? (
                     <Eye size={20} color="white" />
@@ -479,10 +476,20 @@ export default function WalletScreen() {
             <View style={styles.pinModal}>
               <Text style={styles.pinTitle}>Enter Wallet PIN</Text>
               <Text style={styles.pinSubtitle}>
-                {pinAction === 'view' ? 'Unhide balance' : 
-                 pinAction === 'withdraw' ? 'Authorize withdrawal' : 
-                 'Authorize transfer'}
+                {pinAction === 'withdraw' ? 'Authorize withdrawal' : 'Authorize transfer'}
               </Text>
+              
+              <View style={styles.pinDotsContainer}>
+                {[0, 1, 2, 3].map((index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.pinModalDot,
+                      pin.length > index && styles.pinModalDotFilled,
+                    ]}
+                  />
+                ))}
+              </View>
               
               <TextInput
                 style={styles.pinInput}
@@ -492,6 +499,7 @@ export default function WalletScreen() {
                 keyboardType="numeric"
                 maxLength={4}
                 secureTextEntry
+                autoFocus
               />
               
               <View style={styles.pinButtons}>
@@ -507,12 +515,12 @@ export default function WalletScreen() {
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
-                  style={styles.pinConfirmBtn}
+                  style={[styles.pinConfirmBtn, pin.length !== 4 && styles.pinConfirmBtnDisabled]}
                   onPress={handlePinConfirm}
                   disabled={pin.length !== 4}
                   testID="pin-confirm-button"
                 >
-                  <Text style={styles.pinConfirmText}>Confirm</Text>
+                  <Text style={[styles.pinConfirmText, pin.length !== 4 && styles.pinConfirmTextDisabled]}>Confirm</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -888,13 +896,13 @@ const styles = StyleSheet.create({
   },
   pinModal: {
     backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 24,
-    width: '80%',
+    borderRadius: 20,
+    padding: 28,
+    width: '85%',
     alignItems: 'center',
   },
   pinTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#2D5016',
     marginBottom: 8,
@@ -902,42 +910,69 @@ const styles = StyleSheet.create({
   pinSubtitle: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 20,
+    marginBottom: 24,
     textAlign: 'center',
   },
-  pinInput: {
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 18,
-    textAlign: 'center',
-    width: 120,
+  pinDotsContainer: {
+    flexDirection: 'row',
+    gap: 12,
     marginBottom: 20,
+  },
+  pinModalDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    backgroundColor: 'white',
+  },
+  pinModalDotFilled: {
+    borderColor: '#2D5016',
+    backgroundColor: '#2D5016',
+  },
+  pinInput: {
+    position: 'absolute',
+    opacity: 0,
+    width: 1,
+    height: 1,
   },
   pinButtons: {
     flexDirection: 'row',
     gap: 12,
+    width: '100%',
+    marginTop: 24,
   },
   pinCancelBtn: {
+    flex: 1,
     backgroundColor: '#F3F4F6',
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 24,
-    borderRadius: 8,
+    borderRadius: 12,
+    alignItems: 'center',
   },
   pinCancelText: {
     color: '#666',
     fontWeight: '600',
+    fontSize: 16,
   },
   pinConfirmBtn: {
+    flex: 1,
     backgroundColor: '#2D5016',
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 24,
-    borderRadius: 8,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  pinConfirmBtnDisabled: {
+    backgroundColor: '#D1D5DB',
   },
   pinConfirmText: {
     color: 'white',
     fontWeight: '600',
+    fontSize: 16,
+  },
+  pinConfirmTextDisabled: {
+    opacity: 0.6,
   },
   actionModal: {
     backgroundColor: 'white',
