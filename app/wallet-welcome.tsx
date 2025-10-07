@@ -1,44 +1,23 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
-  Alert,
+
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Wallet, Shield, TrendingUp, Lock } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { useAgriPay } from '@/providers/agripay-provider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function WalletWelcomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { createWallet } = useAgriPay();
-  const [isCreating, setIsCreating] = useState<boolean>(false);
 
-  const handleCreateWallet = async () => {
-    setIsCreating(true);
-    try {
-      console.log('[WalletWelcome] Creating wallet...');
-      const result = await createWallet();
-      
-      console.log('[WalletWelcome] Create wallet result:', result);
-      
-      if (result.success) {
-        console.log('[WalletWelcome] Wallet created successfully, navigating to wallet screen');
-        router.replace('/(tabs)/wallet' as any);
-      } else {
-        Alert.alert('Error', result.message || 'Failed to create wallet');
-        setIsCreating(false);
-      }
-    } catch (error: any) {
-      console.error('[WalletWelcome] Error creating wallet:', error);
-      Alert.alert('Error', error.message || 'Failed to create wallet. Please try again.');
-      setIsCreating(false);
-    }
+  const handleCreateWallet = () => {
+    console.log('[WalletWelcome] Navigating to wallet onboarding...');
+    router.push('/wallet-onboarding' as any);
   };
 
   return (
@@ -100,25 +79,19 @@ export default function WalletWelcomeScreen() {
           <TouchableOpacity
             style={styles.createButton}
             onPress={handleCreateWallet}
-            disabled={isCreating}
             testID="create-wallet-button"
           >
             <LinearGradient
               colors={['#2D5016', '#4A7C59']}
               style={styles.createButtonGradient}
             >
-              {isCreating ? (
-                <ActivityIndicator size="small" color="white" />
-              ) : (
-                <Text style={styles.createButtonText}>Create My Wallet</Text>
-              )}
+              <Text style={styles.createButtonText}>Create My Wallet</Text>
             </LinearGradient>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
-            disabled={isCreating}
           >
             <Text style={styles.backButtonText}>Go Back</Text>
           </TouchableOpacity>
