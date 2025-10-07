@@ -17,6 +17,7 @@ import { LocationProvider } from "@/providers/location-provider";
 import { AddressProvider } from "@/providers/address-provider";
 import { OnboardingProvider } from "@/providers/onboarding-provider";
 import { ServiceInboardingProvider } from "@/providers/service-inboarding-provider";
+import { AgriPayProvider } from "@/providers/agripay-provider";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { useDeepLinking } from "@/hooks/useDeepLinking";
@@ -108,27 +109,29 @@ export default function RootLayout() {
             <StorageProvider>
               <ThemeProvider>
                 <AuthProvider>
-                  <OnboardingProvider>
-                    <ServiceInboardingProvider>
-                      <LocationProvider>
-                      <AddressProvider>
-                      <CartProvider>
-                        <WishlistProvider>
-                          <BandaDeliveryProvider>
-                            <DisputeProvider>
-                              <LoyaltyProvider>
-                                <TrustProvider>
-                                  <RootLayoutNav />
-                                </TrustProvider>
-                              </LoyaltyProvider>
-                            </DisputeProvider>
-                          </BandaDeliveryProvider>
-                        </WishlistProvider>
-                      </CartProvider>
-                      </AddressProvider>
-                      </LocationProvider>
-                    </ServiceInboardingProvider>
-                  </OnboardingProvider>
+                  <AgriPayProvider>
+                    <OnboardingProvider>
+                      <ServiceInboardingProvider>
+                        <LocationProvider>
+                        <AddressProvider>
+                        <CartProvider>
+                          <WishlistProvider>
+                            <BandaDeliveryProvider>
+                              <DisputeProvider>
+                                <LoyaltyProvider>
+                                  <TrustProvider>
+                                    <RootLayoutNav />
+                                  </TrustProvider>
+                                </LoyaltyProvider>
+                              </DisputeProvider>
+                            </BandaDeliveryProvider>
+                          </WishlistProvider>
+                        </CartProvider>
+                        </AddressProvider>
+                        </LocationProvider>
+                      </ServiceInboardingProvider>
+                    </OnboardingProvider>
+                  </AgriPayProvider>
                 </AuthProvider>
               </ThemeProvider>
             </StorageProvider>
