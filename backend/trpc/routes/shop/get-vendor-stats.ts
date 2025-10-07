@@ -48,13 +48,26 @@ export const getVendorStatsProcedure = protectedProcedure
     }
 
     const { data: wallet, error: walletError } = await ctx.supabase
-      .from('wallets')
-      .select('balance')
+      .from('agripay_wallets')
+      .select('id, balance, reserve_balance')
       .eq('user_id', input.vendorId)
       .single();
 
     if (walletError) {
-      console.log('[Vendor Stats] No wallet found for vendor');
+      console.log('[Vendor Stats] No AgriPay wallet found for vendor');
+    }
+
+    let totalEarnings = 0;
+    if (wallet?.id) {
+      const { data: transactions } = await ctx.supabase
+        .from('wallet_transactions')
+        .select('amount, type')
+        .eq('wallet_id', wallet.id)
+        .in('type', ['reserve_release', 'payment'])
+        .gte('created_at', startDate.toISOString());
+
+      totalEarnings = transactions
+        ?.reduce((sum, tx) => sum + tx.amount, 0) || 0;
     }
 
     const totalRevenue = orders
@@ -109,6 +122,8 @@ export const getVendorStatsProcedure = protectedProcedure
       views: totalViews,
       wallet: {
         balance: wallet?.balance || 0,
+        reserveBalance: wallet?.reserve_balance || 0,
+        earnings: totalEarnings,
       },
       customers: {
         total: new Set(orders?.map(o => o.buyer_id)).size || 0,

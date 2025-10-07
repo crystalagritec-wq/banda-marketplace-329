@@ -160,7 +160,7 @@ export const [AgriPayProvider, useAgriPay] = createContextHook(() => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, createWalletMutation.mutateAsync, walletQuery.refetch]);
+  }, [user?.id, createWalletMutation, walletQuery]);
 
   const fundWallet = useCallback(
     async (
@@ -195,7 +195,7 @@ export const [AgriPayProvider, useAgriPay] = createContextHook(() => {
         throw err;
       }
     },
-    [wallet?.id, fundWalletMutation.mutateAsync, walletQuery.refetch]
+    [wallet?.id, fundWalletMutation, walletQuery]
   );
 
   const withdrawFunds = useCallback(
@@ -231,7 +231,7 @@ export const [AgriPayProvider, useAgriPay] = createContextHook(() => {
         throw err;
       }
     },
-    [wallet?.id, withdrawFundsMutation.mutateAsync, walletQuery.refetch]
+    [wallet?.id, withdrawFundsMutation, walletQuery]
   );
 
   const setPin = useCallback(
@@ -252,7 +252,7 @@ export const [AgriPayProvider, useAgriPay] = createContextHook(() => {
         throw err;
       }
     },
-    [wallet?.id, setPinMutation.mutateAsync]
+    [wallet?.id, setPinMutation]
   );
 
   const verifyPin = useCallback(
@@ -273,12 +273,12 @@ export const [AgriPayProvider, useAgriPay] = createContextHook(() => {
         throw err;
       }
     },
-    [wallet?.id, verifyPinMutation.mutateAsync]
+    [wallet?.id, verifyPinMutation]
   );
 
   const refreshWallet = useCallback(async () => {
     await walletQuery.refetch();
-  }, [walletQuery.refetch]);
+  }, [walletQuery]);
 
   return useMemo(
     () => ({
