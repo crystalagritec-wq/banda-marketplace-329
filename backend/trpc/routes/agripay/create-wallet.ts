@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { protectedProcedure } from "../../create-context";
+import { generateWalletDisplayId } from "@/utils/wallet-id-generator";
 
 export const createWalletProcedure = protectedProcedure
   .input(
@@ -22,6 +23,8 @@ export const createWalletProcedure = protectedProcedure
       };
     }
 
+    const displayId = generateWalletDisplayId();
+    
     const { data, error } = await ctx.supabase.rpc("create_agripay_wallet", {
       p_user_id: input.userId,
     });
@@ -41,9 +44,27 @@ export const createWalletProcedure = protectedProcedure
       throw new Error("Failed to fetch created wallet");
     }
 
+    const { error: updateError } = await ctx.supabase
+      .from("agripay_wallets")
+      .update({ display_id: displayId })
+      .eq("id", wallet.id);
+
+    if (updateError) {
+      console.error("Error updating wallet display_id:", updateError);
+    }
+
+    const { error: linkError } = await ctx.supabase.rpc("link_wallet_to_user", {
+      p_user_id: input.userId,
+      p_wallet_id: wallet.id,
+    });
+
+    if (linkError) {
+      console.error("Error linking wallet to user:", linkError);
+    }
+
     return {
       success: true,
-      wallet,
+      wallet: { ...wallet, display_id: displayId },
       message: "Wallet created successfully",
     };
   });

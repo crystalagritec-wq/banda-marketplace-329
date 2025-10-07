@@ -100,6 +100,8 @@ export default function WalletOnboardingModal({
   };
 
   const handleWalletCreation = async () => {
+    console.log('[WalletCreation] Starting...', { termsAccepted });
+    
     if (!termsAccepted) {
       Alert.alert('Terms Required', 'Please accept the terms and conditions');
       return;
@@ -108,8 +110,13 @@ export default function WalletOnboardingModal({
     setIsProcessing(true);
 
     try {
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout - please try again')), 30000)
+      );
+      
       console.log('[WalletOnboardingModal] Creating wallet...');
-      const walletResult = await createWallet();
+      const walletPromise = createWallet();
+      const walletResult = await Promise.race([walletPromise, timeoutPromise]) as any;
 
       if (!walletResult.success || !walletResult.wallet) {
         throw new Error(walletResult.message || 'Failed to create wallet');
@@ -118,8 +125,7 @@ export default function WalletOnboardingModal({
       console.log('[WalletOnboardingModal] Wallet created:', walletResult.wallet.id);
       setCreatedWallet(walletResult.wallet);
 
-      const walletIdClean = walletResult.wallet.id.replace(/-/g, '');
-      const displayId = walletIdClean.substring(0, 12).toUpperCase();
+      const displayId = walletResult.wallet.display_id || walletResult.wallet.id.replace(/-/g, '').substring(0, 12).toUpperCase();
       setWalletDisplayId(displayId);
 
       console.log('[WalletOnboardingModal] Setting PIN...');
@@ -128,11 +134,24 @@ export default function WalletOnboardingModal({
         pin: pin,
       });
 
+      console.log('[WalletOnboardingModal] Saving wallet session...');
+      await AsyncStorage.multiSet([
+        ['wallet_id', walletResult.wallet.id],
+        ['wallet_display_id', displayId],
+        ['wallet_created_at', new Date().toISOString()],
+        ['wallet_onboarding_completed', 'true'],
+        ['user_id', walletResult.wallet.user_id],
+      ]);
+
       console.log('[WalletOnboardingModal] Wallet creation complete!');
       setCurrentStep('success');
     } catch (error: any) {
       console.error('[WalletOnboardingModal] Error:', error);
-      Alert.alert('Error', error.message || 'Failed to create wallet');
+      Alert.alert(
+        'Error Creating Wallet',
+        error.message || 'Failed to create wallet. Please try again.',
+        [{ text: 'OK' }]
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -239,12 +258,16 @@ export default function WalletOnboardingModal({
                 return;
               }
               if (!text.startsWith('07')) {
+                const cleaned = text.replace(/\D/g, '');
+                setPhoneNumber('07' + cleaned.replace(/^0*7*/, ''));
                 return;
               }
               const cleanPhone = text.replace(/\D/g, '');
               if (cleanPhone.length <= 10) {
                 setPhoneNumber(text);
-                setIsPhoneValid(cleanPhone.length === 10);
+                const validOperators = ['070', '071', '072', '073', '074', '075', '076', '077', '078', '079'];
+                const isValidFormat = cleanPhone.length === 10 && validOperators.includes(cleanPhone.substring(0, 3));
+                setIsPhoneValid(isValidFormat);
               }
             }}
             placeholder="0712345678"
@@ -279,136 +302,172 @@ export default function WalletOnboardingModal({
     </View>
   );
 
-  const renderPinStep = () => (
-    <View style={styles.stepContent}>
-      <Text style={styles.stepNumber}>Step 2 of 4</Text>
-      <Text style={styles.title}>Create Your PIN</Text>
-      <Text style={styles.subtitle}>
-        Choose a secure 4-digit PIN to protect your wallet
-      </Text>
+  const renderPinStep = () => {
+    const isPinComplete = pin.length === 4;
+    const isConfirmComplete = confirmPin.length === 4;
+    const pinsMatch = isPinComplete && isConfirmComplete && pin === confirmPin;
+    const showMismatch = isConfirmComplete && pin !== confirmPin;
+    const isConfirmMode = isPinComplete && !pinsMatch;
 
-      <View style={styles.form}>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Enter 4-Digit PIN</Text>
-          <View style={styles.pinInputWrapper}>
-            {[0, 1, 2, 3].map((index) => (
-              <View
-                key={index}
-                style={[
-                  styles.pinDot,
-                  pin.length > index && styles.pinDotFilled,
-                ]}
-              >
-                {showPin && pin[index] ? (
-                  <Text style={styles.pinDigit}>{pin[index]}</Text>
-                ) : pin.length > index ? (
-                  <View style={styles.pinDotIndicator} />
-                ) : null}
-              </View>
-            ))}
-          </View>
-          <TextInput
-            style={styles.hiddenInput}
-            value={pin}
-            onChangeText={(text) => setPin(text.replace(/\D/g, ''))}
-            keyboardType="number-pad"
-            maxLength={4}
-            secureTextEntry={!showPin}
-            autoFocus
-          />
+    return (
+      <View style={styles.stepContent}>
+        <Text style={styles.stepNumber}>Step 2 of 4</Text>
+        <View style={styles.pinModeIndicator}>
+          <Text style={styles.pinModeIcon}>
+            {!isPinComplete ? '🔐' : isConfirmMode ? '🔁' : '✅'}
+          </Text>
+          <Text style={styles.title}>
+            {!isPinComplete ? 'Create Your PIN' : isConfirmMode ? 'Confirm Your PIN' : 'PIN Created!'}
+          </Text>
         </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Confirm 4-Digit PIN</Text>
-          <View style={styles.pinInputWrapper}>
-            {[0, 1, 2, 3].map((index) => (
-              <View
-                key={index}
-                style={[
-                  styles.pinDot,
-                  confirmPin.length > index && styles.pinDotFilled,
-                  confirmPin.length === 4 && pin !== confirmPin && styles.pinDotError,
-                ]}
-              >
-                {showPin && confirmPin[index] ? (
-                  <Text style={styles.pinDigit}>{confirmPin[index]}</Text>
-                ) : confirmPin.length > index ? (
-                  <View style={styles.pinDotIndicator} />
-                ) : null}
-              </View>
-            ))}
-          </View>
-          <TextInput
-            style={styles.hiddenInput}
-            value={confirmPin}
-            onChangeText={(text) => setConfirmPin(text.replace(/\D/g, ''))}
-            keyboardType="number-pad"
-            maxLength={4}
-            secureTextEntry={!showPin}
-          />
-        </View>
-
-        {confirmPin.length === 4 && pin !== confirmPin && (
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorText}>PINs do not match. Please try again.</Text>
-          </View>
-        )}
-
-        <TouchableOpacity
-          style={styles.showPinButton}
-          onPress={() => setShowPin(!showPin)}
-        >
-          {showPin ? (
-            <Eye size={18} color="#666" />
-          ) : (
-            <EyeOff size={18} color="#666" />
-          )}
-          <Text style={styles.showPinText}>Show PIN</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.pinRequirements}>
-        <Text style={styles.pinRequirementsTitle}>PIN Requirements:</Text>
-        <Text style={styles.pinRequirementItem}>• Must be exactly 4 digits</Text>
-        <Text style={styles.pinRequirementItem}>• Only numbers allowed (0-9)</Text>
-        <Text style={styles.pinRequirementItem}>• Avoid obvious patterns (1234, 0000)</Text>
-        <Text style={styles.pinRequirementItem}>• Never share with anyone</Text>
-      </View>
-
-      <View style={styles.securityTip}>
-        <Lock size={16} color="#F97316" />
-        <Text style={styles.securityTipText}>
-          Security Tip: Choose a PIN that&apos;s easy to remember but hard to guess. Avoid birthdays or sequential numbers.
+        <Text style={styles.subtitle}>
+          {!isPinComplete
+            ? 'Choose a secure 4-digit PIN to protect your wallet'
+            : isConfirmMode
+            ? 'Re-enter your PIN to confirm'
+            : 'Your PIN has been set successfully'}
         </Text>
-      </View>
 
-      <View style={styles.buttonRow}>
-        <TouchableOpacity
-          style={styles.secondaryButton}
-          onPress={() => setCurrentStep('phone')}
-        >
-          <Text style={styles.secondaryButtonText}>Back</Text>
-        </TouchableOpacity>
+        <View style={styles.form}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>
+              {!isPinComplete ? 'Enter 4-Digit PIN' : 'Confirm 4-Digit PIN'}
+            </Text>
+            <View style={styles.pinInputWrapper}>
+              {[0, 1, 2, 3].map((index) => {
+                const currentPin = !isPinComplete || !isConfirmMode ? pin : confirmPin;
+                const isFilled = currentPin.length > index;
+                const isError = showMismatch && isConfirmMode;
 
-        <TouchableOpacity
-          style={[styles.primaryButton, { flex: 1 }]}
-          onPress={handlePinCreation}
-          disabled={pin.length !== 4 || confirmPin.length !== 4}
-        >
-          <LinearGradient
-            colors={
-              pin.length === 4 && confirmPin.length === 4
-                ? ['#2D5016', '#4A7C59']
-                : ['#D1D5DB', '#9CA3AF']
-            }
-            style={styles.buttonGradient}
+                return (
+                  <View
+                    key={index}
+                    style={[
+                      styles.pinDot,
+                      isFilled && styles.pinDotFilled,
+                      isError && styles.pinDotError,
+                      pinsMatch && styles.pinDotSuccess,
+                    ]}
+                  >
+                    {showPin && currentPin[index] ? (
+                      <Text style={styles.pinDigit}>{currentPin[index]}</Text>
+                    ) : isFilled ? (
+                      <View style={styles.pinDotIndicator} />
+                    ) : null}
+                  </View>
+                );
+              })}
+            </View>
+            <TextInput
+              style={styles.hiddenInput}
+              value={!isPinComplete || !isConfirmMode ? pin : confirmPin}
+              onChangeText={(text) => {
+                const cleaned = text.replace(/\D/g, '');
+                if (!isPinComplete || !isConfirmMode) {
+                  setPin(cleaned);
+                } else {
+                  setConfirmPin(cleaned);
+                }
+              }}
+              keyboardType="number-pad"
+              maxLength={4}
+              secureTextEntry={!showPin}
+              autoFocus
+            />
+          </View>
+
+          {showMismatch && (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorText}>PINs do not match. Please try again.</Text>
+            </View>
+          )}
+
+          {pinsMatch && (
+            <View style={styles.successBanner}>
+              <CheckCircle size={16} color="#10B981" />
+              <Text style={styles.successText}>PINs match! Ready to continue.</Text>
+            </View>
+          )}
+
+          <View style={styles.pinActions}>
+            <TouchableOpacity
+              style={styles.showPinButton}
+              onPress={() => setShowPin(!showPin)}
+            >
+              {showPin ? (
+                <Eye size={18} color="#666" />
+              ) : (
+                <EyeOff size={18} color="#666" />
+              )}
+              <Text style={styles.showPinText}>Show PIN</Text>
+            </TouchableOpacity>
+
+            {(pin.length > 0 || confirmPin.length > 0) && (
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={() => {
+                  if (isConfirmMode) {
+                    setConfirmPin('');
+                  } else {
+                    setPin('');
+                    setConfirmPin('');
+                  }
+                }}
+              >
+                <X size={18} color="#EF4444" />
+                <Text style={styles.clearButtonText}>Clear</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        <View style={styles.pinRequirements}>
+          <Text style={styles.pinRequirementsTitle}>PIN Requirements:</Text>
+          <Text style={styles.pinRequirementItem}>• Must be exactly 4 digits</Text>
+          <Text style={styles.pinRequirementItem}>• Only numbers allowed (0-9)</Text>
+          <Text style={styles.pinRequirementItem}>• Avoid obvious patterns (1234, 0000)</Text>
+          <Text style={styles.pinRequirementItem}>• Never share with anyone</Text>
+        </View>
+
+        <View style={styles.securityTip}>
+          <Lock size={16} color="#F97316" />
+          <Text style={styles.securityTipText}>
+            Security Tip: Choose a PIN that&apos;s easy to remember but hard to guess. Avoid birthdays or sequential numbers.
+          </Text>
+        </View>
+
+        <View style={styles.buttonRow}>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => {
+              setPin('');
+              setConfirmPin('');
+              setCurrentStep('phone');
+            }}
           >
-            <Text style={styles.primaryButtonText}>Continue</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+            <Text style={styles.secondaryButtonText}>Back</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.primaryButton, { flex: 1 }]}
+            onPress={handlePinCreation}
+            disabled={!pinsMatch}
+          >
+            <LinearGradient
+              colors={
+                pinsMatch
+                  ? ['#2D5016', '#4A7C59']
+                  : ['#D1D5DB', '#9CA3AF']
+              }
+              style={styles.buttonGradient}
+            >
+              <Text style={styles.primaryButtonText}>Continue</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderTermsStep = () => (
     <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
@@ -657,8 +716,18 @@ const styles = StyleSheet.create({
     color: '#F97316',
     textAlign: 'center',
   },
+  pinModeIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  pinModeIcon: {
+    fontSize: 20,
+  },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#2D5016',
     textAlign: 'center',
@@ -740,9 +809,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   pinDot: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 10,
     borderWidth: 2,
     borderColor: '#E5E7EB',
     backgroundColor: 'white',
@@ -756,6 +825,10 @@ const styles = StyleSheet.create({
   pinDotError: {
     borderColor: '#EF4444',
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
+  },
+  pinDotSuccess: {
+    borderColor: '#10B981',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
   },
   pinDotIndicator: {
     width: 12,
@@ -774,17 +847,49 @@ const styles = StyleSheet.create({
     width: 1,
     height: 1,
   },
-  showPinButton: {
+  pinActions: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 16,
+    marginTop: 8,
+  },
+  showPinButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingVertical: 8,
+    paddingHorizontal: 12,
   },
   showPinText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#666',
+  },
+  clearButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  clearButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#EF4444',
+  },
+  successBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderRadius: 8,
+    padding: 12,
+    gap: 8,
+  },
+  successText: {
+    fontSize: 13,
+    color: '#10B981',
+    fontWeight: '600',
   },
   securityTip: {
     flexDirection: 'row',
@@ -838,6 +943,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginTop: 8,
+    maxHeight: 250,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
   },
   termsTitle: {
     fontSize: 16,

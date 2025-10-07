@@ -20,10 +20,11 @@ export const withdrawFundsProcedure = protectedProcedure
       .from("agripay_wallets")
       .select("*")
       .eq("id", input.walletId)
+      .eq("user_id", ctx.user.id)
       .single();
 
     if (walletError || !wallet) {
-      throw new Error("Wallet not found");
+      throw new Error("Wallet not found or unauthorized access");
     }
 
     if (wallet.status !== "active") {
@@ -79,10 +80,14 @@ export const withdrawFundsProcedure = protectedProcedure
           details: input.payoutDetails,
         },
         description: `Withdrawal to ${input.payoutMethod}`,
+        created_by: ctx.user.id,
         metadata: {
           payout_request_id: payoutRequest.id,
           fee,
           net_amount: netAmount,
+          user_id: ctx.user.id,
+          wallet_id: input.walletId,
+          timestamp: new Date().toISOString(),
         },
       })
       .select()
@@ -98,8 +103,10 @@ export const withdrawFundsProcedure = protectedProcedure
       .update({
         balance: balanceAfter,
         last_transaction_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       })
-      .eq("id", input.walletId);
+      .eq("id", input.walletId)
+      .eq("user_id", ctx.user.id);
 
     if (updateError) {
       console.error("Error updating wallet:", updateError);

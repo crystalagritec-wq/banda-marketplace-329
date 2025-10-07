@@ -3,10 +3,12 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "./auth-provider";
 import { supabase } from "@/lib/supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export interface AgriPayWallet {
   id: string;
   user_id: string;
+  display_id?: string;
   balance: number;
   reserve_balance: number;
   status: "active" | "suspended" | "frozen" | "closed";
@@ -16,6 +18,7 @@ export interface AgriPayWallet {
   linked_methods: any[];
   pin_hash: string | null;
   biometric_enabled: boolean;
+  onboarding_completed?: boolean;
   created_at: string;
   updated_at: string;
   last_transaction_at: string | null;
@@ -93,6 +96,26 @@ export const [AgriPayProvider, useAgriPay] = createContextHook(() => {
   const verifyPinMutation = trpc.agripay.verifyPin.useMutation();
 
   useEffect(() => {
+    const loadCachedWallet = async () => {
+      try {
+        const cached = await AsyncStorage.getItem('wallet_session');
+        if (cached) {
+          const session = JSON.parse(cached);
+          console.log('[AgriPayProvider] Loaded cached wallet:', session.id);
+          setWallet(session);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('[AgriPayProvider] Failed to load cached wallet:', error);
+      }
+    };
+
+    if (!wallet && user?.id) {
+      loadCachedWallet();
+    }
+  }, [user?.id, wallet]);
+
+  useEffect(() => {
     console.log('[AgriPayProvider] Wallet query state:', {
       hasData: !!walletQuery.data,
       hasWallet: !!walletQuery.data?.wallet,
@@ -129,6 +152,33 @@ export const [AgriPayProvider, useAgriPay] = createContextHook(() => {
       setWallet(null);
     }
   }, [walletQuery.data, walletQuery.error, walletQuery.isLoading, walletQuery.isFetching, walletQuery.isSuccess, walletQuery.isError, user?.id]);
+
+  useEffect(() => {
+    if (wallet?.id) {
+      const saveWalletSession = async () => {
+        try {
+          const sessionData = {
+            id: wallet.id,
+            user_id: wallet.user_id,
+            balance: wallet.balance,
+            reserve_balance: wallet.reserve_balance,
+            status: wallet.status,
+            verification_level: wallet.verification_level,
+            display_id: wallet.display_id,
+            created_at: wallet.created_at,
+            lastSync: new Date().toISOString()
+          };
+          await AsyncStorage.setItem('wallet_session', JSON.stringify(sessionData));
+          await AsyncStorage.setItem('wallet_id', wallet.id);
+          await AsyncStorage.setItem('user_id', wallet.user_id);
+          console.log('[AgriPayProvider] Wallet session saved to AsyncStorage:', wallet.id);
+        } catch (error) {
+          console.error('[AgriPayProvider] Failed to save wallet session:', error);
+        }
+      };
+      saveWalletSession();
+    }
+  }, [wallet?.id, wallet?.balance, wallet?.reserve_balance, wallet?.status]);
 
   useEffect(() => {
     if (!wallet?.id) return;
