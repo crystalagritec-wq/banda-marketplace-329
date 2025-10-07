@@ -1,5 +1,6 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,28 +10,177 @@ import {
   Alert,
 } from 'react-native';
 import {
+  Bell,
+  Search,
+  TrendingUp,
+  Users,
+  ShoppingBag,
+  Truck,
+  Star,
+  ArrowRight,
   User as UserIcon,
+  MapPin,
+  Phone,
+  Mail,
+  Edit3,
   Settings,
+  HelpCircle,
   LogOut,
   Shield,
-  ChevronRight,
-  Wallet,
+  CheckCircle,
+  Clock,
+  BarChart3,
+  MessageSquare,
+  Tractor,
+  Wrench,
   Package,
-  ShoppingCart,
-  Heart,
-  MapPin,
-  Bell,
-  HelpCircle,
-  FileText,
+  Wallet,
+  Crown,
+  Award,
+  Activity,
   Camera,
+  ChevronRight,
+  Zap,
+  Plus,
+  Eye,
+  EyeOff,
+  Download,
+  Upload,
+  RefreshCw,
+  LayoutDashboard,
+  Moon,
+  Globe,
+  FileText,
+  ExternalLink,
+  ShoppingCart,
+  MessageCircle,
+  UserX,
+  BadgeCheck,
+  Heart
 } from 'lucide-react-native';
 import { useAuth } from '@/providers/auth-provider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { trpc } from '@/lib/trpc';
 
+
+
+
+
+interface DashboardData {
+  user: {
+    id: string;
+    user_id: string;
+    full_name: string;
+    email: string;
+    user_role: string;
+    tier: string;
+    verification_status: string;
+  } | null;
+  verification: {
+    status: string;
+    tier: string;
+    progress: number;
+    documents: {
+      id: string;
+      type: string;
+      status: string;
+      uploaded_at: string;
+    }[];
+  };
+  subscription: {
+    current_tier: string;
+    tier_level: number;
+    status: string;
+    start_date?: string;
+    end_date?: string;
+    features: Record<string, boolean>;
+    limits: Record<string, any>;
+    auto_renew: boolean;
+  };
+  wallet: {
+    trading_balance: number;
+    savings_balance: number;
+    reserve_balance: number;
+    total_earned: number;
+    total_spent: number;
+    recent_transactions: {
+      id: string;
+      type: string;
+      amount: number;
+      status: string;
+      description: string;
+      created_at: string;
+    }[];
+  };
+  active_orders: {
+    id: string;
+    status: string;
+    total_amount: number;
+    created_at: string;
+    product_name: string;
+  }[];
+  qr_history: {
+    id: string;
+    qr_type: string;
+    scan_result: string;
+    created_at: string;
+  }[];
+  market_insights: {
+    id: string;
+    category: string;
+    product_name: string;
+    current_price: number;
+    trend: string;
+    ai_recommendation: string;
+  }[];
+  notifications: {
+    id: string;
+    title: string;
+    message: string;
+    type: string;
+    is_read: boolean;
+    created_at: string;
+  }[];
+}
 
 export default function AccountScreen() {
   const { user, logout } = useAuth();
   const insets = useSafeAreaInsets();
+  const [tab, setTab] = useState<'overview' | 'profile' | 'dashboard'>('overview');
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+
+  const [balanceVisible, setBalanceVisible] = useState(true);
+
+  const walletQuery = trpc.wallet.getBalance.useQuery(undefined, {
+    enabled: !!user,
+    refetchInterval: 30000,
+  });
+
+  const loyaltyQuery = trpc.loyalty.getPoints.useQuery(
+    { userId: user?.id || '' },
+    {
+      enabled: !!user?.id,
+    }
+  );
+
+
+  // tRPC queries
+  const dashboardQuery = trpc.dashboard.getUserDashboard.useQuery({});
+  const upgradeSubscriptionMutation = trpc.subscription.upgrade.useMutation();
+  const updateDocumentsMutation = trpc.verification.updateDocuments.useMutation();
+
+  useEffect(() => {
+    if (dashboardQuery.data?.success) {
+      setDashboardData(dashboardQuery.data.data);
+    }
+  }, [dashboardQuery.data]);
+
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }, []);
 
 
 
@@ -45,126 +195,1153 @@ export default function AccountScreen() {
     );
   };
 
-  const menuItems = [
-    {
-      icon: Wallet,
-      label: 'Wallet',
-      route: '/wallet',
-      color: '#10B981',
-    },
-    {
-      icon: Package,
-      label: 'My Products',
-      route: '/my-products',
-      color: '#3B82F6',
-    },
-    {
-      icon: ShoppingCart,
-      label: 'Orders',
-      route: '/orders',
-      color: '#F59E0B',
-    },
-    {
-      icon: Heart,
-      label: 'Favorites',
-      route: '/favorites',
-      color: '#EF4444',
-    },
-    {
-      icon: MapPin,
-      label: 'Address',
-      route: '/address',
-      color: '#8B5CF6',
-    },
-    {
-      icon: Bell,
-      label: 'Notifications',
-      route: '/notifications',
-      color: '#EC4899',
-    },
-    {
-      icon: Shield,
-      label: 'Security',
-      route: '/settings/security',
-      color: '#06B6D4',
-    },
-    {
-      icon: HelpCircle,
-      label: 'Help Center',
-      route: '/settings/help',
-      color: '#6366F1',
-    },
-    {
-      icon: FileText,
-      label: 'Legal',
-      route: '/settings/legal',
-      color: '#64748B',
-    },
-    {
-      icon: Settings,
-      label: 'Settings',
-      route: '/settings',
-      color: '#475569',
-    },
-  ];
+  const handleNavigateToSettings = () => {
+    router.push('/settings' as any);
+  };
+
+  const handleNavigateToOrders = () => {
+    router.push('/orders' as any);
+  };
+
+  const handleNavigateToWallet = () => {
+    router.push('/wallet' as any);
+  };
+
+  const handleNavigateToFavorites = () => {
+    router.push('/favorites' as any);
+  };
+
+  const handleNavigateToMyProducts = () => {
+    router.push('/my-products' as any);
+  };
+
+  const handleNavigateToNotifications = () => {
+    router.push('/notifications' as any);
+  };
+
+  const handleNavigateToHelp = () => {
+    router.push('/settings/help' as any);
+  };
+
+  const handleNavigateToSecurity = () => {
+    router.push('/settings/security' as any);
+  };
+
+  const handleNavigateToVerification = () => {
+    router.push('/verification' as any);
+  };
+
+  const handleNavigateToSubscription = () => {
+    router.push('/subscription' as any);
+  };
+
+  const handleNavigateToInsights = () => {
+    router.push('/insights' as any);
+  };
+
+
+
+  const handleNavigateToCustomerCare = () => {
+    router.push('/customer-care' as any);
+  };
+
+  const handleNavigateToProfile = () => {
+    router.push('/profile' as any);
+  };
+
+  const handleNavigateToAddress = () => {
+    router.push('/address' as any);
+  };
+
+  const handleNavigateToLanguage = () => {
+    router.push('/settings/language' as any);
+  };
+
+  const handleNavigateToAppearance = () => {
+    router.push('/settings/appearance' as any);
+  };
+
+  const handleNavigateToFeedback = () => {
+    router.push('/settings/feedback' as any);
+  };
+
+  const handleNavigateToLegal = () => {
+    router.push('/settings/legal' as any);
+  };
+
+  const handleNavigateToDeleteAccount = () => {
+    router.push('/settings/delete-account' as any);
+  };
+
+  const handleUploadDocuments = () => {
+    Alert.alert(
+      'Upload Documents',
+      'Choose documents to upload for verification',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Upload', 
+          onPress: () => {
+            const mockDocuments = [
+              {
+                type: 'national_id' as const,
+                url: 'https://example.com/id.jpg',
+                number: '12345678'
+              }
+            ];
+            
+            updateDocumentsMutation.mutate(
+              { documents: mockDocuments },
+              {
+                onSuccess: () => {
+                  Alert.alert('Success ✅', 'Documents uploaded successfully! Review in progress.');
+                  dashboardQuery.refetch();
+                },
+                onError: (error) => {
+                  Alert.alert('Error ❌', error.message);
+                }
+              }
+            );
+          }
+        }
+      ]
+    );
+  };
+
+  const handleViewQR = () => {
+    Alert.alert('QR Badge 📱', 'Your verification QR code would be displayed here for admin/agent verification.');
+  };
+
+  const handleUpgradeSubscription = () => {
+    Alert.alert(
+      'Upgrade Subscription 🚀',
+      'Choose your new tier',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Gold (KSh 1,500/month)', 
+          onPress: () => upgradeSubscription('Gold')
+        },
+        { 
+          text: 'Premium (KSh 3,000/month)', 
+          onPress: () => upgradeSubscription('Premium')
+        }
+      ]
+    );
+  };
+
+  const upgradeSubscription = (tierName: 'Gold' | 'Premium') => {
+    upgradeSubscriptionMutation.mutate(
+      { tierName, paymentMethod: 'wallet' },
+      {
+        onSuccess: (data) => {
+          Alert.alert('Success ✅', `${data.message} Amount deducted: KSh ${data.amountPaid}`);
+          dashboardQuery.refetch();
+        },
+        onError: (error) => {
+          Alert.alert('Error ❌', error.message);
+        }
+      }
+    );
+  };
+
+  const handleViewBenefits = () => {
+    Alert.alert('Subscription Benefits 🎯', 'Detailed benefits and features would be shown here.');
+  };
+
+  const handleAddMoney = () => {
+    Alert.alert('Add Money 💰', 'M-Pesa, Bank Transfer, and Card payment options would be shown here.');
+  };
+
+  const handleSendMoney = () => {
+    Alert.alert('Send Money 📤', 'Transfer money to other Banda users or mobile numbers.');
+  };
+
+  const handleWithdraw = () => {
+    Alert.alert('Withdraw 💸', 'Withdraw to M-Pesa or Bank account options would be shown here.');
+  };
+
+  const handleViewTransactions = () => {
+    Alert.alert('Transactions 📊', 'Full transaction history with filters would be shown here.');
+  };
+
+  const quickActions: Record<string, { title: string; icon: any; color: string; route: string }[]> = {
+    buyer: [
+      { title: 'Browse Products', icon: Search, color: '#2D5016', route: '/marketplace' },
+      { title: 'Track Orders', icon: Truck, color: '#1E40AF', route: '/orders' },
+      { title: 'Find Services', icon: Users, color: '#7C2D12', route: '/services' },
+      { title: 'Market Prices', icon: TrendingUp, color: '#8B4513', route: '/prices' },
+    ],
+    vendor: [
+      { title: 'My Products', icon: Package, color: '#2D5016', route: '/my-products' },
+      { title: 'Add Product', icon: ShoppingBag, color: '#1E40AF', route: '/products/add' },
+      { title: 'View Orders', icon: Truck, color: '#8B4513', route: '/orders' },
+      { title: 'Market Insights', icon: Star, color: '#7C2D12', route: '/insights' },
+    ],
+    driver: [
+      { title: 'Available Deliveries', icon: Truck, color: '#1E40AF', route: '/deliveries' },
+      { title: 'My Routes', icon: Search, color: '#2D5016', route: '/routes' },
+      { title: 'Earnings', icon: TrendingUp, color: '#8B4513', route: '/wallet' },
+      { title: 'Vehicle Info', icon: Users, color: '#7C2D12', route: '/vehicle' },
+    ],
+    service_provider: [
+      { title: 'My Services', icon: Users, color: '#7C2D12', route: '/services' },
+      { title: 'Bookings', icon: Search, color: '#2D5016', route: '/bookings' },
+      { title: 'Earnings', icon: TrendingUp, color: '#8B4513', route: '/wallet' },
+      { title: 'Reviews', icon: Star, color: '#1E40AF', route: '/reviews' },
+    ],
+  };
+
+  const statsMap: Record<string, { label: string; value: string; color: string }[]> = {
+    buyer: [
+      { label: 'Orders This Month', value: '12', color: '#2D5016' },
+      { label: 'Saved Amount', value: 'KSh 2,400', color: '#8B4513' },
+      { label: 'Favorite Vendors', value: '8', color: '#1E40AF' },
+    ],
+    vendor: [
+      { label: 'Products Listed', value: '24', color: '#2D5016' },
+      { label: 'Monthly Revenue', value: 'KSh 45,600', color: '#8B4513' },
+      { label: 'Customer Rating', value: '4.8★', color: '#FFD700' },
+    ],
+    driver: [
+      { label: 'Deliveries Today', value: '8', color: '#1E40AF' },
+      { label: 'Weekly Earnings', value: 'KSh 12,800', color: '#8B4513' },
+      { label: 'Rating', value: '4.9★', color: '#FFD700' },
+    ],
+    service_provider: [
+      { label: 'Services Offered', value: '6', color: '#7C2D12' },
+      { label: 'Monthly Bookings', value: '18', color: '#2D5016' },
+      { label: 'Client Rating', value: '4.7★', color: '#FFD700' },
+    ],
+  };
+
+  const roleStatsForProfile = () => {
+    switch (user?.role) {
+      case 'buyer':
+        return [
+          { label: 'Orders Completed', value: '47', icon: TrendingUp },
+          { label: 'Money Saved', value: 'KSh 12,400', icon: Star },
+          { label: 'Favorite Vendors', value: '12', icon: Users },
+        ];
+      case 'vendor':
+        return [
+          { label: 'Products Sold', value: '234', icon: TrendingUp },
+          { label: 'Total Revenue', value: 'KSh 156,800', icon: Star },
+          { label: 'Customer Rating', value: '4.8★', icon: Users },
+        ];
+      case 'driver':
+        return [
+          { label: 'Deliveries Made', value: '89', icon: Truck },
+          { label: 'Total Earnings', value: 'KSh 45,600', icon: TrendingUp },
+          { label: 'Driver Rating', value: '4.9★', icon: Star },
+        ];
+      case 'service_provider':
+        return [
+          { label: 'Services Completed', value: '67', icon: TrendingUp },
+          { label: 'Total Earnings', value: 'KSh 78,900', icon: Star },
+          { label: 'Client Rating', value: '4.7★', icon: Users },
+        ];
+      default:
+        return [];
+    }
+  };
+
+  const currentActions = quickActions[user?.role || 'buyer'] || quickActions.buyer;
+  const currentStats = statsMap[user?.role || 'buyer'] || statsMap.buyer;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]} testID="account-screen">
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.profileSection}>
-          <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <UserIcon size={40} color="#2D5016" />
-            </View>
-            <TouchableOpacity style={styles.cameraButton}>
-              <Camera size={16} color="white" />
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.userName}>{user?.name || 'User'}</Text>
-          <Text style={styles.userEmail}>{user?.email || 'user@example.com'}</Text>
-        </View>
-
-        <View style={styles.menuSection}>
-          {menuItems.map((item, index) => {
-            const IconComponent = item.icon;
-            return (
-              <TouchableOpacity
-                key={index}
-                style={styles.menuItem}
-                onPress={() => router.push(item.route as any)}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.iconContainer, { backgroundColor: `${item.color}15` }]}>
-                  <IconComponent size={20} color={item.color} />
+      <LinearGradient colors={['#F8FAFC', '#FFFFFF']} style={styles.gradient}>
+        {/* Modern Header */}
+        <View style={styles.modernHeader}>
+          <View style={styles.headerContent}>
+            <View style={styles.profileSection}>
+              <View style={styles.avatarContainer}>
+                <LinearGradient 
+                  colors={['#2D5016', '#4A7C59']} 
+                  style={styles.avatarGradient}
+                >
+                  <UserIcon size={28} color="white" />
+                </LinearGradient>
+                <TouchableOpacity style={styles.cameraButton}>
+                  <Camera size={14} color="white" />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.userInfo}>
+                <Text style={styles.userName}>{user?.name || 'User'}</Text>
+                <View style={styles.userMeta}>
+                  <View style={styles.verifiedBadge}>
+                    <CheckCircle size={12} color="#10B981" />
+                    <Text style={styles.verifiedText}>Verified</Text>
+                  </View>
+                  <Text style={styles.userRole}>{user?.role?.replace('_', ' ').toUpperCase()}</Text>
                 </View>
-                <Text style={styles.menuLabel}>{item.label}</Text>
-                <ChevronRight size={20} color="#9CA3AF" />
+              </View>
+            </View>
+            <View style={styles.headerActions}>
+              <TouchableOpacity style={styles.headerButton} testID="notif-button" onPress={handleNavigateToNotifications}>
+                <Bell size={20} color="#2D5016" />
+                <View style={styles.notificationDot} />
               </TouchableOpacity>
-            );
-          })}
+              <TouchableOpacity style={styles.headerButton} onPress={handleNavigateToSettings}>
+                <Settings size={20} color="#2D5016" />
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
 
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <LogOut size={20} color="#EF4444" />
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Banda v1.0.0</Text>
+        {/* Enhanced Tab Navigation */}
+        <View style={styles.tabContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScrollContent}>
+            {[
+              { key: 'overview', label: 'Overview', icon: Activity },
+              { key: 'profile', label: 'Profile', icon: UserIcon },
+              { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard }
+            ].map((tabItem) => {
+              const IconComponent = tabItem.icon;
+              const isActive = tab === tabItem.key;
+              return (
+                <TouchableOpacity
+                  key={tabItem.key}
+                  style={[styles.tabButton, isActive && styles.tabButtonActive]}
+                  onPress={() => setTab(tabItem.key as any)}
+                  testID={`segment-${tabItem.key}`}
+                >
+                  <IconComponent size={16} color={isActive ? '#2D5016' : '#666'} />
+                  <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                    {tabItem.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
         </View>
-      </ScrollView>
+
+        {tab === 'dashboard' ? (
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent} 
+            testID="dashboard-tab"
+          >
+            <View style={styles.dashboardRedirect}>
+              <LinearGradient colors={['#2D5016', '#4A7C59']} style={styles.dashboardRedirectGradient}>
+                <LayoutDashboard size={48} color="white" />
+                <Text style={styles.dashboardRedirectTitle}>Business Dashboard</Text>
+                <Text style={styles.dashboardRedirectSubtitle}>
+                  Manage your shop, services, logistics, and farm operations
+                </Text>
+                <TouchableOpacity 
+                  style={styles.dashboardRedirectButton}
+                  onPress={() => router.push('/dashboard' as any)}
+                >
+                  <Text style={styles.dashboardRedirectButtonText}>Open Dashboard</Text>
+                  <ArrowRight size={16} color="#2D5016" />
+                </TouchableOpacity>
+              </LinearGradient>
+            </View>
+
+            <View style={styles.dashboardFeatures}>
+              <Text style={styles.sectionTitle}>Dashboard Features</Text>
+              {[
+                { icon: Package, title: 'Shop Management', description: 'Manage products, orders, and analytics' },
+                { icon: Wrench, title: 'Service Management', description: 'Handle bookings and client relationships' },
+                { icon: Truck, title: 'Logistics Control', description: 'Track deliveries and optimize routes' },
+                { icon: Tractor, title: 'Farm Operations', description: 'Monitor crops and manage workers' },
+              ].map((feature, index) => {
+                const IconComponent = feature.icon;
+                return (
+                  <View key={index} style={styles.featureCard}>
+                    <View style={styles.featureIcon}>
+                      <IconComponent size={24} color="#2D5016" />
+                    </View>
+                    <View style={styles.featureContent}>
+                      <Text style={styles.featureTitle}>{feature.title}</Text>
+                      <Text style={styles.featureDescription}>{feature.description}</Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </ScrollView>
+        ) : tab === 'overview' ? (
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent} 
+            testID="overview-tab"
+
+          >
+            {/* Welcome Section */}
+            <View style={styles.welcomeSection}>
+              <Text style={styles.greeting}>{greeting}!</Text>
+              <Text style={styles.welcomeSubtext}>Here&apos;s what&apos;s happening with your account</Text>
+            </View>
+
+            {/* Quick Stats Cards */}
+            <View style={styles.quickStatsContainer}>
+              <View style={styles.quickStatsGrid}>
+                <TouchableOpacity 
+                  style={styles.quickStatCard}
+                  onPress={handleNavigateToWallet}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient colors={['#10B981', '#059669']} style={styles.quickStatGradient}>
+                    <Wallet size={24} color="white" />
+                    <View style={styles.quickStatContent}>
+                      <Text style={styles.quickStatValue}>
+                        {balanceVisible 
+                          ? `KSh ${(walletQuery.data?.wallet?.total_balance ?? 0).toLocaleString()}` 
+                          : '••••••'
+                        }
+                      </Text>
+                      <Text style={styles.quickStatLabel}>Total Balance</Text>
+                    </View>
+                    <TouchableOpacity 
+                      style={styles.eyeButton}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setBalanceVisible(!balanceVisible);
+                      }}
+                    >
+                      {balanceVisible ? <Eye size={16} color="white" /> : <EyeOff size={16} color="white" />}
+                    </TouchableOpacity>
+                  </LinearGradient>
+                </TouchableOpacity>
+                
+                <View style={styles.quickStatCard}>
+                  <LinearGradient colors={['#3B82F6', '#2563EB']} style={styles.quickStatGradient}>
+                    <TrendingUp size={24} color="white" />
+                    <View style={styles.quickStatContent}>
+                      <Text style={styles.quickStatValue}>+15.2%</Text>
+                      <Text style={styles.quickStatLabel}>This Month</Text>
+                    </View>
+                  </LinearGradient>
+                </View>
+              </View>
+              
+              <View style={styles.quickStatsGrid}>
+                <TouchableOpacity 
+                  style={styles.quickStatCard}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient colors={['#F59E0B', '#D97706']} style={styles.quickStatGradient}>
+                    <Star size={24} color="white" />
+                    <View style={styles.quickStatContent}>
+                      <Text style={styles.quickStatValue}>
+                        {loyaltyQuery.data?.points ?? 0}
+                      </Text>
+                      <Text style={styles.quickStatLabel}>Loyalty Points</Text>
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.quickStatCard}
+                  onPress={handleNavigateToSubscription}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient colors={['#8B5CF6', '#7C3AED']} style={styles.quickStatGradient}>
+                    <Award size={24} color="white" />
+                    <View style={styles.quickStatContent}>
+                      <Text style={styles.quickStatValue}>
+                        {dashboardData?.subscription?.current_tier || 'Free'}
+                      </Text>
+                      <Text style={styles.quickStatLabel}>Tier</Text>
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Enhanced Dashboard Cards */}
+            {dashboardQuery.isLoading ? (
+              <View style={styles.loadingContainer}>
+                <View style={styles.loadingContent}>
+                  <RefreshCw size={32} color="#2D5016" />
+                  <Text style={styles.loadingText}>Loading your dashboard...</Text>
+                </View>
+              </View>
+            ) : dashboardData ? (
+              <>
+                {/* Modern Verification Card */}
+                <View style={styles.modernCard}>
+                  <View style={styles.cardHeader}>
+                    <View style={styles.cardHeaderLeft}>
+                      <View style={styles.cardIcon}>
+                        <Shield size={20} color="#10B981" />
+                      </View>
+                      <View>
+                        <Text style={styles.cardTitle}>Verification Status</Text>
+                        <Text style={styles.cardSubtitle}>Build trust with verification</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity style={styles.cardAction} onPress={handleViewQR}>
+                      <Text style={styles.cardActionText}>View QR</Text>
+                      <ChevronRight size={16} color="#2D5016" />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.verificationProgress}>
+                    <View style={styles.progressBar}>
+                      <View style={[styles.progressFill, { width: `${dashboardData.verification.progress}%` }]} />
+                    </View>
+                    <Text style={styles.progressText}>{dashboardData.verification.progress}% Complete</Text>
+                  </View>
+                  <TouchableOpacity style={styles.primaryButton} onPress={handleUploadDocuments}>
+                    <Upload size={16} color="white" />
+                    <Text style={styles.primaryButtonText}>Upload Documents</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Modern Subscription Card */}
+                <View style={styles.modernCard}>
+                  <View style={styles.cardHeader}>
+                    <View style={styles.cardHeaderLeft}>
+                      <View style={styles.cardIcon}>
+                        <Crown size={20} color="#F59E0B" />
+                      </View>
+                      <View>
+                        <Text style={styles.cardTitle}>Subscription</Text>
+                        <Text style={styles.cardSubtitle}>{dashboardData.subscription.current_tier} Tier</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity style={styles.cardAction} onPress={handleViewBenefits}>
+                      <Text style={styles.cardActionText}>Benefits</Text>
+                      <ChevronRight size={16} color="#2D5016" />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.subscriptionFeatures}>
+                    {Object.entries(dashboardData.subscription.features).slice(0, 3).map(([key, value]) => (
+                      <View key={key} style={styles.featureItem}>
+                        <CheckCircle size={14} color={value ? '#10B981' : '#6B7280'} />
+                        <Text style={styles.featureText}>
+                          {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                  {dashboardData.subscription.current_tier !== 'Premium' && (
+                    <TouchableOpacity style={styles.primaryButton} onPress={handleUpgradeSubscription}>
+                      <Zap size={16} color="white" />
+                      <Text style={styles.primaryButtonText}>Upgrade Tier</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {/* Modern Wallet Card */}
+                <View style={styles.modernCard}>
+                  <View style={styles.cardHeader}>
+                    <View style={styles.cardHeaderLeft}>
+                      <View style={styles.cardIcon}>
+                        <Wallet size={20} color="#3B82F6" />
+                      </View>
+                      <View>
+                        <Text style={styles.cardTitle}>Wallet Overview</Text>
+                        <Text style={styles.cardSubtitle}>Manage your finances</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity style={styles.cardAction} onPress={handleNavigateToWallet}>
+                      <Text style={styles.cardActionText}>View All</Text>
+                      <ChevronRight size={16} color="#2D5016" />
+                    </TouchableOpacity>
+                  </View>
+                  {walletQuery.isLoading ? (
+                    <View style={styles.walletLoading}>
+                      <RefreshCw size={20} color="#2D5016" />
+                      <Text style={styles.walletLoadingText}>Loading wallet...</Text>
+                    </View>
+                  ) : walletQuery.error ? (
+                    <View style={styles.walletError}>
+                      <Text style={styles.walletErrorText}>Failed to load wallet</Text>
+                      <TouchableOpacity onPress={() => walletQuery.refetch()}>
+                        <Text style={styles.walletRetryText}>Retry</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <>
+                      <View style={styles.walletBalances}>
+                        <View style={styles.balanceItem}>
+                          <Text style={styles.balanceLabel}>Trading</Text>
+                          <Text style={styles.balanceValue}>KSh {(walletQuery.data?.wallet?.trading_balance ?? 0).toLocaleString()}</Text>
+                        </View>
+                        <View style={styles.balanceItem}>
+                          <Text style={styles.balanceLabel}>Savings</Text>
+                          <Text style={styles.balanceValue}>KSh {(walletQuery.data?.wallet?.savings_balance ?? 0).toLocaleString()}</Text>
+                        </View>
+                        <View style={styles.balanceItem}>
+                          <Text style={styles.balanceLabel}>Reserve</Text>
+                          <Text style={[styles.balanceValue, { color: '#F59E0B' }]}>KSh {(walletQuery.data?.wallet?.reserve_balance ?? 0).toLocaleString()}</Text>
+                        </View>
+                      </View>
+                      <View style={styles.walletActions}>
+                        <TouchableOpacity style={styles.walletButton} onPress={handleNavigateToWallet}>
+                          <Plus size={16} color="#2D5016" />
+                          <Text style={styles.walletButtonText}>Add</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.walletButton} onPress={handleNavigateToWallet}>
+                          <ArrowRight size={16} color="#2D5016" />
+                          <Text style={styles.walletButtonText}>Send</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.walletButton} onPress={handleNavigateToWallet}>
+                          <Download size={16} color="#2D5016" />
+                          <Text style={styles.walletButtonText}>Withdraw</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  )}
+                </View>
+              </>
+            ) : null}
+
+            {/* Performance Metrics */}
+            <View style={styles.metricsSection}>
+              <Text style={styles.sectionTitle}>Performance Metrics</Text>
+              <View style={styles.metricsGrid}>
+                {currentStats.map((stat, index) => (
+                  <View key={`stat-${index}`} style={styles.metricCard}>
+                    <View style={[styles.metricIcon, { backgroundColor: `${stat.color}20` }]}>
+                      <TrendingUp size={16} color={stat.color} />
+                    </View>
+                    <Text style={[styles.metricValue, { color: stat.color }]}>{stat.value}</Text>
+                    <Text style={styles.metricLabel}>{stat.label}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Enhanced Quick Actions */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Quick Actions</Text>
+                <TouchableOpacity style={styles.seeAllButton}>
+                  <Text style={styles.seeAllText}>Customize</Text>
+                  <Settings size={14} color="#2D5016" />
+                </TouchableOpacity>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.actionsScrollContent}>
+                {currentActions.map((action, index) => {
+                  const IconComponent = action.icon;
+                  return (
+                    <TouchableOpacity
+                      key={`action-${index}`}
+                      style={styles.modernActionCard}
+                      onPress={() => {
+                        console.log(`Navigating to: ${action.route}`);
+                        router.push(action.route as any);
+                      }}
+                      activeOpacity={0.8}
+                      testID={`quick-action-${index}`}
+                    >
+                      <LinearGradient
+                        colors={[action.color, `${action.color}E6`]}
+                        style={styles.modernActionGradient}
+                      >
+                        <IconComponent size={24} color="white" />
+                      </LinearGradient>
+                      <Text style={styles.modernActionTitle}>{action.title}</Text>
+                      <ChevronRight size={14} color="#666" />
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
+            {/* Enhanced Recent Activity */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Recent Activity</Text>
+                <TouchableOpacity style={styles.seeAllButton} onPress={() => router.push('/recent-activity' as any)}>
+                  <Text style={styles.seeAllText}>View All</Text>
+                  <ExternalLink size={14} color="#2D5016" />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.modernActivityList}>
+                {dashboardData?.notifications?.slice(0, 3).map((notification, index) => {
+                  const getActivityIcon = (type: string) => {
+                    switch (type) {
+                      case 'order': return CheckCircle;
+                      case 'verification': return Shield;
+                      case 'market': return TrendingUp;
+                      default: return Bell;
+                    }
+                  };
+                  
+                  const getActivityColor = (type: string) => {
+                    switch (type) {
+                      case 'order': return '#10B981';
+                      case 'verification': return '#3B82F6';
+                      case 'market': return '#F59E0B';
+                      default: return '#6B7280';
+                    }
+                  };
+                  
+                  const getTimeAgo = (dateString: string) => {
+                    const now = new Date();
+                    const date = new Date(dateString);
+                    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+                    
+                    if (diffInHours < 1) return 'Just now';
+                    if (diffInHours < 24) return `${diffInHours} hours ago`;
+                    const diffInDays = Math.floor(diffInHours / 24);
+                    return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+                  };
+                  
+                  const IconComponent = getActivityIcon(notification.type);
+                  const color = getActivityColor(notification.type);
+                  
+                  return (
+                    <TouchableOpacity 
+                      key={`activity-${notification.id}`} 
+                      style={styles.modernActivityItem}
+                      onPress={() => {
+                        if (notification.type === 'market') {
+                          handleNavigateToInsights();
+                        } else if (notification.type === 'order') {
+                          handleNavigateToOrders();
+                        } else {
+                          handleNavigateToNotifications();
+                        }
+                      }}
+                    >
+                      <View style={[styles.modernActivityIcon, { backgroundColor: `${color}20` }]}>
+                        <IconComponent size={16} color={color} />
+                      </View>
+                      <View style={styles.modernActivityContent}>
+                        <Text style={styles.modernActivityTitle}>{notification.title}</Text>
+                        <Text style={styles.modernActivityTime}>{getTimeAgo(notification.created_at)}</Text>
+                      </View>
+                      <View style={styles.activityAction}>
+                        {!notification.is_read && <View style={styles.unreadDot} />}
+                        <ChevronRight size={16} color="#666" />
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }) || [
+                  { icon: CheckCircle, title: 'Order #1234 delivered successfully', time: '2 hours ago', color: '#10B981' },
+                  { icon: ShoppingBag, title: 'New product added to marketplace', time: '5 hours ago', color: '#3B82F6' },
+                  { icon: Star, title: 'Received 5-star rating from customer', time: '1 day ago', color: '#F59E0B' }
+                ].map((activity, index) => {
+                  const IconComponent = activity.icon;
+                  return (
+                    <View key={`activity-${index}`} style={styles.modernActivityItem}>
+                      <View style={[styles.modernActivityIcon, { backgroundColor: `${activity.color}20` }]}>
+                        <IconComponent size={16} color={activity.color} />
+                      </View>
+                      <View style={styles.modernActivityContent}>
+                        <Text style={styles.modernActivityTitle}>{activity.title}</Text>
+                        <Text style={styles.modernActivityTime}>{activity.time}</Text>
+                      </View>
+                      <TouchableOpacity style={styles.activityAction}>
+                        <ChevronRight size={16} color="#666" />
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Enhanced Market Insights */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Market Insights</Text>
+                <TouchableOpacity style={styles.seeAllButton} onPress={handleNavigateToInsights}>
+                  <Text style={styles.seeAllText}>More Insights</Text>
+                  <BarChart3 size={14} color="#2D5016" />
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity 
+                style={styles.modernInsightCard}
+                onPress={handleNavigateToInsights}
+                activeOpacity={0.8}
+              >
+                <LinearGradient colors={['#2D5016', '#4A7C59']} style={styles.modernInsightGradient}>
+                  <View style={styles.insightHeader}>
+                    <View style={styles.insightIconContainer}>
+                      <TrendingUp size={24} color="white" />
+                    </View>
+                    <View style={styles.insightBadge}>
+                      <Text style={styles.insightBadgeText}>AI Powered</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.modernInsightTitle}>
+                    {dashboardData?.market_insights?.[0]?.product_name ? 
+                      `${dashboardData.market_insights[0].product_name} prices trending ${dashboardData.market_insights[0].trend}` :
+                      'Maize prices up 15% this week'
+                    }
+                  </Text>
+                  <Text style={styles.modernInsightSubtitle}>
+                    {dashboardData?.market_insights?.[0]?.ai_recommendation || 
+                      'High demand in Nairobi markets. Consider increasing inventory.'
+                    }
+                  </Text>
+                  <View style={styles.insightAction}>
+                    <Text style={styles.insightActionText}>View Details</Text>
+                    <ArrowRight size={14} color="white" />
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        ) : (
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent} 
+            testID="profile-tab"
+
+          >
+            <View style={styles.profileHeader}>
+              <LinearGradient colors={['#2D5016', '#4A7C59']} style={styles.profileGradient}>
+                <View style={styles.avatarContainer}>
+                  <View style={styles.avatar}>
+                    <UserIcon size={48} color="white" />
+                  </View>
+                  <TouchableOpacity style={styles.editAvatarButton}>
+                    <Edit3 size={16} color="#2D5016" />
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.profileName}>{user?.name}</Text>
+                <Text style={styles.profileRole}>{user?.role?.replace('_', ' ').toUpperCase() ?? ''}</Text>
+                <View style={styles.contactInfo}>
+                  <View style={styles.contactItem}>
+                    <Mail size={16} color="rgba(255, 255, 255, 0.8)" />
+                    <Text style={styles.contactText}>{user?.email}</Text>
+                  </View>
+                  {!!user?.phone && (
+                    <View style={styles.contactItem}>
+                      <Phone size={16} color="rgba(255, 255, 255, 0.8)" />
+                      <Text style={styles.contactText}>{user.phone}</Text>
+                    </View>
+                  )}
+                  {!!user?.location && (
+                    <View style={styles.contactItem}>
+                      <MapPin size={16} color="rgba(255, 255, 255, 0.8)" />
+                      <Text style={styles.contactText}>{user.location}</Text>
+                    </View>
+                  )}
+                </View>
+              </LinearGradient>
+            </View>
+
+            {/* Account Stats */}
+            <View style={styles.accountStatsSection}>
+              <Text style={styles.accountStatsTitle}>Account Stats</Text>
+              <Text style={styles.accountStatsSubtitle}>Your current standing on the platform.</Text>
+              
+              {/* Membership */}
+              <View style={styles.membershipCard}>
+                <View style={styles.membershipIcon}>
+                  <Star size={20} color="#FFD700" />
+                </View>
+                <View style={styles.membershipInfo}>
+                  <Text style={styles.membershipLabel}>Membership</Text>
+                  <Text style={styles.membershipValue}>Gold</Text>
+                </View>
+              </View>
+
+              {/* Reputation */}
+              <View style={styles.reputationCard}>
+                <View style={styles.reputationIcon}>
+                  <Shield size={20} color="#3B82F6" />
+                </View>
+                <View style={styles.reputationInfo}>
+                  <Text style={styles.reputationLabel}>Reputation</Text>
+                  <Text style={styles.reputationValue}>88 / 100</Text>
+                </View>
+              </View>
+
+              {/* Badges */}
+              <View style={styles.badgesSection}>
+                <Text style={styles.badgesTitle}>Badges</Text>
+                <View style={styles.badgesContainer}>
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>Top Seller</Text>
+                  </View>
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>Community Helper</Text>
+                  </View>
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>Early Adopter</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* Earnings & Payments */}
+            <View style={styles.earningsSection}>
+              <Text style={styles.earningsTitle}>Earnings & Payments</Text>
+              
+              {/* Earnings Summary */}
+              <View style={styles.earningsSummary}>
+                <View style={styles.earningsHeader}>
+                  <BarChart3 size={20} color="#10B981" />
+                  <Text style={styles.earningsSummaryTitle}>Earnings Summary</Text>
+                </View>
+                <View style={styles.earningsGrid}>
+                  <View style={styles.earningsItem}>
+                    <Text style={styles.earningsLabel}>Weekly:</Text>
+                    <Text style={styles.earningsValue}>Ksh 15,000</Text>
+                  </View>
+                  <View style={styles.earningsItem}>
+                    <Text style={styles.earningsLabel}>Monthly:</Text>
+                    <Text style={styles.earningsValue}>Ksh 62,000</Text>
+                  </View>
+                  <View style={styles.earningsItem}>
+                    <Text style={styles.earningsLabel}>Total:</Text>
+                    <Text style={styles.earningsValue}>Ksh 250,000</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Pending Payments */}
+              <View style={styles.pendingPayments}>
+                <View style={styles.pendingHeader}>
+                  <Clock size={20} color="#F59E0B" />
+                  <Text style={styles.pendingTitle}>Pending Payments</Text>
+                </View>
+                <View style={styles.pendingItem}>
+                  <Text style={styles.pendingDescription}>50 Crates of Tomatoes:</Text>
+                  <Text style={styles.pendingAmount}>Ksh 12,500</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Activity Hub */}
+            <View style={styles.activityHubSection}>
+              <Text style={styles.activityHubTitle}>Activity Hub</Text>
+              
+              <View style={styles.activityGrid}>
+                <View style={styles.activityCard}>
+                  <View style={styles.activityCardIcon}>
+                    <Tractor size={20} color="#10B981" />
+                  </View>
+                  <Text style={styles.activityCardTitle}>Linked Farms</Text>
+                  <Text style={styles.activityCardValue}>1 Farms</Text>
+                </View>
+                
+                <View style={styles.activityCard}>
+                  <View style={styles.activityCardIcon}>
+                    <Wrench size={20} color="#10B981" />
+                  </View>
+                  <Text style={styles.activityCardTitle}>Services Offered</Text>
+                  <Text style={styles.activityCardValue}>2 Services</Text>
+                </View>
+                
+                <View style={styles.activityCard}>
+                  <View style={styles.activityCardIcon}>
+                    <MessageSquare size={20} color="#10B981" />
+                  </View>
+                  <Text style={styles.activityCardTitle}>My Posts</Text>
+                  <Text style={styles.activityCardValue}>3 Posts</Text>
+                </View>
+                
+                <View style={styles.activityCard}>
+                  <View style={styles.activityCardIcon}>
+                    <Users size={20} color="#10B981" />
+                  </View>
+                  <Text style={styles.activityCardTitle}>Joined Groups</Text>
+                  <Text style={styles.activityCardValue}>2 Groups</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Recommended for You */}
+            <View style={styles.recommendedSection}>
+              <View style={styles.recommendedHeader}>
+                <TrendingUp size={20} color="#10B981" />
+                <Text style={styles.recommendedTitle}>Recommended for You</Text>
+              </View>
+              <Text style={styles.recommendedSubtitle}>AI-suggested opportunities based on your profile.</Text>
+              
+              <View style={styles.recommendationItem}>
+                <Text style={styles.recommendationText}>High-yield tomato seeds available in your area.</Text>
+                <TouchableOpacity style={styles.recommendationButton}>
+                  <Text style={styles.recommendationButtonText}>View</Text>
+                  <ArrowRight size={16} color="#2D5016" />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.recommendationItem}>
+                <Text style={styles.recommendationText}>A buyer is looking for 500 kienyeji eggs in Kiambu.</Text>
+                <TouchableOpacity style={styles.recommendationButton}>
+                  <Text style={styles.recommendationButtonText}>View</Text>
+                  <ArrowRight size={16} color="#2D5016" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {roleStatsForProfile().length > 0 && (
+              <View style={styles.statsContainerAlt}>
+                <Text style={styles.sectionTitle}>Your Performance</Text>
+                <View style={styles.statsGrid}>
+                  {roleStatsForProfile().map((stat, index) => {
+                    const IconComponent = stat.icon as any;
+                    return (
+                      <View key={`pstat-${index}`} style={styles.statCard}>
+                        <View style={styles.statIcon}>
+                          <IconComponent size={24} color="#2D5016" />
+                        </View>
+                        <Text style={styles.statValueAlt}>{stat.value}</Text>
+                        <Text style={styles.statLabel}>{stat.label}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+
+            <View style={styles.verificationContainer}>
+              <View style={styles.verificationHeader}>
+                <Shield size={20} color="#10B981" />
+                <Text style={styles.verificationTitle}>Account Verification</Text>
+              </View>
+              <Text style={styles.verificationDescription}>
+                Verify your account to increase trust and unlock premium features
+              </Text>
+              <TouchableOpacity style={styles.verifyButton} onPress={handleNavigateToVerification}>
+                <Text style={styles.verifyButtonText}>Verify Account</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Enhanced Menu Sections */}
+            <View style={styles.menuContainer}>
+              <Text style={styles.sectionTitle}>Account Management</Text>
+              {[
+                { icon: Edit3, label: 'Edit Profile', action: handleNavigateToProfile, description: 'Update your personal information' },
+                { icon: Settings, label: 'Settings', action: handleNavigateToSettings, description: 'App preferences and configuration' },
+                { icon: Shield, label: 'Privacy & Security', action: handleNavigateToSecurity, description: 'Manage your account security' },
+                { icon: MapPin, label: 'Address Book', action: handleNavigateToAddress, description: 'Manage delivery addresses' },
+                { icon: BadgeCheck, label: 'Verification', action: handleNavigateToVerification, description: 'Complete account verification' },
+                { icon: Crown, label: 'Subscription', action: handleNavigateToSubscription, description: 'Manage your subscription plan' }
+              ].map((item: any, index: number) => {
+                const IconComponent = item.icon;
+                return (
+                  <TouchableOpacity key={`account-${index}`} style={styles.enhancedMenuItem} onPress={item.action}>
+                    <View style={styles.menuItemLeft}>
+                      <View style={styles.menuIcon}>
+                        <IconComponent size={20} color="#2D5016" />
+                      </View>
+                      <View style={styles.menuTextContainer}>
+                        <Text style={styles.menuLabel}>{item.label}</Text>
+                        <Text style={styles.menuDescription}>{item.description}</Text>
+                      </View>
+                    </View>
+                    <ChevronRight size={16} color="#9CA3AF" />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.menuContainer}>
+              <Text style={styles.sectionTitle}>Business & Trading</Text>
+              {[
+                { icon: Package, label: 'My Products', action: handleNavigateToMyProducts, description: 'Manage your product listings' },
+                { icon: ShoppingCart, label: 'My Orders', action: handleNavigateToOrders, description: 'Track and manage orders' },
+                { icon: Wallet, label: 'Wallet & Payments', action: handleNavigateToWallet, description: 'Manage your finances' },
+                { icon: Heart, label: 'Favorites', action: handleNavigateToFavorites, description: 'Your saved items and vendors' },
+                { icon: BarChart3, label: 'Market Insights', action: handleNavigateToInsights, description: 'View market trends and analytics' }
+              ].map((item: any, index: number) => {
+                const IconComponent = item.icon;
+                return (
+                  <TouchableOpacity key={`business-${index}`} style={styles.enhancedMenuItem} onPress={item.action}>
+                    <View style={styles.menuItemLeft}>
+                      <View style={styles.menuIcon}>
+                        <IconComponent size={20} color="#2D5016" />
+                      </View>
+                      <View style={styles.menuTextContainer}>
+                        <Text style={styles.menuLabel}>{item.label}</Text>
+                        <Text style={styles.menuDescription}>{item.description}</Text>
+                      </View>
+                    </View>
+                    <ChevronRight size={16} color="#9CA3AF" />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.menuContainer}>
+              <Text style={styles.sectionTitle}>App Preferences</Text>
+              {[
+                { icon: Bell, label: 'Notifications', action: handleNavigateToNotifications, description: 'Manage notification settings' },
+                { icon: Globe, label: 'Language', action: handleNavigateToLanguage, description: 'Change app language' },
+                { icon: Moon, label: 'Appearance', action: handleNavigateToAppearance, description: 'Theme and display settings' }
+              ].map((item: any, index: number) => {
+                const IconComponent = item.icon;
+                return (
+                  <TouchableOpacity key={`prefs-${index}`} style={styles.enhancedMenuItem} onPress={item.action}>
+                    <View style={styles.menuItemLeft}>
+                      <View style={styles.menuIcon}>
+                        <IconComponent size={20} color="#2D5016" />
+                      </View>
+                      <View style={styles.menuTextContainer}>
+                        <Text style={styles.menuLabel}>{item.label}</Text>
+                        <Text style={styles.menuDescription}>{item.description}</Text>
+                      </View>
+                    </View>
+                    <ChevronRight size={16} color="#9CA3AF" />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.menuContainer}>
+              <Text style={styles.sectionTitle}>Support & Help</Text>
+              {[
+                { icon: MessageCircle, label: 'Customer Care', action: handleNavigateToCustomerCare, description: 'Get help from our support team' },
+                { icon: HelpCircle, label: 'Help Center', action: handleNavigateToHelp, description: 'FAQs and guides' },
+                { icon: MessageSquare, label: 'Send Feedback', action: handleNavigateToFeedback, description: 'Share your thoughts with us' },
+                { icon: FileText, label: 'Legal & Terms', action: handleNavigateToLegal, description: 'Privacy policy and terms' }
+              ].map((item: any, index: number) => {
+                const IconComponent = item.icon;
+                return (
+                  <TouchableOpacity key={`support-${index}`} style={styles.enhancedMenuItem} onPress={item.action}>
+                    <View style={styles.menuItemLeft}>
+                      <View style={styles.menuIcon}>
+                        <IconComponent size={20} color="#2D5016" />
+                      </View>
+                      <View style={styles.menuTextContainer}>
+                        <Text style={styles.menuLabel}>{item.label}</Text>
+                        <Text style={styles.menuDescription}>{item.description}</Text>
+                      </View>
+                    </View>
+                    <ChevronRight size={16} color="#9CA3AF" />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.menuContainer}>
+              <Text style={styles.sectionTitle}>Account Actions</Text>
+              {[
+                { icon: UserX, label: 'Delete Account', action: handleNavigateToDeleteAccount, description: 'Permanently delete your account', danger: true },
+                { icon: LogOut, label: 'Logout', action: handleLogout, description: 'Sign out of your account', danger: true }
+              ].map((item: any, index: number) => {
+                const IconComponent = item.icon;
+                return (
+                  <TouchableOpacity key={`actions-${index}`} style={styles.enhancedMenuItem} onPress={item.action}>
+                    <View style={styles.menuItemLeft}>
+                      <View style={[styles.menuIcon, item.danger && styles.menuIconDanger]}>
+                        <IconComponent size={20} color={item.danger ? '#EF4444' : '#2D5016'} />
+                      </View>
+                      <View style={styles.menuTextContainer}>
+                        <Text style={[styles.menuLabel, item.danger && styles.menuLabelDanger]}>{item.label}</Text>
+                        <Text style={[styles.menuDescription, item.danger && styles.menuDescriptionDanger]}>{item.description}</Text>
+                      </View>
+                    </View>
+                    <ChevronRight size={16} color={item.danger ? '#EF4444' : '#9CA3AF'} />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.appInfo}>
+              <Text style={styles.appInfoText}>Banda v1.0.0</Text>
+              <Text style={styles.appInfoText}>Made with ❤️ for East African farmers</Text>
+            </View>
+          </ScrollView>
+        )}
+      </LinearGradient>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  scrollView: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+  gradient: { flex: 1 },
   segmentHeader: {
     paddingHorizontal: 20,
     paddingTop: 12,
@@ -203,113 +1380,9 @@ const styles = StyleSheet.create({
     color: '#2D5016',
   },
   scrollContent: {
-    paddingBottom: 100,
-  },
-  profileSection: {
-    alignItems: 'center',
-    paddingVertical: 32,
     paddingHorizontal: 20,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    paddingBottom: 24,
   },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: 16,
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cameraButton: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: '#2D5016',
-    borderRadius: 16,
-    padding: 8,
-    borderWidth: 3,
-    borderColor: 'white',
-  },
-  userName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  userEmail: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  menuSection: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  menuLabel: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1F2937',
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginHorizontal: 20,
-    marginTop: 8,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#FEE2E2',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  logoutText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#EF4444',
-    marginLeft: 8,
-  },
-  footer: {
-    alignItems: 'center',
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-  },
-  footerText: {
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
-  gradient: { flex: 1 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -319,6 +1392,7 @@ const styles = StyleSheet.create({
   },
   headerLeft: { flex: 1 },
   greeting: { fontSize: 16, color: '#666', marginBottom: 4 },
+  userName: { fontSize: 24, fontWeight: 'bold', color: '#2D5016', marginBottom: 2 },
   userRole: { fontSize: 12, color: '#8B4513', fontWeight: '600', letterSpacing: 0.5 },
   notificationButton: { position: 'relative', padding: 8 },
   notificationBadge: {
@@ -377,6 +1451,8 @@ const styles = StyleSheet.create({
 
   profileHeader: { marginTop: 12, marginBottom: 24, borderRadius: 20, overflow: 'hidden', elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 },
   profileGradient: { padding: 24, alignItems: 'center' },
+  avatarContainer: { position: 'relative', marginBottom: 16 },
+  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255, 255, 255, 0.2)', alignItems: 'center', justifyContent: 'center' },
   editAvatarButton: { position: 'absolute', bottom: 0, right: 0, backgroundColor: 'white', borderRadius: 16, padding: 8, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 4 },
   profileName: { fontSize: 24, fontWeight: 'bold', color: 'white', marginBottom: 4 },
   profileRole: { fontSize: 14, color: 'rgba(255, 255, 255, 0.8)', fontWeight: '600', letterSpacing: 0.5, marginBottom: 16 },
@@ -394,6 +1470,7 @@ const styles = StyleSheet.create({
   verifyButton: { backgroundColor: '#10B981', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 16, alignSelf: 'flex-start' },
   verifyButtonText: { color: 'white', fontSize: 14, fontWeight: '600' },
   menuContainer: { marginBottom: 24 },
+  menuItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'white', borderRadius: 12, padding: 16, marginBottom: 8, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 },
   enhancedMenuItem: { 
     flexDirection: 'row', 
     alignItems: 'center', 
@@ -424,6 +1501,7 @@ const styles = StyleSheet.create({
   menuTextContainer: {
     flex: 1
   },
+  menuLabel: { fontSize: 16, fontWeight: '600', color: '#1F2937', marginBottom: 2 },
   menuDescription: { fontSize: 13, color: '#6B7280', lineHeight: 18 },
   menuLabelDanger: { color: '#EF4444' },
   menuDescriptionDanger: { color: '#F87171' },
@@ -915,12 +1993,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  profileSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
   avatarGradient: {
     width: 56,
     height: 56,
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  cameraButton: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#2D5016',
+    borderRadius: 12,
+    padding: 4,
+    borderWidth: 2,
+    borderColor: 'white',
   },
   userInfo: {
     marginLeft: 12,
