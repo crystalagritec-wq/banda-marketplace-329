@@ -1,0 +1,561 @@
+{
+  "categories": [
+    {
+      "id": "farm-produce",
+      "name": "Farm Produce",
+      "icon": "🌾",
+      "description": "Fresh agricultural produce from farms",
+      "subcategories": [
+        {
+          "id": "cereals-grains",
+          "name": "Cereals & Grains",
+          "items": [
+            {
+              "id": "maize",
+              "name": "Maize",
+              "variants": ["White Maize", "Yellow Maize", "Green Maize"]
+            },
+            {
+              "id": "rice",
+              "name": "Rice",
+              "variants": ["Pishori", "Basmati", "IR Varieties"]
+            },
+            {
+              "id": "wheat",
+              "name": "Wheat",
+              "variants": ["Soft Wheat", "Hard Wheat"]
+            },
+            {
+              "id": "other-cereals",
+              "name": "Other Cereals",
+              "variants": ["Barley", "Sorghum", "Millet", "Oats"]
+            }
+          ]
+        },
+        {
+          "id": "legumes-pulses",
+          "name": "Legumes & Pulses",
+          "items": [
+            {
+              "id": "beans",
+              "name": "Beans",
+              "variants": ["Rosecoco", "Black Beans", "Yellow Beans", "Njahi"]
+            },
+            {
+              "id": "peas",
+              "name": "Peas",
+              "variants": ["Green Peas", "Pigeon Peas", "Cowpeas"]
+            },
+            {
+              "id": "groundnuts",
+              "name": "Groundnuts",
+              "variants": ["Red Valencia", "Spanish Type"]
+            },
+            {
+              "id": "other-legumes",
+              "name": "Other Legumes",
+              "variants": ["Lentils", "Chickpeas"]
+            }
+          ]
+        },
+        {
+          "id": "fruits",
+          "name": "Fruits",
+          "items": [
+            {
+              "id": "tropical",
+              "name": "Tropical Fruits",
+              "variants": ["Mangoes", "Pineapples", "Avocados", "Papayas", "Bananas"]
+            },
+            {
+              "id": "citrus",
+              "name": "Citrus Fruits",
+              "variants": ["Oranges", "Lemons", "Tangerines", "Limes"]
+            },
+            {
+              "id": "berries",
+              "name": "Berries",
+              "variants": ["Strawberries", "Blueberries", "Raspberries"]
+            },
+            {
+              "id": "exotic",
+              "name": "Exotic Fruits",
+              "variants": ["Passion Fruit", "Dragon Fruit", "Guava"]
+            }
+          ]
+        },
+        {
+          "id": "vegetables",
+          "name": "Vegetables",
+          "items": [
+            {
+              "id": "leafy",
+              "name": "Leafy Vegetables",
+              "variants": ["Kale/Sukuma", "Spinach", "Cabbage", "Lettuce"]
+            },
+            {
+              "id": "root",
+              "name": "Root Vegetables",
+              "variants": ["Carrots", "Beetroots", "Onions", "Garlic", "Ginger"]
+            },
+            {
+              "id": "solanaceous",
+              "name": "Solanaceous Vegetables",
+              "variants": ["Tomatoes", "Peppers", "Eggplants"]
+            },
+            {
+              "id": "others",
+              "name": "Other Vegetables",
+              "variants": ["Cucumbers", "Zucchini", "Pumpkins"]
+            }
+          ]
+        },
+        {
+          "id": "roots-tubers",
+          "name": "Roots & Tubers",
+          "items": [
+            {
+              "id": "tubers",
+              "name": "Tubers",
+              "variants": ["Cassava", "Sweet Potatoes", "Irish Potatoes", "Yams", "Arrowroots"]
+            }
+          ]
+        },
+        {
+          "id": "cash-crops",
+          "name": "Cash Crops",
+          "items": [
+            {
+              "id": "coffee",
+              "name": "Coffee",
+              "variants": ["Arabica", "Robusta"]
+            },
+            {
+              "id": "tea",
+              "name": "Tea",
+              "variants": ["Black Tea", "Green Tea", "Purple Tea"]
+            },
+            {
+              "id": "other-cash",
+              "name": "Other Cash Crops",
+              "variants": ["Sugarcane", "Cotton"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "livestock-poultry",
+      "name": "Livestock & Poultry",
+      "icon": "🐓",
+      "description": "Live animals, poultry, and aquaculture products",
+      "subcategories": [
+        {
+          "id": "poultry",
+          "name": "Poultry",
+          "items": [
+            {
+              "id": "chicks",
+              "name": "Chicks",
+              "variants": ["Day-old Layers", "Broilers", "Improved Kienyeji"]
+            },
+            {
+              "id": "mature-birds",
+              "name": "Mature Birds",
+              "variants": ["Layers", "Broilers", "Kienyeji"]
+            },
+            {
+              "id": "specialty-birds",
+              "name": "Specialty Birds",
+              "variants": ["Ducks", "Turkeys", "Geese", "Quails"]
+            }
+          ]
+        },
+        {
+          "id": "livestock",
+          "name": "Livestock",
+          "items": [
+            {
+              "id": "cattle",
+              "name": "Cattle",
+              "variants": ["Dairy (Friesian, Jersey, Ayrshire)", "Beef (Boran, Sahiwal, Zebu)"]
+            },
+            {
+              "id": "goats",
+              "name": "Goats",
+              "variants": ["Dairy (Toggenburg, Saanen)", "Meat (Boer, Galla)"]
+            },
+            {
+              "id": "sheep",
+              "name": "Sheep",
+              "variants": ["Dorper", "Red Maasai", "Merino"]
+            },
+            {
+              "id": "pigs",
+              "name": "Pigs",
+              "variants": ["Large White", "Landrace", "Duroc"]
+            }
+          ]
+        },
+        {
+          "id": "aquaculture",
+          "name": "Aquaculture",
+          "items": [
+            {
+              "id": "fish",
+              "name": "Fish",
+              "variants": ["Tilapia", "Catfish", "Trout"]
+            },
+            {
+              "id": "fingerlings",
+              "name": "Fingerlings",
+              "variants": ["Tilapia Fingerlings", "Catfish Fingerlings"]
+            },
+            {
+              "id": "aqua-inputs",
+              "name": "Aquaculture Inputs",
+              "variants": ["Fish Feed", "Tanks", "Ponds"]
+            }
+          ]
+        },
+        {
+          "id": "beekeeping",
+          "name": "Beekeeping (Apis)",
+          "items": [
+            {
+              "id": "colonies",
+              "name": "Bee Colonies",
+              "variants": ["Italian", "African Honeybee"]
+            },
+            {
+              "id": "honey",
+              "name": "Raw Honey",
+              "variants": ["Wildflower Honey", "Acacia Honey", "Eucalyptus Honey"]
+            },
+            {
+              "id": "bee-products",
+              "name": "Bee By-products",
+              "variants": ["Beeswax", "Propolis", "Royal Jelly"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "agri-inputs-equipment",
+      "name": "Agri Inputs & Equipment",
+      "icon": "🏭",
+      "description": "Agricultural inputs, equipment, and farming tools",
+      "subcategories": [
+        {
+          "id": "seeds-seedlings",
+          "name": "Seeds & Seedlings",
+          "items": [
+            {
+              "id": "hybrid-seeds",
+              "name": "Hybrid Seeds",
+              "variants": ["Maize Hybrids", "Vegetable Hybrids", "Fruit Hybrids"]
+            },
+            {
+              "id": "indigenous-seeds",
+              "name": "Indigenous Seeds",
+              "variants": ["Traditional Maize", "Local Vegetables", "Native Grains"]
+            },
+            {
+              "id": "seedlings",
+              "name": "Seedlings",
+              "variants": ["Fruit Tree Seedlings", "Timber Tree Seedlings", "Vegetable Seedlings"]
+            }
+          ]
+        },
+        {
+          "id": "fertilizers-chemicals",
+          "name": "Fertilizers & Chemicals",
+          "items": [
+            {
+              "id": "organic",
+              "name": "Organic Fertilizers",
+              "variants": ["Manure", "Compost", "Biofertilizers"]
+            },
+            {
+              "id": "inorganic",
+              "name": "Inorganic Fertilizers",
+              "variants": ["NPK", "DAP", "UREA"]
+            },
+            {
+              "id": "crop-protection",
+              "name": "Crop Protection",
+              "variants": ["Fungicides", "Herbicides", "Pesticides"]
+            }
+          ]
+        },
+        {
+          "id": "animal-feeds",
+          "name": "Animal Feeds & Supplements",
+          "items": [
+            {
+              "id": "poultry-feed",
+              "name": "Poultry Feed",
+              "variants": ["Chick Mash", "Growers Mash", "Layers Mash", "Broiler Finisher"]
+            },
+            {
+              "id": "livestock-feed",
+              "name": "Livestock Feed",
+              "variants": ["Dairy Meal", "Pig Feed", "Goat Feed"]
+            },
+            {
+              "id": "supplements",
+              "name": "Supplements",
+              "variants": ["Mineral Licks & Blocks", "Silage & Hay", "Vitamins"]
+            }
+          ]
+        },
+        {
+          "id": "farm-equipment",
+          "name": "Farm Equipment",
+          "items": [
+            {
+              "id": "mechanization",
+              "name": "Mechanization",
+              "variants": ["Tractors", "Ploughs", "Harrows", "Planters", "Harvesters"]
+            },
+            {
+              "id": "irrigation",
+              "name": "Irrigation Equipment",
+              "variants": ["Drip Kits", "Sprinklers", "Water Pumps", "Pipes"]
+            },
+            {
+              "id": "structures",
+              "name": "Farm Structures",
+              "variants": ["Greenhouses", "Shade Nets", "Fish Tanks", "Storage Facilities"]
+            },
+            {
+              "id": "poultry-equipment",
+              "name": "Poultry Equipment",
+              "variants": ["Cages", "Feeders", "Drinkers", "Incubators"]
+            },
+            {
+              "id": "beekeeping-equipment",
+              "name": "Beekeeping Equipment",
+              "variants": ["Hives", "Extractors", "Smokers", "Protective Gear"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "processed-value-added",
+      "name": "Processed & Value-Added Products",
+      "icon": "🏠",
+      "description": "Processed agricultural products and value-added goods",
+      "subcategories": [
+        {
+          "id": "dairy-products",
+          "name": "Dairy Products",
+          "items": [
+            {
+              "id": "fresh-milk",
+              "name": "Fresh Milk",
+              "variants": ["Raw Milk", "Pasteurized Milk", "Packaged Milk"]
+            },
+            {
+              "id": "processed-dairy",
+              "name": "Processed Dairy",
+              "variants": ["Cheese", "Yoghurt", "Ghee", "Butter"]
+            }
+          ]
+        },
+        {
+          "id": "meat-products",
+          "name": "Meat Products",
+          "items": [
+            {
+              "id": "fresh-meat",
+              "name": "Fresh Meat",
+              "variants": ["Beef", "Goat Meat", "Pork", "Chicken"]
+            },
+            {
+              "id": "processed-meat",
+              "name": "Processed Meat",
+              "variants": ["Sausages", "Smoked Meat", "Bacon", "Jerky"]
+            }
+          ]
+        },
+        {
+          "id": "grain-flour",
+          "name": "Grain & Flour Products",
+          "items": [
+            {
+              "id": "flour",
+              "name": "Flour",
+              "variants": ["Maize Flour (Unga)", "Wheat Flour", "Millet Flour"]
+            },
+            {
+              "id": "feed-mixes",
+              "name": "Animal Feed Mixes",
+              "variants": ["Poultry Feed Mix", "Dairy Feed Mix", "Pig Feed Mix"]
+            }
+          ]
+        },
+        {
+          "id": "fruits-vegetables-processed",
+          "name": "Processed Fruits & Vegetables",
+          "items": [
+            {
+              "id": "juices",
+              "name": "Juices",
+              "variants": ["Mango Juice", "Orange Juice", "Passion Juice"]
+            },
+            {
+              "id": "preserves",
+              "name": "Jams & Preserves",
+              "variants": ["Fruit Jams", "Vegetable Preserves", "Pickles"]
+            },
+            {
+              "id": "dried-fruits",
+              "name": "Dried Fruits",
+              "variants": ["Dried Mango", "Dried Pineapple", "Banana Chips"]
+            },
+            {
+              "id": "processed-vegetables",
+              "name": "Processed Vegetables",
+              "variants": ["Tomato Paste", "Vegetable Purees", "Frozen Vegetables"]
+            }
+          ]
+        },
+        {
+          "id": "honey-products",
+          "name": "Honey & By-Products",
+          "items": [
+            {
+              "id": "processed-honey",
+              "name": "Processed Honey",
+              "variants": ["Filtered Honey", "Creamed Honey", "Flavored Honey"]
+            },
+            {
+              "id": "wax-products",
+              "name": "Wax Products",
+              "variants": ["Beeswax Candles", "Cosmetic Wax", "Polish"]
+            },
+            {
+              "id": "health-products",
+              "name": "Health Products",
+              "variants": ["Propolis Extract", "Royal Jelly", "Bee Pollen"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "services",
+      "name": "Services",
+      "icon": "🛠",
+      "description": "Agricultural and farming services",
+      "subcategories": [
+        {
+          "id": "veterinary",
+          "name": "Veterinary Services",
+          "items": [
+            {
+              "id": "health-services",
+              "name": "Animal Health Services",
+              "variants": ["Vaccination", "Treatment & Check-ups", "Deworming"]
+            },
+            {
+              "id": "breeding-services",
+              "name": "Breeding Services",
+              "variants": ["Artificial Insemination (AI)", "Pregnancy Diagnosis", "Breeding Consultation"]
+            }
+          ]
+        },
+        {
+          "id": "mechanization-services",
+          "name": "Mechanization Services",
+          "items": [
+            {
+              "id": "land-preparation",
+              "name": "Land Preparation",
+              "variants": ["Ploughing", "Harrowing", "Land Clearing"]
+            },
+            {
+              "id": "planting-harvesting",
+              "name": "Planting & Harvesting",
+              "variants": ["Planting Services", "Combine Harvesters", "Manual Harvest Teams"]
+            }
+          ]
+        },
+        {
+          "id": "extension-advisory",
+          "name": "Extension & Advisory Services",
+          "items": [
+            {
+              "id": "training",
+              "name": "Training Services",
+              "variants": ["Farm Management Training", "Crop & Animal Husbandry Advice", "Financial Literacy"]
+            },
+            {
+              "id": "consultation",
+              "name": "Consultation Services",
+              "variants": ["Soil Testing", "Crop Planning", "Market Analysis"]
+            }
+          ]
+        },
+        {
+          "id": "agri-finance",
+          "name": "Agri-Finance Services",
+          "items": [
+            {
+              "id": "loans",
+              "name": "Loans & Credit",
+              "variants": ["Microloans", "Input Credit (BNPL)", "Equipment Financing"]
+            },
+            {
+              "id": "insurance",
+              "name": "Insurance Services",
+              "variants": ["Farm Insurance", "Crop Insurance", "Livestock Insurance"]
+            }
+          ]
+        },
+        {
+          "id": "storage-warehousing",
+          "name": "Storage & Warehousing",
+          "items": [
+            {
+              "id": "storage-facilities",
+              "name": "Storage Facilities",
+              "variants": ["Cold Storage", "Dry Storage", "Grain Silos"]
+            },
+            {
+              "id": "logistics",
+              "name": "Logistics Services",
+              "variants": ["Transportation", "Packaging", "Distribution"]
+            }
+          ]
+        },
+        {
+          "id": "processing-services",
+          "name": "Processing Services",
+          "items": [
+            {
+              "id": "milling",
+              "name": "Milling Services",
+              "variants": ["Maize Milling", "Wheat Milling", "Custom Milling"]
+            },
+            {
+              "id": "value-addition",
+              "name": "Value Addition Services",
+              "variants": ["Packaging Services", "Processing Units", "Quality Testing"]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "version": "1.0",
+    "lastUpdated": "2025-09-29",
+    "totalCategories": 5,
+    "totalSubcategories": 25,
+    "description": "Comprehensive hierarchical category structure for Banda Marketplace focusing on agricultural trade"
+  }
+}

@@ -1,0 +1,421 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BANDA Authentication Alerts",
+  "type": "object",
+  "properties": {
+    "general": {
+      "required": {
+        "code": "E101_FIELD_REQUIRED",
+        "message": {
+          "en": "{field} is required.",
+          "sw": "{field} inahitajika."
+        },
+        "type": "error"
+      },
+      "invalidFormat": {
+        "code": "E102_INVALID_FORMAT",
+        "message": {
+          "en": "Invalid format for {field}.",
+          "sw": "Muundo wa {field} si sahihi."
+        },
+        "type": "error"
+      },
+      "tooShort": {
+        "code": "E103_TOO_SHORT",
+        "message": {
+          "en": "{field} is too short.",
+          "sw": "{field} ni fupi sana."
+        },
+        "type": "error"
+      },
+      "tooLong": {
+        "code": "E104_TOO_LONG",
+        "message": {
+          "en": "{field} is too long.",
+          "sw": "{field} ni ndefu sana."
+        },
+        "type": "error"
+      }
+    },
+    "fullName": {
+      "required": {
+        "code": "E201_FULLNAME_REQUIRED",
+        "message": {
+          "en": "Full name is required.",
+          "sw": "Jina kamili linahitajika."
+        },
+        "type": "error"
+      },
+      "tooShort": {
+        "code": "E202_FULLNAME_SHORT",
+        "message": {
+          "en": "Full name must be at least 2 characters.",
+          "sw": "Jina kamili lazima liwe angalau herufi 2."
+        },
+        "type": "error"
+      },
+      "tooLong": {
+        "code": "E203_FULLNAME_LONG",
+        "message": {
+          "en": "Full name cannot exceed 50 characters.",
+          "sw": "Jina kamili haliwezi kuzidi herufi 50."
+        },
+        "type": "error"
+      },
+      "invalidChars": {
+        "code": "E204_FULLNAME_INVALID",
+        "message": {
+          "en": "Full name cannot contain numbers or symbols.",
+          "sw": "Jina kamili haliwezi kuwa na namba au alama."
+        },
+        "type": "warning"
+      }
+    },
+    "email": {
+      "required": {
+        "code": "E301_EMAIL_REQUIRED",
+        "message": {
+          "en": "Email is required.",
+          "sw": "Barua pepe inahitajika."
+        },
+        "type": "error"
+      },
+      "invalidFormat": {
+        "code": "E302_EMAIL_INVALID",
+        "message": {
+          "en": "Invalid email format.",
+          "sw": "Muundo wa barua pepe si sahihi."
+        },
+        "type": "error"
+      },
+      "tooLong": {
+        "code": "E303_EMAIL_LONG",
+        "message": {
+          "en": "Email cannot exceed 100 characters.",
+          "sw": "Barua pepe haiwezi kuzidi herufi 100."
+        },
+        "type": "error"
+      },
+      "alreadyRegistered": {
+        "code": "E304_EMAIL_REGISTERED",
+        "message": {
+          "en": "The email {email} is already registered.",
+          "sw": "Barua pepe {email} imesajiliwa tayari."
+        },
+        "type": "warning"
+      },
+      "notFound": {
+        "code": "E305_EMAIL_NOT_FOUND",
+        "message": {
+          "en": "We couldn't find {email}. Sign up instead?",
+          "sw": "Hatukupata {email}. Unataka kujisajili?"
+        },
+        "type": "info"
+      }
+    },
+    "password": {
+      "required": {
+        "code": "E401_PASS_REQUIRED",
+        "message": {
+          "en": "Password is required.",
+          "sw": "Nenosiri linahitajika."
+        },
+        "type": "error"
+      },
+      "tooShort": {
+        "code": "E402_PASS_SHORT",
+        "message": {
+          "en": "Password must be at least {min} characters.",
+          "sw": "Nenosiri lazima liwe angalau herufi {min}."
+        },
+        "type": "error"
+      },
+      "tooLong": {
+        "code": "E403_PASS_LONG",
+        "message": {
+          "en": "Password cannot exceed {max} characters.",
+          "sw": "Nenosiri haliwezi kuzidi herufi {max}."
+        },
+        "type": "error"
+      },
+      "weak": {
+        "code": "E404_PASS_WEAK",
+        "message": {
+          "en": "Password must include letters and numbers.",
+          "sw": "Nenosiri lazima liwe na herufi na namba."
+        },
+        "type": "warning"
+      },
+      "mismatch": {
+        "code": "E405_PASS_MISMATCH",
+        "message": {
+          "en": "Passwords do not match.",
+          "sw": "Manenosiri hayalingani."
+        },
+        "type": "error"
+      },
+      "incorrect": {
+        "code": "E406_PASS_INCORRECT",
+        "message": {
+          "en": "Incorrect password.",
+          "sw": "Nenosiri si sahihi."
+        },
+        "type": "error"
+      }
+    },
+    "phone": {
+      "required": {
+        "code": "E501_PHONE_REQUIRED",
+        "message": {
+          "en": "Phone number is required.",
+          "sw": "Nambari ya simu inahitajika."
+        },
+        "type": "error"
+      },
+      "invalidFormat": {
+        "code": "E502_PHONE_INVALID",
+        "message": {
+          "en": "Invalid phone number format for {region}.",
+          "sw": "Muundo wa nambari ya simu si sahihi kwa {region}."
+        },
+        "type": "error"
+      },
+      "invalidLength": {
+        "code": "E503_PHONE_LENGTH",
+        "message": {
+          "en": "Phone number must be {length} digits.",
+          "sw": "Nambari ya simu lazima iwe na tarakimu {length}."
+        },
+        "type": "error"
+      },
+      "invalidStart": {
+        "code": "E504_PHONE_START",
+        "message": {
+          "en": "Phone number must start with {prefix}.",
+          "sw": "Nambari ya simu lazima ianze na {prefix}."
+        },
+        "type": "error"
+      },
+      "duplicate": {
+        "code": "E505_PHONE_DUPLICATE",
+        "message": {
+          "en": "Phone number {phone} is already linked to another account.",
+          "sw": "Nambari ya simu {phone} imeunganishwa na akaunti nyingine."
+        },
+        "type": "warning"
+      }
+    },
+    "otp": {
+      "required": {
+        "code": "E601_OTP_REQUIRED",
+        "message": {
+          "en": "OTP is required.",
+          "sw": "OTP inahitajika."
+        },
+        "type": "error"
+      },
+      "invalidLength": {
+        "code": "E602_OTP_LENGTH",
+        "message": {
+          "en": "OTP must be {length} digits.",
+          "sw": "OTP lazima iwe na tarakimu {length}."
+        },
+        "type": "error"
+      },
+      "invalidCode": {
+        "code": "E603_OTP_INVALID",
+        "message": {
+          "en": "Invalid OTP. Please try again.",
+          "sw": "OTP si sahihi. Tafadhali jaribu tena."
+        },
+        "type": "error"
+      },
+      "expired": {
+        "code": "E604_OTP_EXPIRED",
+        "message": {
+          "en": "OTP expired. Request a new code.",
+          "sw": "OTP imeisha muda wake. Omba msimbo mpya."
+        },
+        "type": "warning"
+      },
+      "resendWait": {
+        "code": "E605_OTP_RESEND_WAIT",
+        "message": {
+          "en": "Resend available in {seconds} seconds.",
+          "sw": "Tuma tena baada ya sekunde {seconds}."
+        },
+        "type": "info"
+      },
+      "tooManyAttempts": {
+        "code": "E606_OTP_TOO_MANY",
+        "message": {
+          "en": "Too many wrong attempts. Try again in {minutes} minutes.",
+          "sw": "Majaribio mengi yameshindikana. Jaribu tena baada ya dakika {minutes}."
+        },
+        "type": "error"
+      },
+      "success": {
+        "code": "S601_OTP_SUCCESS",
+        "message": {
+          "en": "OTP verified successfully.",
+          "sw": "OTP imethibitishwa kwa mafanikio."
+        },
+        "type": "success"
+      },
+      "sent": {
+        "code": "S602_OTP_SENT",
+        "message": {
+          "en": "OTP sent to {identifier}.",
+          "sw": "OTP imetumwa kwa {identifier}."
+        },
+        "type": "success"
+      }
+    },
+    "socialLogin": {
+      "providerFailed": {
+        "code": "E701_SOCIAL_FAILED",
+        "message": {
+          "en": "Login with {provider} failed. Try again.",
+          "sw": "Kuingia kwa kutumia {provider} hakufanikiwa. Jaribu tena."
+        },
+        "type": "error"
+      },
+      "alreadyLinked": {
+        "code": "E702_SOCIAL_LINKED",
+        "message": {
+          "en": "This {provider} account is already linked to another user.",
+          "sw": "Akaunti ya {provider} imeunganishwa na mtumiaji mwingine."
+        },
+        "type": "warning"
+      },
+      "tokenExpired": {
+        "code": "E703_SOCIAL_TOKEN",
+        "message": {
+          "en": "Token expired. Please log in again.",
+          "sw": "Tokeni imeisha muda wake. Tafadhali ingia tena."
+        },
+        "type": "warning"
+      },
+      "profileIncomplete": {
+        "code": "E704_SOCIAL_PROFILE",
+        "message": {
+          "en": "Account creation requires phone/email verification.",
+          "sw": "Kuunda akaunti kunahitaji uthibitisho wa simu/barua pepe."
+        },
+        "type": "info"
+      }
+    },
+    "terms": {
+      "notAccepted": {
+        "code": "E801_TERMS_REQUIRED",
+        "message": {
+          "en": "You must accept Terms & Privacy Policy to continue.",
+          "sw": "Lazima ukubali Masharti na Sera ya Faragha ili kuendelea."
+        },
+        "type": "error"
+      }
+    },
+    "security": {
+      "tooManyFailed": {
+        "code": "E901_TOO_MANY_FAILED",
+        "message": {
+          "en": "Too many failed attempts. Try again in {minutes} minutes.",
+          "sw": "Majaribio mengi yameshindikana. Jaribu tena baada ya dakika {minutes}."
+        },
+        "type": "error"
+      },
+      "sessionExpired": {
+        "code": "E902_SESSION_EXPIRED",
+        "message": {
+          "en": "Your session expired. Please log in again.",
+          "sw": "Kipindi chako kimeisha muda wake. Tafadhali ingia tena."
+        },
+        "type": "info"
+      },
+      "suspiciousActivity": {
+        "code": "E903_SUSPICIOUS_ACTIVITY",
+        "message": {
+          "en": "Unusual activity detected. Please verify with OTP.",
+          "sw": "Shughuli za kawaida zimegunduliwa. Tafadhali thibitisha na OTP."
+        },
+        "type": "warning"
+      },
+      "accountLocked": {
+        "code": "E904_ACCOUNT_LOCKED",
+        "message": {
+          "en": "Your account is temporarily locked. Contact support for help.",
+          "sw": "Akaunti yako imefungwa kwa muda. Wasiliana na msaada kwa usaidizi."
+        },
+        "type": "error"
+      }
+    },
+    "database": {
+      "notConfigured": {
+        "code": "E1001_DB_NOT_CONFIGURED",
+        "message": {
+          "en": "Database not configured. Please set up your Supabase database tables first.",
+          "sw": "Hifadhidata haijasanidiwa. Tafadhali sanidi jedwali za hifadhidata ya Supabase kwanza."
+        },
+        "type": "error"
+      },
+      "connectionFailed": {
+        "code": "E1002_DB_CONNECTION",
+        "message": {
+          "en": "Network connection error. Please check your internet connection.",
+          "sw": "Hitilafu ya muunganisho wa mtandao. Tafadhali angalia muunganisho wako wa intaneti."
+        },
+        "type": "error"
+      },
+      "operationFailed": {
+        "code": "E1003_DB_OPERATION",
+        "message": {
+          "en": "Database operation failed. Please try again.",
+          "sw": "Uendeshaji wa hifadhidata umeshindikana. Tafadhali jaribu tena."
+        },
+        "type": "error"
+      }
+    },
+    "success": {
+      "loginSuccess": {
+        "code": "S100_LOGIN_SUCCESS",
+        "message": {
+          "en": "Welcome back, {name}!",
+          "sw": "Karibu tena, {name}!"
+        },
+        "type": "success"
+      },
+      "signupSuccess": {
+        "code": "S101_SIGNUP_SUCCESS",
+        "message": {
+          "en": "Account created successfully!",
+          "sw": "Akaunti imeundwa kwa mafanikio!"
+        },
+        "type": "success"
+      },
+      "profileUpdated": {
+        "code": "S102_PROFILE_UPDATED",
+        "message": {
+          "en": "Profile updated successfully!",
+          "sw": "Wasifu umesasishwa kwa mafanikio!"
+        },
+        "type": "success"
+      },
+      "passwordReset": {
+        "code": "S103_PASSWORD_RESET",
+        "message": {
+          "en": "Password reset successfully!",
+          "sw": "Nenosiri limewekwa upya kwa mafanikio!"
+        },
+        "type": "success"
+      },
+      "logoutSuccess": {
+        "code": "S104_LOGOUT_SUCCESS",
+        "message": {
+          "en": "Logged out successfully!",
+          "sw": "Umetoka kwa mafanikio!"
+        },
+        "type": "success"
+      }
+    }
+  }
+}

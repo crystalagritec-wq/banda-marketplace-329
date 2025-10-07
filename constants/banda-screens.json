@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BANDA App Screens",
+  "type": "object",
+  "properties": {
+    "MarketplaceScreen": { "type": "string", "description": "Main marketplace with products & services" },
+    "CartScreen": { "type": "string", "description": "User's shopping cart" },
+    "OrdersScreen": { "type": "string", "description": "Track active and past orders" },
+    "PaymentsScreen": { "type": "string", "description": "Escrow, top-ups, withdrawals" },
+    "UpgradeScreen": { "type": "string", "description": "Upgrade to Verified/Gold tiers" },
+    "ProfileScreen": { "type": "string", "description": "User profile & account settings" },
+    "FarmsScreen": { "type": "string", "description": "Linked farms & farm management" },
+    "LogisticsScreen": { "type": "string", "description": "Delivery, drivers, and pooling system" },
+    "DisputeScreen": { "type": "string", "description": "Report or manage disputes" },
+    "SupportScreen": { "type": "string", "description": "Contact customer care (AI assistant)" },
+    "BenefitsScreen": { "type": "string", "description": "Membership benefits explanation" },
+    "ServicesScreen": { "type": "string", "description": "Farm handlers, vets, SACCOs, and other service providers" },
+    "CommunityScreen": { "type": "string", "description": "Blogs, channels, reels, news" },
+    "NotificationsScreen": { "type": "string", "description": "Alerts, updates, and AI tips" },
+    "LocationScreen": { "type": "string", "description": "Address & GPS management" }
+  },
+  "additionalProperties": false
+}
