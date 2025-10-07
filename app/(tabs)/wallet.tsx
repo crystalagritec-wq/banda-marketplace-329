@@ -46,7 +46,7 @@ interface Transaction {
 export default function WalletScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { wallet, fundWallet, verifyPin, refreshWallet } = useAgriPay();
+  const agriPayContext = useAgriPay();
   const [showBalance, setShowBalance] = useState(false);
   const [selectedTab, setSelectedTab] = useState<'all' | 'credit' | 'debit' | 'reserve'>('all');
   const [showPinModal, setShowPinModal] = useState(false);
@@ -57,6 +57,17 @@ export default function WalletScreen() {
   const [amount, setAmount] = useState('');
   const [recipient, setRecipient] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  if (!agriPayContext) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#2D5016" />
+        <Text style={{ marginTop: 16, color: '#666' }}>Loading wallet...</Text>
+      </View>
+    );
+  }
+  
+  const { wallet, fundWallet, verifyPin, refreshWallet, isLoading: walletLoading } = agriPayContext;
 
   const transactionsQuery = trpc.agripay.getTransactions.useQuery(
     { walletId: wallet?.id || '' },
@@ -70,6 +81,15 @@ export default function WalletScreen() {
   const hasPIN = !!wallet?.pin_hash;
 
   const transactions = transactionsQuery.data?.transactions || [];
+  
+  if (walletLoading) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#2D5016" />
+        <Text style={{ marginTop: 16, color: '#666' }}>Loading wallet...</Text>
+      </View>
+    );
+  }
   
   const filteredTransactions = transactions.filter(transaction => {
     if (selectedTab === 'all') return true;
@@ -149,316 +169,6 @@ export default function WalletScreen() {
       </View>
     </View>
   );
-
-  return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <LinearGradient colors={['#F5F5DC', '#FFFFFF']} style={styles.gradient}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>AgriPay Wallet</Text>
-            <Text style={styles.headerSubtitle}>Secure payments for agriculture</Text>
-          </View>
-
-          {/* Balance Card */}
-          <View style={styles.balanceCard}>
-            <LinearGradient
-              colors={['#2D5016', '#4A7C59']}
-              style={styles.balanceGradient}
-            >
-              <View style={styles.balanceHeader}>
-                <View style={styles.balanceTitle}>
-                  <View style={styles.userBadge}>
-                    <Star size={16} color="#FFD700" fill="#FFD700" />
-                    <Text style={styles.userName}>{user?.name || 'User'}</Text>
-                  </View>
-                  <Text style={styles.balanceLabel}>AgriPay Wallet</Text>
-                </View>
-                <TouchableOpacity 
-                  style={styles.eyeButton}
-                  onPress={() => handlePinAction('view')}
-                >
-                  {showBalance ? (
-                    <Eye size={20} color="white" />
-                  ) : (
-                    <EyeOff size={20} color="white" />
-                  )}
-                </TouchableOpacity>
-              </View>
-              
-              <Text style={styles.balanceAmount}>
-                {showBalance ? `KSh ${totalBalance.toLocaleString()}` : 'KSh ••••••'}
-              </Text>
-              
-              <View style={styles.balanceBreakdown}>
-                <View style={styles.balanceItem}>
-                  <Text style={styles.balanceItemLabel}>Available</Text>
-                  <Text style={styles.balanceItemAmount}>
-                    {showBalance ? `KSh ${availableBalance.toLocaleString()}` : 'KSh ••••••'}
-                  </Text>
-                </View>
-                <View style={styles.balanceItem}>
-                  <Text style={styles.balanceItemLabel}>Reserved</Text>
-                  <Text style={styles.balanceItemAmount}>
-                    {showBalance ? `KSh ${reserveBalance.toLocaleString()}` : 'KSh ••••••'}
-                  </Text>
-                </View>
-              </View>
-              
-              {/* Transfer between accounts */}
-              <TouchableOpacity 
-                style={styles.transferButton}
-                onPress={() => handlePinAction('transfer')}
-              >
-                <ArrowRightLeft size={16} color="white" />
-                <Text style={styles.transferText}>Transfer Between Accounts</Text>
-              </TouchableOpacity>
-            </LinearGradient>
-          </View>
-
-          {/* Action Buttons */}
-          <View style={styles.actionButtons}>
-            <TouchableOpacity 
-              style={styles.actionButton}
-              onPress={() => setShowAddMoneyModal(true)}
-            >
-              <LinearGradient
-                colors={['#10B981', '#059669']}
-                style={styles.actionGradient}
-              >
-                <Plus size={24} color="white" />
-                <Text style={styles.actionText}>Add Money</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.actionButton}
-              onPress={() => handlePinAction('withdraw')}
-            >
-              <LinearGradient
-                colors={['#3B82F6', '#2563EB']}
-                style={styles.actionGradient}
-              >
-                <Minus size={24} color="white" />
-                <Text style={styles.actionText}>Send Money</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.actionButton}>
-              <LinearGradient
-                colors={['#8B5CF6', '#7C3AED']}
-                style={styles.actionGradient}
-              >
-                <CreditCard size={24} color="white" />
-                <Text style={styles.actionText}>Pay Bills</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-
-          {/* TradeGuard Reserve Info */}
-          <View style={styles.reserveInfo}>
-            <View style={styles.reserveHeader}>
-              <Shield size={20} color="#F59E0B" />
-              <Text style={styles.reserveTitle}>TradeGuard Protection</Text>
-            </View>
-            <Text style={styles.reserveDescription}>
-              Your payments are protected with Reserve until delivery is confirmed. 
-              Funds are held securely and released only when both parties are satisfied.
-            </Text>
-          </View>
-
-          {/* Transaction History */}
-          <View style={styles.transactionSection}>
-            <View style={styles.transactionHeader}>
-              <View style={styles.transactionTitleContainer}>
-                <History size={20} color="#2D5016" />
-                <Text style={styles.transactionTitle}>Transaction History</Text>
-              </View>
-            </View>
-
-            {/* Transaction Filters */}
-            <View style={styles.transactionFilters}>
-              {[
-                { key: 'all', label: 'All' },
-                { key: 'credit', label: 'Received' },
-                { key: 'debit', label: 'Sent' },
-                { key: 'reserve', label: 'Reserve' }
-              ].map((filter) => (
-                <TouchableOpacity
-                  key={filter.key}
-                  style={[
-                    styles.filterButton,
-                    selectedTab === filter.key && styles.filterButtonActive
-                  ]}
-                  onPress={() => setSelectedTab(filter.key as any)}
-                >
-                  <Text style={[
-                    styles.filterText,
-                    selectedTab === filter.key && styles.filterTextActive
-                  ]}>
-                    {filter.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Transaction List */}
-            <View style={styles.transactionList}>
-              {filteredTransactions.map((transaction) => (
-                <TransactionItem key={transaction.id} transaction={transaction} />
-              ))}
-            </View>
-          </View>
-        </ScrollView>
-        
-        {/* PIN Modal */}
-        <Modal visible={showPinModal} transparent animationType="slide">
-          <View style={styles.modalOverlay}>
-            <View style={styles.pinModal}>
-              <Text style={styles.pinTitle}>Enter Wallet PIN</Text>
-              <Text style={styles.pinSubtitle}>
-                {pinAction === 'view' ? 'Unhide balance' : 
-                 pinAction === 'withdraw' ? 'Authorize withdrawal' : 
-                 'Authorize transfer'}
-              </Text>
-              
-              <TextInput
-                style={styles.pinInput}
-                value={pin}
-                onChangeText={setPin}
-                placeholder="Enter 4-digit PIN"
-                keyboardType="numeric"
-                maxLength={4}
-                secureTextEntry
-              />
-              
-              <View style={styles.pinButtons}>
-                <TouchableOpacity 
-                  style={styles.pinCancelBtn}
-                  onPress={() => {
-                    setShowPinModal(false);
-                    setPin('');
-                    setPinAction(null);
-                  }}
-                >
-                  <Text style={styles.pinCancelText}>Cancel</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.pinConfirmBtn}
-                  onPress={handlePinConfirm}
-                  disabled={pin.length !== 4}
-                >
-                  <Text style={styles.pinConfirmText}>Confirm</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-        
-        {/* Add Money Modal */}
-        <Modal visible={showAddMoneyModal} transparent animationType="slide">
-          <View style={styles.modalOverlay}>
-            <View style={styles.actionModal}>
-              <Text style={styles.modalTitle}>Add Money</Text>
-              <Text style={styles.modalSubtitle}>Deposit funds to your wallet</Text>
-              
-              <TextInput
-                style={styles.amountInput}
-                value={amount}
-                onChangeText={setAmount}
-                placeholder="Enter amount (KSh)"
-                keyboardType="numeric"
-              />
-              
-              <View style={styles.paymentMethods}>
-                <TouchableOpacity style={styles.paymentMethod}>
-                  <Text style={styles.paymentMethodText}>M-Pesa</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.paymentMethod}>
-                  <Text style={styles.paymentMethodText}>Bank Transfer</Text>
-                </TouchableOpacity>
-              </View>
-              
-              <View style={styles.modalButtons}>
-                <TouchableOpacity 
-                  style={styles.modalCancelBtn}
-                  onPress={() => {
-                    setShowAddMoneyModal(false);
-                    setAmount('');
-                  }}
-                >
-                  <Text style={styles.modalCancelText}>Cancel</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.modalConfirmBtn}
-                  onPress={handleAddMoney}
-                  disabled={!amount || isProcessing}
-                >
-                  {isProcessing ? (
-                    <ActivityIndicator size="small" color="white" />
-                  ) : (
-                    <Text style={styles.modalConfirmText}>Add Money</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-        
-        {/* Send Money Modal */}
-        <Modal visible={showSendMoneyModal} transparent animationType="slide">
-          <View style={styles.modalOverlay}>
-            <View style={styles.actionModal}>
-              <Text style={styles.modalTitle}>Send Money</Text>
-              <Text style={styles.modalSubtitle}>Transfer funds to another user</Text>
-              
-              <TextInput
-                style={styles.recipientInput}
-                value={recipient}
-                onChangeText={setRecipient}
-                placeholder="Phone number or email"
-              />
-              
-              <TextInput
-                style={styles.amountInput}
-                value={amount}
-                onChangeText={setAmount}
-                placeholder="Enter amount (KSh)"
-                keyboardType="numeric"
-              />
-              
-              <View style={styles.modalButtons}>
-                <TouchableOpacity 
-                  style={styles.modalCancelBtn}
-                  onPress={() => {
-                    setShowSendMoneyModal(false);
-                    setAmount('');
-                    setRecipient('');
-                  }}
-                >
-                  <Text style={styles.modalCancelText}>Cancel</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.modalConfirmBtn}
-                  onPress={handleSendMoney}
-                  disabled={!amount || !recipient || isProcessing}
-                >
-                  {isProcessing ? (
-                    <ActivityIndicator size="small" color="white" />
-                  ) : (
-                    <Text style={styles.modalConfirmText}>Send Money</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-      </LinearGradient>
-    </View>
-  );
   
   function handlePinAction(action: 'view' | 'withdraw' | 'transfer') {
     if (!hasPIN) {
@@ -529,7 +239,7 @@ export default function WalletScreen() {
       );
       
       if (result.success) {
-        await refreshWallet();
+        refreshWallet();
         Alert.alert(
           'Deposit Initiated',
           `KSh ${amount} deposit request has been sent. You will receive an M-Pesa prompt shortly.`,
@@ -565,12 +275,311 @@ export default function WalletScreen() {
           setRecipient('');
         }}]
       );
-    } catch (_error) {
+    } catch {
       Alert.alert('Error', 'Failed to send money. Please try again.');
     } finally {
       setIsProcessing(false);
     }
   }
+
+  return (
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <LinearGradient colors={['#F5F5DC', '#FFFFFF']} style={styles.gradient}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>AgriPay Wallet</Text>
+            <Text style={styles.headerSubtitle}>Secure payments for agriculture</Text>
+          </View>
+
+          <View style={styles.balanceCard}>
+            <LinearGradient
+              colors={['#2D5016', '#4A7C59']}
+              style={styles.balanceGradient}
+            >
+              <View style={styles.balanceHeader}>
+                <View style={styles.balanceTitle}>
+                  <View style={styles.userBadge}>
+                    <Star size={16} color="#FFD700" fill="#FFD700" />
+                    <Text style={styles.userName}>{user?.name || 'User'}</Text>
+                  </View>
+                  <Text style={styles.balanceLabel}>AgriPay Wallet</Text>
+                </View>
+                <TouchableOpacity 
+                  style={styles.eyeButton}
+                  onPress={() => handlePinAction('view')}
+                >
+                  {showBalance ? (
+                    <Eye size={20} color="white" />
+                  ) : (
+                    <EyeOff size={20} color="white" />
+                  )}
+                </TouchableOpacity>
+              </View>
+              
+              <Text style={styles.balanceAmount}>
+                {showBalance ? `KSh ${totalBalance.toLocaleString()}` : 'KSh ••••••'}
+              </Text>
+              
+              <View style={styles.balanceBreakdown}>
+                <View style={styles.balanceItem}>
+                  <Text style={styles.balanceItemLabel}>Available</Text>
+                  <Text style={styles.balanceItemAmount}>
+                    {showBalance ? `KSh ${availableBalance.toLocaleString()}` : 'KSh ••••••'}
+                  </Text>
+                </View>
+                <View style={styles.balanceItem}>
+                  <Text style={styles.balanceItemLabel}>Reserved</Text>
+                  <Text style={styles.balanceItemAmount}>
+                    {showBalance ? `KSh ${reserveBalance.toLocaleString()}` : 'KSh ••••••'}
+                  </Text>
+                </View>
+              </View>
+              
+              <TouchableOpacity 
+                style={styles.transferButton}
+                onPress={() => handlePinAction('transfer')}
+              >
+                <ArrowRightLeft size={16} color="white" />
+                <Text style={styles.transferText}>Transfer Between Accounts</Text>
+              </TouchableOpacity>
+            </LinearGradient>
+          </View>
+
+          <View style={styles.actionButtons}>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => setShowAddMoneyModal(true)}
+            >
+              <LinearGradient
+                colors={['#10B981', '#059669']}
+                style={styles.actionGradient}
+              >
+                <Plus size={24} color="white" />
+                <Text style={styles.actionText}>Add Money</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => handlePinAction('withdraw')}
+            >
+              <LinearGradient
+                colors={['#3B82F6', '#2563EB']}
+                style={styles.actionGradient}
+              >
+                <Minus size={24} color="white" />
+                <Text style={styles.actionText}>Send Money</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.actionButton}>
+              <LinearGradient
+                colors={['#8B5CF6', '#7C3AED']}
+                style={styles.actionGradient}
+              >
+                <CreditCard size={24} color="white" />
+                <Text style={styles.actionText}>Pay Bills</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.reserveInfo}>
+            <View style={styles.reserveHeader}>
+              <Shield size={20} color="#F59E0B" />
+              <Text style={styles.reserveTitle}>TradeGuard Protection</Text>
+            </View>
+            <Text style={styles.reserveDescription}>
+              Your payments are protected with Reserve until delivery is confirmed. 
+              Funds are held securely and released only when both parties are satisfied.
+            </Text>
+          </View>
+
+          <View style={styles.transactionSection}>
+            <View style={styles.transactionHeader}>
+              <View style={styles.transactionTitleContainer}>
+                <History size={20} color="#2D5016" />
+                <Text style={styles.transactionTitle}>Transaction History</Text>
+              </View>
+            </View>
+
+            <View style={styles.transactionFilters}>
+              {[
+                { key: 'all', label: 'All' },
+                { key: 'credit', label: 'Received' },
+                { key: 'debit', label: 'Sent' },
+                { key: 'reserve', label: 'Reserve' }
+              ].map((filter) => (
+                <TouchableOpacity
+                  key={filter.key}
+                  style={[
+                    styles.filterButton,
+                    selectedTab === filter.key && styles.filterButtonActive
+                  ]}
+                  onPress={() => setSelectedTab(filter.key as any)}
+                >
+                  <Text style={[
+                    styles.filterText,
+                    selectedTab === filter.key && styles.filterTextActive
+                  ]}>
+                    {filter.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.transactionList}>
+              {filteredTransactions.map((transaction) => (
+                <TransactionItem key={transaction.id} transaction={transaction} />
+              ))}
+            </View>
+          </View>
+        </ScrollView>
+        
+        <Modal visible={showPinModal} transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <View style={styles.pinModal}>
+              <Text style={styles.pinTitle}>Enter Wallet PIN</Text>
+              <Text style={styles.pinSubtitle}>
+                {pinAction === 'view' ? 'Unhide balance' : 
+                 pinAction === 'withdraw' ? 'Authorize withdrawal' : 
+                 'Authorize transfer'}
+              </Text>
+              
+              <TextInput
+                style={styles.pinInput}
+                value={pin}
+                onChangeText={setPin}
+                placeholder="Enter 4-digit PIN"
+                keyboardType="numeric"
+                maxLength={4}
+                secureTextEntry
+              />
+              
+              <View style={styles.pinButtons}>
+                <TouchableOpacity 
+                  style={styles.pinCancelBtn}
+                  onPress={() => {
+                    setShowPinModal(false);
+                    setPin('');
+                    setPinAction(null);
+                  }}
+                >
+                  <Text style={styles.pinCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.pinConfirmBtn}
+                  onPress={handlePinConfirm}
+                  disabled={pin.length !== 4}
+                >
+                  <Text style={styles.pinConfirmText}>Confirm</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+        
+        <Modal visible={showAddMoneyModal} transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <View style={styles.actionModal}>
+              <Text style={styles.modalTitle}>Add Money</Text>
+              <Text style={styles.modalSubtitle}>Deposit funds to your wallet</Text>
+              
+              <TextInput
+                style={styles.amountInput}
+                value={amount}
+                onChangeText={setAmount}
+                placeholder="Enter amount (KSh)"
+                keyboardType="numeric"
+              />
+              
+              <View style={styles.paymentMethods}>
+                <TouchableOpacity style={styles.paymentMethod}>
+                  <Text style={styles.paymentMethodText}>M-Pesa</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.paymentMethod}>
+                  <Text style={styles.paymentMethodText}>Bank Transfer</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={styles.modalCancelBtn}
+                  onPress={() => {
+                    setShowAddMoneyModal(false);
+                    setAmount('');
+                  }}
+                >
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.modalConfirmBtn}
+                  onPress={handleAddMoney}
+                  disabled={!amount || isProcessing}
+                >
+                  {isProcessing ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={styles.modalConfirmText}>Add Money</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+        
+        <Modal visible={showSendMoneyModal} transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <View style={styles.actionModal}>
+              <Text style={styles.modalTitle}>Send Money</Text>
+              <Text style={styles.modalSubtitle}>Transfer funds to another user</Text>
+              
+              <TextInput
+                style={styles.recipientInput}
+                value={recipient}
+                onChangeText={setRecipient}
+                placeholder="Phone number or email"
+              />
+              
+              <TextInput
+                style={styles.amountInput}
+                value={amount}
+                onChangeText={setAmount}
+                placeholder="Enter amount (KSh)"
+                keyboardType="numeric"
+              />
+              
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={styles.modalCancelBtn}
+                  onPress={() => {
+                    setShowSendMoneyModal(false);
+                    setAmount('');
+                    setRecipient('');
+                  }}
+                >
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.modalConfirmBtn}
+                  onPress={handleSendMoney}
+                  disabled={!amount || !recipient || isProcessing}
+                >
+                  {isProcessing ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={styles.modalConfirmText}>Send Money</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      </LinearGradient>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -830,7 +839,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   
-  // Modal styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
