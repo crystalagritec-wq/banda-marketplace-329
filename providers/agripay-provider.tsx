@@ -278,7 +278,7 @@ export const [AgriPayProvider, useAgriPay] = createContextHook(() => {
 
   const refreshWallet = useCallback(() => {
     walletQuery.refetch();
-  }, []);
+  }, [walletQuery]);
 
   return useMemo(
     () => ({
