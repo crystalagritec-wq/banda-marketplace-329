@@ -64,7 +64,7 @@ export default function WalletOnboardingScreen() {
     const cleanPhone = phoneNumber.replace(/\s+/g, '');
     
     if (!cleanPhone.startsWith('07') && !cleanPhone.startsWith('+2547')) {
-      Alert.alert('Invalid Phone', 'Phone number must start with 07');
+      Alert.alert('Invalid Phone', 'Phone number must start with 07 or +2547');
       return;
     }
     
@@ -235,6 +235,7 @@ export default function WalletOnboardingScreen() {
         style={styles.continueButton}
         onPress={handlePhoneVerification}
         disabled={!phoneNumber || phoneNumber.length < 10}
+        activeOpacity={0.8}
       >
         <LinearGradient
           colors={
@@ -244,7 +245,7 @@ export default function WalletOnboardingScreen() {
           }
           style={styles.continueGradient}
         >
-          <Text style={styles.continueText}>Continue</Text>
+          <Text style={[styles.continueText, (!phoneNumber || phoneNumber.length < 10) && styles.continueTextDisabled]}>Continue</Text>
         </LinearGradient>
       </TouchableOpacity>
     </View>
@@ -267,8 +268,14 @@ export default function WalletOnboardingScreen() {
       <Text style={styles.stepTitle}>Step 2 of 4</Text>
       <Text style={styles.title}>Create Your PIN</Text>
       <Text style={styles.subtitle}>
-        Choose a 4-digit PIN to secure your wallet
+        Choose a 4-digit PIN to secure your wallet transactions
       </Text>
+      
+      {pin.length === 0 && (
+        <View style={styles.instructionBanner}>
+          <Text style={styles.instructionText}>👆 Tap below to enter your PIN</Text>
+        </View>
+      )}
 
       <View style={styles.form}>
         <View style={styles.inputGroup}>
@@ -319,54 +326,57 @@ export default function WalletOnboardingScreen() {
           </View>
         </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Confirm Your PIN</Text>
-          <View style={styles.pinInputWrapper}>
-            {[0, 1, 2, 3].map((index) => (
-              <View
-                key={index}
-                style={[
-                  styles.pinDot,
-                  confirmPin.length > index && styles.pinDotFilled,
-                  pin.length === 4 && confirmPin.length === 4 && pin === confirmPin && styles.pinDotSuccess,
-                  pin.length === 4 && confirmPin.length === 4 && pin !== confirmPin && styles.pinDotError,
-                ]}
+        {pin.length === 4 && (
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Confirm Your PIN</Text>
+            <View style={styles.pinInputWrapper}>
+              {[0, 1, 2, 3].map((index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.pinDot,
+                    confirmPin.length > index && styles.pinDotFilled,
+                    pin.length === 4 && confirmPin.length === 4 && pin === confirmPin && styles.pinDotSuccess,
+                    pin.length === 4 && confirmPin.length === 4 && pin !== confirmPin && styles.pinDotError,
+                  ]}
+                >
+                  {showConfirmPin && confirmPin[index] && (
+                    <Text style={styles.pinDigit}>{confirmPin[index]}</Text>
+                  )}
+                </View>
+              ))}
+            </View>
+            <TextInput
+              style={styles.hiddenInput}
+              value={confirmPin}
+              onChangeText={setConfirmPin}
+              keyboardType="numeric"
+              maxLength={4}
+              secureTextEntry={!showConfirmPin}
+              autoFocus
+            />
+            <View style={styles.pinActions}>
+              <TouchableOpacity
+                style={styles.pinActionButton}
+                onPress={() => setShowConfirmPin(!showConfirmPin)}
               >
-                {showConfirmPin && confirmPin[index] && (
-                  <Text style={styles.pinDigit}>{confirmPin[index]}</Text>
+                {showConfirmPin ? (
+                  <Eye size={18} color="#666" />
+                ) : (
+                  <EyeOff size={18} color="#666" />
                 )}
-              </View>
-            ))}
+                <Text style={styles.pinActionText}>Show</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.pinActionButton}
+                onPress={() => setConfirmPin('')}
+                disabled={confirmPin.length === 0}
+              >
+                <Text style={[styles.pinActionText, confirmPin.length === 0 && styles.pinActionTextDisabled]}>Clear</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-          <TextInput
-            style={styles.hiddenInput}
-            value={confirmPin}
-            onChangeText={setConfirmPin}
-            keyboardType="numeric"
-            maxLength={4}
-            secureTextEntry={!showConfirmPin}
-          />
-          <View style={styles.pinActions}>
-            <TouchableOpacity
-              style={styles.pinActionButton}
-              onPress={() => setShowConfirmPin(!showConfirmPin)}
-            >
-              {showConfirmPin ? (
-                <Eye size={18} color="#666" />
-              ) : (
-                <EyeOff size={18} color="#666" />
-              )}
-              <Text style={styles.pinActionText}>Show</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.pinActionButton}
-              onPress={() => setConfirmPin('')}
-              disabled={confirmPin.length === 0}
-            >
-              <Text style={[styles.pinActionText, confirmPin.length === 0 && styles.pinActionTextDisabled]}>Clear</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        )}
 
         {pin.length === 4 && confirmPin.length > 0 && (
           <View style={[
@@ -397,17 +407,18 @@ export default function WalletOnboardingScreen() {
       <TouchableOpacity
         style={styles.continueButton}
         onPress={handlePinCreation}
-        disabled={pin.length !== 4 || confirmPin.length !== 4}
+        disabled={pin.length !== 4 || confirmPin.length !== 4 || pin !== confirmPin}
+        activeOpacity={0.8}
       >
         <LinearGradient
           colors={
-            pin.length === 4 && confirmPin.length === 4
+            pin.length === 4 && confirmPin.length === 4 && pin === confirmPin
               ? ['#2D5016', '#4A7C59']
               : ['#D1D5DB', '#9CA3AF']
           }
           style={styles.continueGradient}
         >
-          <Text style={styles.continueText}>Continue</Text>
+          <Text style={[styles.continueText, (pin.length !== 4 || confirmPin.length !== 4 || pin !== confirmPin) && styles.continueTextDisabled]}>Continue</Text>
         </LinearGradient>
       </TouchableOpacity>
     </View>
@@ -529,6 +540,7 @@ export default function WalletOnboardingScreen() {
         style={styles.continueButton}
         onPress={handleWalletCreation}
         disabled={!termsAccepted || isProcessing}
+        activeOpacity={0.8}
       >
         <LinearGradient
           colors={
@@ -539,9 +551,12 @@ export default function WalletOnboardingScreen() {
           style={styles.continueGradient}
         >
           {isProcessing ? (
-            <ActivityIndicator size="small" color="white" />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <ActivityIndicator size="small" color="white" />
+              <Text style={styles.continueText}>Creating Wallet...</Text>
+            </View>
           ) : (
-            <Text style={styles.continueText}>Create My Wallet</Text>
+            <Text style={[styles.continueText, (!termsAccepted) && styles.continueTextDisabled]}>Create My Wallet</Text>
           )}
         </LinearGradient>
       </TouchableOpacity>
@@ -569,18 +584,18 @@ export default function WalletOnboardingScreen() {
       <View style={styles.walletCard}>
         <View style={styles.walletCardHeader}>
           <Text style={styles.walletCardLabel}>YOUR WALLET ID</Text>
-          <TouchableOpacity onPress={copyWalletId}>
-            <Copy size={20} color="rgba(255, 255, 255, 0.9)" />
+          <TouchableOpacity onPress={copyWalletId} style={styles.copyIconButton}>
+            <Copy size={18} color="rgba(255, 255, 255, 0.9)" />
           </TouchableOpacity>
         </View>
         <Text style={styles.walletId}>{createdWallet?.display_id || createdWallet?.id?.substring(0, 12) || 'N/A'}</Text>
         <Text style={styles.walletIdHint}>
-          Keep this ID safe - you&apos;ll need it to receive payments
+          Use this ID to receive payments from other users
         </Text>
 
         <TouchableOpacity style={styles.copyButton} onPress={copyWalletId}>
           <Copy size={16} color="white" />
-          <Text style={styles.copyButtonText}>Copy Wallet ID</Text>
+          <Text style={styles.copyButtonText}>Copy to Clipboard</Text>
         </TouchableOpacity>
       </View>
 
@@ -763,9 +778,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   pinDot: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 12,
     borderWidth: 2,
     borderColor: '#E5E7EB',
     backgroundColor: 'white',
@@ -785,8 +800,21 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
   },
   pinDigit: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
+    color: '#2D5016',
+  },
+  instructionBanner: {
+    backgroundColor: 'rgba(45, 80, 22, 0.1)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  instructionText: {
+    fontSize: 14,
+    fontWeight: '600',
     color: '#2D5016',
   },
   hiddenInput: {
@@ -865,36 +893,37 @@ const styles = StyleSheet.create({
   termsBox: {
     height: 280,
     marginBottom: 20,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    borderRadius: 16,
-    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    backgroundColor: '#FAFAFA',
     overflow: 'hidden',
   },
   termsScrollContainer: {
     flex: 1,
+    paddingRight: 4,
   },
   termsContainer: {
-    padding: 20,
+    padding: 16,
   },
   termsTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#2D5016',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   termsSection: {
-    fontSize: 15,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '700',
     color: '#333',
-    marginTop: 16,
-    marginBottom: 6,
+    marginTop: 12,
+    marginBottom: 4,
   },
   termsText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#666',
-    lineHeight: 19,
-    marginBottom: 10,
+    lineHeight: 17,
+    marginBottom: 8,
   },
   checkboxContainer: {
     flexDirection: 'row',
@@ -941,6 +970,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'white',
   },
+  continueTextDisabled: {
+    opacity: 0.6,
+  },
   successIcon: {
     alignItems: 'center',
     marginVertical: 32,
@@ -977,6 +1009,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
+  copyIconButton: {
+    padding: 4,
+  },
   walletCardLabel: {
     fontSize: 12,
     fontWeight: '700',
@@ -984,11 +1019,11 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   walletId: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     color: 'white',
     marginBottom: 8,
-    letterSpacing: 2,
+    letterSpacing: 1.5,
   },
   walletIdHint: {
     fontSize: 12,
