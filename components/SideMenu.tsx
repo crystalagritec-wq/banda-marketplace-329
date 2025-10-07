@@ -31,6 +31,7 @@ import { useAuth } from '@/providers/auth-provider';
 import { useWishlist } from '@/providers/wishlist-provider';
 import { useCart } from '@/providers/cart-provider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useWalletCheck } from '@/hooks/useWalletCheck';
 
 interface SideMenuProps {
   visible: boolean;
@@ -55,6 +56,7 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
   const { wishlistCount } = useWishlist();
   const { cartSummary } = useCart();
   const insets = useSafeAreaInsets();
+  const { checkWalletAndNavigate } = useWalletCheck();
   const slideAnim = React.useRef(new Animated.Value(-MENU_WIDTH)).current;
   const opacityAnim = React.useRef(new Animated.Value(0)).current;
 
@@ -96,10 +98,13 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
     }
     onClose();
     
-    // Handle specific routes that need proper typing
+    if (trimmed === '/(tabs)/wallet') {
+      checkWalletAndNavigate();
+      return;
+    }
+    
     const validRoutes = [
       '/dashboard',
-      '/(tabs)/wallet',
       '/(tabs)/chat', 
       '/(tabs)/cart',
       '/(tabs)/orders',

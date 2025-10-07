@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,12 @@ import {
   TouchableOpacity,
   Pressable,
   Animated,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
-import { Package, Wrench, MessageSquare, X } from 'lucide-react-native';
+import { Package, Wrench, MessageSquare, X, AlertCircle } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { trpcClient } from '@/lib/trpc';
 
 const GREEN = '#2E7D32' as const;
 const ORANGE = '#F57C00' as const;
@@ -23,6 +26,10 @@ interface PostModalProps {
 export default function PostModal({ visible, onClose }: PostModalProps) {
   const router = useRouter();
   const scaleValue = React.useRef(new Animated.Value(0)).current;
+  const [checkingShop, setCheckingShop] = useState<boolean>(false);
+  const [checkingService, setCheckingService] = useState<boolean>(false);
+  const [showOnboardingModal, setShowOnboardingModal] = useState<boolean>(false);
+  const [onboardingType, setOnboardingType] = useState<'shop' | 'service' | null>(null);
 
   React.useEffect(() => {
     if (visible) {
@@ -42,20 +49,70 @@ export default function PostModal({ visible, onClose }: PostModalProps) {
     }
   }, [visible, scaleValue]);
 
-  const handleOptionPress = (type: 'product' | 'service' | 'request') => {
-    onClose();
-    // Navigate to the appropriate post screen
-    switch (type) {
-      case 'product':
-        router.push('/post-product');
-        break;
-      case 'service':
-        router.push('/post-service');
-        break;
-      case 'request':
-        router.push('/post-request');
-        break;
+  const handleOptionPress = async (type: 'product' | 'service' | 'request') => {
+    if (type === 'request') {
+      onClose();
+      router.push('/post-request');
+      return;
     }
+
+    if (type === 'product') {
+      setCheckingShop(true);
+      try {
+        const shopData = await trpcClient.shop.getMyShop.query();
+        setCheckingShop(false);
+
+        if (shopData.exists) {
+          onClose();
+          router.push('/post-product');
+        } else {
+          setOnboardingType('shop');
+          setShowOnboardingModal(true);
+        }
+      } catch (error: any) {
+        setCheckingShop(false);
+        Alert.alert('Error', error.message || 'Failed to check shop status');
+      }
+      return;
+    }
+
+    if (type === 'service') {
+      setCheckingService(true);
+      try {
+        const serviceData = await trpcClient.serviceProviders.getMyProfile.query();
+        setCheckingService(false);
+
+        if (serviceData.exists) {
+          onClose();
+          router.push('/post-service');
+        } else {
+          setOnboardingType('service');
+          setShowOnboardingModal(true);
+        }
+      } catch (error: any) {
+        setCheckingService(false);
+        Alert.alert('Error', error.message || 'Failed to check service profile');
+      }
+      return;
+    }
+  };
+
+  const handleOnboardingConfirm = () => {
+    setShowOnboardingModal(false);
+    onClose();
+    
+    if (onboardingType === 'shop') {
+      router.push('/shop-activation' as any);
+    } else if (onboardingType === 'service') {
+      router.push('/inboarding/service-role' as any);
+    }
+    
+    setOnboardingType(null);
+  };
+
+  const handleOnboardingCancel = () => {
+    setShowOnboardingModal(false);
+    setOnboardingType(null);
   };
 
   return (
@@ -92,9 +149,14 @@ export default function PostModal({ visible, onClose }: PostModalProps) {
                   style={styles.option}
                   onPress={() => handleOptionPress('product')}
                   testID="post-product-option"
+                  disabled={checkingShop}
                 >
                   <View style={[styles.optionIcon, { backgroundColor: '#E8F5E8' }]}>
-                    <Package size={32} color={GREEN} />
+                    {checkingShop ? (
+                      <ActivityIndicator size="small" color={GREEN} />
+                    ) : (
+                      <Package size={32} color={GREEN} />
+                    )}
                   </View>
                   <View style={styles.optionContent}>
                     <Text style={styles.optionTitle}>🛒 Product</Text>
@@ -108,9 +170,14 @@ export default function PostModal({ visible, onClose }: PostModalProps) {
                   style={styles.option}
                   onPress={() => handleOptionPress('service')}
                   testID="post-service-option"
+                  disabled={checkingService}
                 >
                   <View style={[styles.optionIcon, { backgroundColor: '#FFF3E0' }]}>
-                    <Wrench size={32} color={ORANGE} />
+                    {checkingService ? (
+                      <ActivityIndicator size="small" color={ORANGE} />
+                    ) : (
+                      <Wrench size={32} color={ORANGE} />
+                    )}
                   </View>
                   <View style={styles.optionContent}>
                     <Text style={styles.optionTitle}>🛠️ Service</Text>
@@ -162,6 +229,45 @@ export default function PostModal({ visible, onClose }: PostModalProps) {
           </Pressable>
         </Animated.View>
       </Pressable>
+
+      <Modal
+        visible={showOnboardingModal}
+        transparent
+        animationType="fade"
+        onRequestClose={handleOnboardingCancel}
+      >
+        <View style={styles.onboardingOverlay}>
+          <View style={styles.onboardingModal}>
+            <View style={styles.onboardingIcon}>
+              <AlertCircle size={48} color="#F59E0B" />
+            </View>
+            <Text style={styles.onboardingTitle}>
+              {onboardingType === 'shop'
+                ? 'Complete Your Shop Setup'
+                : 'Complete Service Provider Onboarding'}
+            </Text>
+            <Text style={styles.onboardingDescription}>
+              {onboardingType === 'shop'
+                ? 'You need to set up your shop before posting products. This only takes a few minutes.'
+                : 'You need to complete your service provider profile before posting services. This only takes a few minutes.'}
+            </Text>
+            <View style={styles.onboardingButtons}>
+              <TouchableOpacity
+                style={styles.onboardingCancelButton}
+                onPress={handleOnboardingCancel}
+              >
+                <Text style={styles.onboardingCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.onboardingConfirmButton}
+                onPress={handleOnboardingConfirm}
+              >
+                <Text style={styles.onboardingConfirmText}>Finish Setup</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Modal>
   );
 }
@@ -266,6 +372,70 @@ const styles = StyleSheet.create({
   },
   postsButtonText: {
     fontSize: 14,
+    fontWeight: '600',
+    color: WHITE,
+  },
+  onboardingOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  onboardingModal: {
+    backgroundColor: WHITE,
+    borderRadius: 24,
+    padding: 32,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+  },
+  onboardingIcon: {
+    marginBottom: 20,
+  },
+  onboardingTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1F2937',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  onboardingDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  onboardingButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  onboardingCancelButton: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+  },
+  onboardingCancelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  onboardingConfirmButton: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    backgroundColor: GREEN,
+    alignItems: 'center',
+  },
+  onboardingConfirmText: {
+    fontSize: 16,
     fontWeight: '600',
     color: WHITE,
   },

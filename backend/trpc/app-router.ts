@@ -128,6 +128,8 @@ import { getDashboardStatsProcedure as getServiceDashboardStatsProcedure } from 
 import { createServiceRequestProcedure } from "@/backend/trpc/routes/service-providers/create-service-request";
 import { getServiceRequestsProcedure } from "@/backend/trpc/routes/service-providers/get-service-requests";
 import { updateRequestStatusProcedure } from "@/backend/trpc/routes/service-providers/update-request-status";
+import { getMyShopProcedure } from "@/backend/trpc/routes/shop/get-my-shop";
+import { getMyServiceProfileProcedure } from "@/backend/trpc/routes/service-providers/get-my-profile";
 import { createWalletProcedure } from "@/backend/trpc/routes/agripay/create-wallet";
 import { getWalletProcedure } from "@/backend/trpc/routes/agripay/get-wallet";
 import { fundWalletProcedure } from "@/backend/trpc/routes/agripay/fund-wallet";
@@ -328,6 +330,7 @@ export const appRouter = createTRPCRouter({
     getPromotions: getPromotionsProcedure,
     updateOrderStatus: updateVendorOrderStatusProcedure,
     getFinancialReport: getFinancialReportProcedure,
+    getMyShop: getMyShopProcedure,
   }),
   logisticsInboarding: createTRPCRouter({
     createOwnerProfile: createOwnerProfileProcedure,
@@ -343,6 +346,7 @@ export const appRouter = createTRPCRouter({
     createServiceRequest: createServiceRequestProcedure,
     getServiceRequests: getServiceRequestsProcedure,
     updateRequestStatus: updateRequestStatusProcedure,
+    getMyProfile: getMyServiceProfileProcedure,
   }),
   agripay: createTRPCRouter({
     createWallet: createWalletProcedure,
