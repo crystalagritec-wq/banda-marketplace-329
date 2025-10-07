@@ -14,7 +14,7 @@ import {
   Share,
   FileText,
 } from 'lucide-react-native';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -31,6 +31,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCart } from '@/providers/cart-provider';
 import { supabase } from '@/lib/supabase';
 import { trpc } from '@/lib/trpc';
+import { useAuth } from '@/providers/auth-provider';
 
 function formatPrice(amount: number) {
   try {
@@ -60,7 +61,9 @@ const OrderStatusStep = ({
       isCompleted && styles.statusIconCompleted,
       isActive && styles.statusIconActive,
     ]}>
-      {icon}
+      <View>
+        {icon}
+      </View>
     </View>
     <View style={styles.statusContent}>
       <Text style={[
@@ -70,9 +73,9 @@ const OrderStatusStep = ({
       ]}>
         {title}
       </Text>
-      {time && (
+      {time ? (
         <Text style={styles.statusTime}>{time}</Text>
-      )}
+      ) : null}
     </View>
   </View>
 );
@@ -80,6 +83,7 @@ const OrderStatusStep = ({
 export default function OrderSuccessScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const params = useLocalSearchParams<{ orderId?: string }>();
   
   const [estimatedDelivery, setEstimatedDelivery] = useState<string>('');
@@ -87,12 +91,45 @@ export default function OrderSuccessScreen() {
   
   const orderId = params?.orderId || '';
   
+  const releaseMutation = trpc.orders.releaseReserve.useMutation();
+  const orderQuery = trpc.orders.getDetailedOrder.useQuery(
+    { order_id: orderId },
+    { enabled: !!orderId, refetchOnMount: true }
+  );
+  const order = orderQuery.data?.order;
+  const handleConfirmDelivery = useCallback(async () => {
+    try {
+      if (!order?.id || !user?.id) {
+        Alert.alert('Missing data', 'Unable to confirm delivery.');
+        return;
+      }
+      const res = await releaseMutation.mutateAsync({ orderId: order.id, userId: user.id, releaseReason: 'Buyer confirmed delivery' });
+      if (res?.success) {
+        Alert.alert('Success', 'Funds released to seller. Thank you!', [
+          { text: 'OK', onPress: () => router.push('/(tabs)/orders') }
+        ]);
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err?.message ?? 'Failed to confirm delivery');
+    }
+  }, [order?.id, releaseMutation, router, user?.id]);
+
   const orderQuery = trpc.orders.getDetailedOrder.useQuery(
     { order_id: orderId },
     { enabled: !!orderId, refetchOnMount: true }
   );
   
   const order = orderQuery.data?.order;
+  const reserveHeld = useMemo(() => {
+    try {
+      const paymentReserved = (order as any)?.payment?.status === 'reserved';
+      const tradeguardHeld = (order as any)?.reserve?.status === 'held';
+      const orderFlag = (order as any)?.flags?.includes?.('reserve_held');
+      return Boolean(paymentReserved || tradeguardHeld || orderFlag);
+    } catch {
+      return false;
+    }
+  }, [order]);
 
   useEffect(() => {
     if (order?.estimated_delivery) {
@@ -206,7 +243,7 @@ export default function OrderSuccessScreen() {
       console.error('Error in handleDownloadReceipt:', error);
       Alert.alert('Error', 'Failed to generate receipt');
     }
-  }, [orderId, order]);
+  }, [orderId, order, downloadReceipt]);
 
   const downloadReceipt = useCallback(async (format: 'jpg' | 'pdf') => {
     try {
@@ -256,7 +293,7 @@ export default function OrderSuccessScreen() {
       console.error('Error generating QR code:', error);
       Alert.alert('Error', 'Failed to generate QR code');
     }
-  }, [orderId, order]);
+  }, [orderId, order, downloadReceipt]);
 
   if (orderQuery.isLoading) {
     return (
@@ -291,7 +328,7 @@ export default function OrderSuccessScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top }]} >
       <LinearGradient colors={['#F5F5DC', '#FFFFFF']} style={styles.gradient}>
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Success Header */}
@@ -508,10 +545,17 @@ export default function OrderSuccessScreen() {
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.acceptButton} onPress={handleAcceptOrder} testID="accept-order">
-            <Text style={styles.acceptButtonText}>Accept</Text>
-            <ArrowRight size={20} color="white" />
-          </TouchableOpacity>
+          {reserveHeld ? (
+            <TouchableOpacity style={styles.acceptButton} onPress={handleConfirmDelivery} testID="confirm-delivery">
+              <Text style={styles.acceptButtonText}>Confirm Delivery & Release</Text>
+              <ArrowRight size={20} color="white" />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.acceptButton} onPress={handleAcceptOrder} testID="accept-order">
+              <Text style={styles.acceptButtonText}>View My Orders</Text>
+              <ArrowRight size={20} color="white" />
+            </TouchableOpacity>
+          )}
           
           <TouchableOpacity 
             style={styles.continueButton} 
