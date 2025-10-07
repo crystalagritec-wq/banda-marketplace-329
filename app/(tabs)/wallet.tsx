@@ -13,7 +13,7 @@ import {
   Star,
   ArrowRightLeft,
 } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -33,11 +33,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Transaction {
   id: string;
-  type: 'credit' | 'debit' | 'reserve_hold' | 'reserve_release';
+  type:
+    | 'deposit'
+    | 'withdrawal'
+    | 'payment'
+    | 'refund'
+    | 'reserve_hold'
+    | 'reserve_release'
+    | 'reserve_refund'
+    | 'transfer_in'
+    | 'transfer_out'
+    | 'fee'
+    | 'commission';
   amount: number;
   description: string;
   date: string;
-  status: 'completed' | 'pending' | 'failed';
+  status: 'completed' | 'pending' | 'failed' | 'reversed';
   reference?: string;
 }
 
@@ -48,57 +59,42 @@ export default function WalletScreen() {
   const { user } = useAuth();
   const agriPayContext = useAgriPay();
   
-  const [showBalance, setShowBalance] = useState(false);
+  const [showBalance, setShowBalance] = useState<boolean>(false);
   const [selectedTab, setSelectedTab] = useState<'all' | 'credit' | 'debit' | 'reserve'>('all');
-  const [showPinModal, setShowPinModal] = useState(false);
-  const [pin, setPin] = useState('');
+  const [showPinModal, setShowPinModal] = useState<boolean>(false);
+  const [pin, setPin] = useState<string>('');
   const [pinAction, setPinAction] = useState<'view' | 'withdraw' | 'transfer' | null>(null);
-  const [showAddMoneyModal, setShowAddMoneyModal] = useState(false);
-  const [showSendMoneyModal, setShowSendMoneyModal] = useState(false);
-  const [amount, setAmount] = useState('');
-  const [recipient, setRecipient] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [showAddMoneyModal, setShowAddMoneyModal] = useState<boolean>(false);
+  const [showSendMoneyModal, setShowSendMoneyModal] = useState<boolean>(false);
+  const [amount, setAmount] = useState<string>('');
+  const [recipient, setRecipient] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
   
-  if (!agriPayContext) {
-    return (
-      <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#2D5016" />
-        <Text style={{ marginTop: 16, color: '#666' }}>Initializing wallet...</Text>
-      </View>
-    );
-  }
-  
-  const { wallet, fundWallet, verifyPin, refreshWallet, isLoading: walletLoading } = agriPayContext;
+  const walletLoadingFallback = !agriPayContext;
+  const { wallet, fundWallet, verifyPin, refreshWallet, isLoading: ctxLoading } = agriPayContext ?? ({} as any);
 
   const transactionsQuery = trpc.agripay.getTransactions.useQuery(
-    { walletId: wallet?.id || '' },
-    { enabled: !!wallet?.id, refetchInterval: 30000 }
+    { walletId: wallet?.id ?? '' },
+    { enabled: Boolean(wallet?.id), refetchInterval: 30000 }
   );
 
-  const tradingBalance = wallet?.balance || 0;
-  const reserveBalance = wallet?.reserve_balance || 0;
-  const availableBalance = tradingBalance - reserveBalance;
+  const tradingBalance = wallet?.balance ?? 0;
+  const reserveBalance = wallet?.reserve_balance ?? 0;
+  const availableBalance = useMemo(() => tradingBalance - reserveBalance, [tradingBalance, reserveBalance]);
   const totalBalance = tradingBalance;
-  const hasPIN = !!wallet?.pin_hash;
+  const hasPIN = Boolean(wallet?.pin_hash);
 
-  const transactions = transactionsQuery.data?.transactions || [];
+  const transactions: Transaction[] = (transactionsQuery.data?.transactions as Transaction[]) ?? [];
+  const walletLoading = Boolean(ctxLoading || walletLoadingFallback);
   
-  if (walletLoading) {
-    return (
-      <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#2D5016" />
-        <Text style={{ marginTop: 16, color: '#666' }}>Loading wallet...</Text>
-      </View>
-    );
-  }
   
-  const filteredTransactions = transactions.filter(transaction => {
+  const filteredTransactions = useMemo(() => transactions.filter((transaction) => {
     if (selectedTab === 'all') return true;
     if (selectedTab === 'reserve') return transaction.type.includes('reserve');
-    if (selectedTab === 'credit') return ['deposit', 'reserve_release', 'transfer_in', 'refund'].includes(transaction.type);
+    if (selectedTab === 'credit') return ['deposit', 'reserve_release', 'transfer_in', 'refund', 'commission'].includes(transaction.type);
     if (selectedTab === 'debit') return ['withdrawal', 'payment', 'reserve_hold', 'transfer_out', 'fee'].includes(transaction.type);
     return false;
-  });
+  }), [transactions, selectedTab]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -110,32 +106,21 @@ export default function WalletScreen() {
     });
   };
 
-  const getTransactionIcon = (type: string) => {
-    switch (type) {
-      case 'credit':
-      case 'reserve_release':
-        return <ArrowDownLeft size={20} color="#10B981" />;
-      case 'debit':
-        return <ArrowUpRight size={20} color="#EF4444" />;
-      case 'reserve_hold':
-        return <Shield size={20} color="#F59E0B" />;
-      default:
-        return <Wallet size={20} color="#666" />;
-    }
+  const debitTypes: Transaction['type'][] = ['withdrawal', 'payment', 'reserve_hold', 'transfer_out', 'fee'];
+  const creditTypes: Transaction['type'][] = ['deposit', 'reserve_release', 'transfer_in', 'refund', 'commission'];
+
+  const getTransactionIcon = (type: Transaction['type']) => {
+    if (creditTypes.includes(type)) return <ArrowDownLeft size={20} color="#10B981" />;
+    if (debitTypes.includes(type)) return <ArrowUpRight size={20} color="#EF4444" />;
+    if (type === 'reserve_hold') return <Shield size={20} color="#F59E0B" />;
+    return <Wallet size={20} color="#666" />;
   };
 
-  const getTransactionColor = (type: string) => {
-    switch (type) {
-      case 'credit':
-      case 'reserve_release':
-        return '#10B981';
-      case 'debit':
-        return '#EF4444';
-      case 'reserve_hold':
-        return '#F59E0B';
-      default:
-        return '#666';
-    }
+  const getTransactionColor = (type: Transaction['type']) => {
+    if (creditTypes.includes(type)) return '#10B981';
+    if (debitTypes.includes(type)) return '#EF4444';
+    if (type === 'reserve_hold') return '#F59E0B';
+    return '#666';
   };
 
   const TransactionItem = ({ transaction }: { transaction: Transaction }) => (
@@ -155,7 +140,7 @@ export default function WalletScreen() {
           styles.transactionAmountText,
           { color: getTransactionColor(transaction.type) }
         ]}>
-          {transaction.type === 'debit' || transaction.type === 'reserve_hold' ? '-' : '+'}
+          {debitTypes.includes(transaction.type) ? '-' : '+'}
           KSh {transaction.amount.toLocaleString()}
         </Text>
         <View style={[
@@ -283,6 +268,15 @@ export default function WalletScreen() {
     }
   }
 
+  if (walletLoading) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#2D5016" />
+        <Text style={{ marginTop: 16, color: '#666' }}>Loading wallet...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <LinearGradient colors={['#F5F5DC', '#FFFFFF']} style={styles.gradient}>
@@ -307,6 +301,7 @@ export default function WalletScreen() {
                 </View>
                 <TouchableOpacity 
                   style={styles.eyeButton}
+                  testID="toggle-balance-visibility"
                   onPress={() => handlePinAction('view')}
                 >
                   {showBalance ? (
@@ -337,6 +332,7 @@ export default function WalletScreen() {
               </View>
               
               <TouchableOpacity 
+                testID="transfer-between-accounts"
                 style={styles.transferButton}
                 onPress={() => handlePinAction('transfer')}
               >
@@ -348,6 +344,7 @@ export default function WalletScreen() {
 
           <View style={styles.actionButtons}>
             <TouchableOpacity 
+              testID="add-money-button"
               style={styles.actionButton}
               onPress={() => setShowAddMoneyModal(true)}
             >
@@ -361,6 +358,7 @@ export default function WalletScreen() {
             </TouchableOpacity>
             
             <TouchableOpacity 
+              testID="send-money-button"
               style={styles.actionButton}
               onPress={() => handlePinAction('withdraw')}
             >
@@ -436,7 +434,7 @@ export default function WalletScreen() {
           </View>
         </ScrollView>
         
-        <Modal visible={showPinModal} transparent animationType="slide">
+        <Modal visible={showPinModal} transparent animationType="slide" testID="pin-modal">
           <View style={styles.modalOverlay}>
             <View style={styles.pinModal}>
               <Text style={styles.pinTitle}>Enter Wallet PIN</Text>
@@ -472,6 +470,7 @@ export default function WalletScreen() {
                   style={styles.pinConfirmBtn}
                   onPress={handlePinConfirm}
                   disabled={pin.length !== 4}
+                  testID="pin-confirm-button"
                 >
                   <Text style={styles.pinConfirmText}>Confirm</Text>
                 </TouchableOpacity>
@@ -480,7 +479,7 @@ export default function WalletScreen() {
           </View>
         </Modal>
         
-        <Modal visible={showAddMoneyModal} transparent animationType="slide">
+        <Modal visible={showAddMoneyModal} transparent animationType="slide" testID="add-money-modal">
           <View style={styles.modalOverlay}>
             <View style={styles.actionModal}>
               <Text style={styles.modalTitle}>Add Money</Text>
@@ -518,6 +517,7 @@ export default function WalletScreen() {
                   style={styles.modalConfirmBtn}
                   onPress={handleAddMoney}
                   disabled={!amount || isProcessing}
+                  testID="confirm-add-money"
                 >
                   {isProcessing ? (
                     <ActivityIndicator size="small" color="white" />
@@ -530,7 +530,7 @@ export default function WalletScreen() {
           </View>
         </Modal>
         
-        <Modal visible={showSendMoneyModal} transparent animationType="slide">
+        <Modal visible={showSendMoneyModal} transparent animationType="slide" testID="send-money-modal">
           <View style={styles.modalOverlay}>
             <View style={styles.actionModal}>
               <Text style={styles.modalTitle}>Send Money</Text>
