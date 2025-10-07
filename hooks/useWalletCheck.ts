@@ -22,24 +22,30 @@ export function useWalletCheck() {
       return;
     }
 
-    if (hasWallet) {
+    if (hasWallet && wallet?.id) {
       navigatingRef.current = true;
       console.log('[useWalletCheck] Wallet found → navigating to /(tabs)/wallet');
-      router.push('/(tabs)/wallet' as any);
+      setTimeout(() => {
+        router.push('/(tabs)/wallet' as any);
+      }, 100);
       return;
     }
 
-    if (!isLoading) {
+    if (!isLoading && !hasWallet) {
       navigatingRef.current = true;
       console.log('[useWalletCheck] No wallet and not loading → navigating to /wallet-welcome');
-      router.push('/wallet-welcome' as any);
+      setTimeout(() => {
+        router.push('/wallet-welcome' as any);
+      }, 100);
       return;
     }
 
-    if (retriesRef.current >= 5) {
+    if (retriesRef.current >= 8) {
       navigatingRef.current = true;
       console.warn('[useWalletCheck] Timeout waiting for wallet query → fallback to /wallet-welcome');
-      router.push('/wallet-welcome' as any);
+      setTimeout(() => {
+        router.push('/wallet-welcome' as any);
+      }, 100);
       return;
     }
 
@@ -53,7 +59,7 @@ export function useWalletCheck() {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       decideNavigation();
-    }, 600);
+    }, 500);
   };
 
   const checkWalletAndNavigate = () => {

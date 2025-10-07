@@ -98,7 +98,8 @@ export const [AgriPayProvider, useAgriPay] = createContextHook(() => {
       hasWallet: !!walletQuery.data?.wallet,
       hasError: !!walletQuery.error,
       isQueryLoading: walletQuery.isLoading,
-      userId: user?.id
+      userId: user?.id,
+      isFetching: walletQuery.isFetching
     });
     
     if (walletQuery.data) {
@@ -119,11 +120,12 @@ export const [AgriPayProvider, useAgriPay] = createContextHook(() => {
       setError(walletQuery.error.message);
       setIsLoading(false);
       setWallet(null);
-    } else if (!walletQuery.isLoading && user?.id) {
+    } else if (!walletQuery.isLoading && !walletQuery.isFetching && user?.id) {
       console.log('[AgriPayProvider] Query finished, no data');
       setIsLoading(false);
+      setWallet(null);
     }
-  }, [walletQuery.data, walletQuery.error, walletQuery.isLoading, user?.id]);
+  }, [walletQuery.data, walletQuery.error, walletQuery.isLoading, walletQuery.isFetching, user?.id]);
 
   useEffect(() => {
     if (!wallet?.id) return;

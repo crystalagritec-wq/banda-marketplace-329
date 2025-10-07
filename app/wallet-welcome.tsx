@@ -22,7 +22,10 @@ export default function WalletWelcomeScreen() {
   const handleCreateWallet = async () => {
     setIsCreating(true);
     try {
+      console.log('[WalletWelcome] Creating wallet...');
       const result = await createWallet();
+      
+      console.log('[WalletWelcome] Create wallet result:', result);
       
       if (result.success) {
         Alert.alert(
@@ -31,16 +34,22 @@ export default function WalletWelcomeScreen() {
           [
             {
               text: 'Get Started',
-              onPress: () => router.replace('/(tabs)/wallet' as any),
+              onPress: () => {
+                console.log('[WalletWelcome] Navigating to wallet screen');
+                setTimeout(() => {
+                  router.replace('/(tabs)/wallet' as any);
+                }, 200);
+              },
             },
           ]
         );
       } else {
         Alert.alert('Error', result.message || 'Failed to create wallet');
+        setIsCreating(false);
       }
     } catch (error: any) {
+      console.error('[WalletWelcome] Error creating wallet:', error);
       Alert.alert('Error', error.message || 'Failed to create wallet. Please try again.');
-    } finally {
       setIsCreating(false);
     }
   };
