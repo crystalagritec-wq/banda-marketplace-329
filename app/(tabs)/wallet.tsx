@@ -97,7 +97,19 @@ export default function WalletScreen() {
   const totalBalance = tradingBalance;
   const hasPIN = Boolean(wallet?.pin_hash);
 
-  const transactions: Transaction[] = (transactionsQuery.data?.transactions as Transaction[]) ?? [];
+  const transactions: Transaction[] = useMemo(() => {
+    if (!transactionsQuery.data?.transactions) return [];
+    return (transactionsQuery.data.transactions as any[]).map((t: any) => ({
+      id: t.id,
+      type: t.type,
+      amount: t.amount,
+      description: t.description || `${t.type} transaction`,
+      date: t.created_at || new Date().toISOString(),
+      status: t.status || 'completed',
+      reference: t.external_transaction_id || t.reference_id,
+    }));
+  }, [transactionsQuery.data]);
+  
   const walletLoading = Boolean(ctxLoading || walletLoadingFallback);
   
   
@@ -176,7 +188,7 @@ export default function WalletScreen() {
         'You need to create a wallet PIN first. This will be used for security.',
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Create PIN', onPress: () => router.push('/wallet/create-pin' as any) }
+          { text: 'Create PIN', onPress: () => router.push('/wallet-create-pin' as any) }
         ]
       );
       return;
@@ -192,8 +204,9 @@ export default function WalletScreen() {
     try {
       const result = await verifyPin(pin);
       
-      if (!result.success) {
+      if (!result.success || !result.valid) {
         Alert.alert('Invalid PIN', 'Please enter the correct PIN');
+        setPin('');
         return;
       }
       
@@ -215,6 +228,7 @@ export default function WalletScreen() {
       setPinAction(null);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to verify PIN');
+      setPin('');
     }
   }
   
@@ -281,7 +295,7 @@ export default function WalletScreen() {
     }
   }
 
-  if (walletLoading || ctxLoading || walletLoadingFallback) {
+  if (walletLoading && !wallet) {
     return (
       <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]} testID="wallet-loading-state">
         <ActivityIndicator size="large" color="#2D5016" />
@@ -452,9 +466,21 @@ export default function WalletScreen() {
             </View>
 
             <View style={styles.transactionList}>
-              {filteredTransactions.map((transaction) => (
-                <TransactionItem key={transaction.id} transaction={transaction} />
-              ))}
+              {transactionsQuery.isLoading ? (
+                <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color="#2D5016" />
+                  <Text style={{ marginTop: 8, color: '#666', fontSize: 14 }}>Loading transactions...</Text>
+                </View>
+              ) : filteredTransactions.length === 0 ? (
+                <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+                  <Text style={{ color: '#666', fontSize: 14 }}>No transactions yet</Text>
+                  <Text style={{ color: '#999', fontSize: 12, marginTop: 4 }}>Your transaction history will appear here</Text>
+                </View>
+              ) : (
+                filteredTransactions.map((transaction) => (
+                  <TransactionItem key={transaction.id} transaction={transaction} />
+                ))
+              )}
             </View>
           </View>
         </ScrollView>
