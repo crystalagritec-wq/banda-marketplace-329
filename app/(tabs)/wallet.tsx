@@ -47,6 +47,7 @@ export default function WalletScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const agriPayContext = useAgriPay();
+  
   const [showBalance, setShowBalance] = useState(false);
   const [selectedTab, setSelectedTab] = useState<'all' | 'credit' | 'debit' | 'reserve'>('all');
   const [showPinModal, setShowPinModal] = useState(false);
@@ -62,7 +63,7 @@ export default function WalletScreen() {
     return (
       <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#2D5016" />
-        <Text style={{ marginTop: 16, color: '#666' }}>Loading wallet...</Text>
+        <Text style={{ marginTop: 16, color: '#666' }}>Initializing wallet...</Text>
       </View>
     );
   }
