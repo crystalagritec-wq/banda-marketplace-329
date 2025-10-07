@@ -13,7 +13,7 @@ import {
   Star,
   ArrowRightLeft,
 } from 'lucide-react-native';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -71,20 +71,9 @@ export default function WalletScreen() {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   
   const walletLoadingFallback = !agriPayContext;
-  const { wallet, fundWallet, verifyPin, refreshWallet, isLoading: ctxLoading, hasWallet } = agriPayContext ?? ({} as any);
+  const { wallet, fundWallet, verifyPin, refreshWallet, isLoading: ctxLoading } = agriPayContext ?? ({} as any);
 
-  useEffect(() => {
-    console.log('[WalletScreen] State check:', { ctxLoading, hasWallet, walletId: wallet?.id });
-    
-    if (!ctxLoading && !hasWallet) {
-      console.log('[WalletScreen] No wallet found, redirecting to wallet-welcome');
-      try {
-        router.replace('/wallet-welcome' as any);
-      } catch (e) {
-        console.warn('[WalletScreen] Navigation error to wallet-welcome:', e);
-      }
-    }
-  }, [ctxLoading, hasWallet, wallet?.id]);
+
 
   const transactionsQuery = trpc.agripay.getTransactions.useQuery(
     { walletId: wallet?.id ?? '' },
