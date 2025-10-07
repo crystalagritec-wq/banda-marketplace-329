@@ -13,7 +13,7 @@ import {
   Star,
   ArrowRightLeft,
 } from 'lucide-react-native';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -72,6 +72,17 @@ export default function WalletScreen() {
   
   const walletLoadingFallback = !agriPayContext;
   const { wallet, fundWallet, verifyPin, refreshWallet, isLoading: ctxLoading } = agriPayContext ?? ({} as any);
+
+  useEffect(() => {
+    if (!ctxLoading && !wallet) {
+      console.log('[WalletScreen] No wallet found, redirecting to wallet-welcome');
+      try {
+        router.replace('/wallet-welcome' as any);
+      } catch (e) {
+        console.warn('[WalletScreen] Navigation error to wallet-welcome:', e);
+      }
+    }
+  }, [ctxLoading, wallet]);
 
   const transactionsQuery = trpc.agripay.getTransactions.useQuery(
     { walletId: wallet?.id ?? '' },
@@ -268,11 +279,23 @@ export default function WalletScreen() {
     }
   }
 
-  if (walletLoading) {
+  if (walletLoading || ctxLoading) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]}>
+      <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]} testID="wallet-loading-state">
         <ActivityIndicator size="large" color="#2D5016" />
         <Text style={{ marginTop: 16, color: '#666' }}>Loading wallet...</Text>
+      </View>
+    );
+  }
+
+  if (!wallet) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 }]} testID="wallet-missing-state">
+        <Text style={{ color: '#2D5016', fontSize: 18, fontWeight: '700', textAlign: 'center' }}>No wallet found</Text>
+        <Text style={{ color: '#666', marginTop: 8, textAlign: 'center' }}>We b4ll take you to set it up.</Text>
+        <TouchableOpacity onPress={() => router.replace('/wallet-welcome' as any)} style={{ marginTop: 16, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#2D5016', borderRadius: 8 }} testID="go-wallet-welcome">
+          <Text style={{ color: 'white', fontWeight: '700' }}>Go to Wallet Setup</Text>
+        </TouchableOpacity>
       </View>
     );
   }

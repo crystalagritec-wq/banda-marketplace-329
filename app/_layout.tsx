@@ -52,6 +52,7 @@ function RootLayoutNav() {
       <Stack.Screen name="checkout" options={{ presentation: "modal", headerShown: false }} />
       <Stack.Screen name="payment-processing" options={{ presentation: "modal", headerShown: false }} />
       <Stack.Screen name="order-success" options={{ presentation: "modal", headerShown: false }} />
+      <Stack.Screen name="wallet-welcome" options={{ headerShown: false }} />
       <Stack.Screen name="favorites" options={{ headerShown: false }} />
       <Stack.Screen name="settings" options={{ headerShown: false }} />
       <Stack.Screen name="my-products" options={{ headerShown: false }} />
