@@ -53,6 +53,7 @@ export default function WalletOnboardingModal({
   const [termsAccepted, setTermsAccepted] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [createdWallet, setCreatedWallet] = useState<any>(null);
+  const [walletDisplayId, setWalletDisplayId] = useState<string>('');
 
   const handleClose = () => {
     if (currentStep === 'success') {
@@ -63,6 +64,7 @@ export default function WalletOnboardingModal({
     setConfirmPin('');
     setTermsAccepted(false);
     setCreatedWallet(null);
+    setWalletDisplayId('');
     onClose();
   };
 
@@ -112,6 +114,9 @@ export default function WalletOnboardingModal({
       console.log('[WalletOnboardingModal] Wallet created:', walletResult.wallet.id);
       setCreatedWallet(walletResult.wallet);
 
+      const displayId = walletResult.wallet.id.replace(/-/g, '').substring(0, 12).toUpperCase();
+      setWalletDisplayId(displayId);
+
       console.log('[WalletOnboardingModal] Setting PIN...');
       await setPinMutation.mutateAsync({
         walletId: walletResult.wallet.id,
@@ -128,8 +133,8 @@ export default function WalletOnboardingModal({
   };
 
   const copyWalletId = async () => {
-    if (createdWallet?.id) {
-      await Clipboard.setStringAsync(createdWallet.id);
+    if (walletDisplayId) {
+      await Clipboard.setStringAsync(walletDisplayId);
       Alert.alert('Copied!', 'Wallet ID copied to clipboard');
     }
   };
@@ -454,17 +459,21 @@ export default function WalletOnboardingModal({
 
       <View style={styles.walletCard}>
         <View style={styles.walletCardHeader}>
-          <Text style={styles.walletCardLabel}>WALLET ID</Text>
-          <TouchableOpacity onPress={copyWalletId}>
-            <Copy size={18} color="white" />
+          <Text style={styles.walletCardLabel}>YOUR WALLET ID</Text>
+          <TouchableOpacity onPress={copyWalletId} style={styles.copyIconButton}>
+            <Copy size={18} color="#F97316" />
           </TouchableOpacity>
         </View>
-        <Text style={styles.walletId} numberOfLines={1}>
-          {createdWallet?.id || 'N/A'}
+        <Text style={styles.walletId}>
+          {walletDisplayId || 'N/A'}
         </Text>
         <Text style={styles.walletIdHint}>
-          Tap the copy icon to save your wallet ID
+          This is your unique 12-digit wallet identifier
         </Text>
+        <TouchableOpacity style={styles.copyFullButton} onPress={copyWalletId}>
+          <Copy size={16} color="#2D5016" />
+          <Text style={styles.copyFullButtonText}>Copy Wallet ID</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.protectionBanner}>
@@ -809,32 +818,64 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   walletCard: {
-    backgroundColor: '#2D5016',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 24,
     marginTop: 8,
+    borderWidth: 2,
+    borderColor: '#F97316',
+    elevation: 4,
+    shadowColor: '#F97316',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
   },
   walletCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 16,
   },
   walletCardLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.7)',
-    letterSpacing: 1,
+    color: '#F97316',
+    letterSpacing: 1.5,
+  },
+  copyIconButton: {
+    padding: 4,
+    backgroundColor: 'rgba(249, 115, 22, 0.1)',
+    borderRadius: 8,
   },
   walletId: {
-    fontSize: 16,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 6,
+    color: '#2D5016',
+    marginBottom: 12,
+    letterSpacing: 4,
+    textAlign: 'center',
   },
   walletIdHint: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  copyFullButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(45, 80, 22, 0.1)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#2D5016',
+  },
+  copyFullButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2D5016',
   },
   protectionBanner: {
     flexDirection: 'row',
