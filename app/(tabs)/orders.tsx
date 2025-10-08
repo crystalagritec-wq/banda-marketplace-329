@@ -37,6 +37,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCart, type Order } from '@/providers/cart-provider';
 import { useOrders } from '@/providers/order-provider';
 import { useDisputes } from '@/providers/dispute-provider';
+import { useAddresses, type UnifiedAddress } from '@/providers/address-provider';
 import { supabase } from '@/lib/supabase';
 
 function formatPrice(amount: number) {
@@ -225,7 +226,8 @@ const OrderCard = ({
 export default function OrdersScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { orders, updateOrderStatus, addresses } = useCart();
+  const { orders, updateOrderStatus } = useCart();
+  const { addresses } = useAddresses();
   const { disputeStats, createDispute } = useDisputes();
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [selectedTab, setSelectedTab] = useState<'requests' | 'inTransit' | 'delivered' | 'cancelled' | 'all'>('all');
@@ -233,7 +235,7 @@ export default function OrdersScreen() {
   const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'amount'>('recent');
 
   const defaultPhone = useMemo(() => {
-    const addr = addresses.find(a => a.isDefault) ?? addresses[0];
+    const addr = (addresses ?? []).find((a: UnifiedAddress) => a.isDefault) ?? (addresses ?? [])[0];
     return addr?.phone ?? '+254700000000';
   }, [addresses]);
 

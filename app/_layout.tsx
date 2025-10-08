@@ -18,6 +18,7 @@ import { AddressProvider } from "@/providers/address-provider";
 import { OnboardingProvider } from "@/providers/onboarding-provider";
 import { ServiceInboardingProvider } from "@/providers/service-inboarding-provider";
 import { AgriPayProvider } from "@/providers/agripay-provider";
+import { OrderProvider } from "@/providers/order-provider";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { useDeepLinking } from "@/hooks/useDeepLinking";
@@ -121,7 +122,9 @@ export default function RootLayout() {
                               <DisputeProvider>
                                 <LoyaltyProvider>
                                   <TrustProvider>
-                                    <RootLayoutNav />
+                                    <OrderProvider>
+                                      <RootLayoutNav />
+                                    </OrderProvider>
                                   </TrustProvider>
                                 </LoyaltyProvider>
                               </DisputeProvider>
