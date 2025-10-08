@@ -19,7 +19,6 @@ import { OnboardingProvider } from "@/providers/onboarding-provider";
 import { ServiceInboardingProvider } from "@/providers/service-inboarding-provider";
 import { AgriPayProvider } from "@/providers/agripay-provider";
 import { OrderProvider } from "@/providers/order-provider";
-import { I18nProvider } from "@/providers/i18n-provider";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { useDeepLinking } from "@/hooks/useDeepLinking";
@@ -110,8 +109,7 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView style={styles.container}>
             <StorageProvider>
-              <I18nProvider>
-                <ThemeProvider>
+              <ThemeProvider>
                 <AuthProvider>
                   <AgriPayProvider>
                     <OnboardingProvider>
@@ -139,8 +137,7 @@ export default function RootLayout() {
                     </OnboardingProvider>
                   </AgriPayProvider>
                 </AuthProvider>
-                </ThemeProvider>
-              </I18nProvider>
+              </ThemeProvider>
             </StorageProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>

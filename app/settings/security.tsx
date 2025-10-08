@@ -1,11 +1,9 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Switch, Alert, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Switch, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Stack } from 'expo-router';
-import { ArrowLeft, Key, Lock, Smartphone, Mail, MessageSquare, Shield, Eye, EyeOff, CheckCircle } from 'lucide-react-native';
+import { ArrowLeft, Key, Lock, Smartphone, Mail, MessageSquare, Shield, Eye, EyeOff } from 'lucide-react-native';
 import { useStorage } from '@/providers/storage-provider';
-import { trpc } from '@/lib/trpc';
-import { supabase } from '@/lib/supabase';
 
 interface SecurityOption {
   id: string;
@@ -91,64 +89,8 @@ export default function SecurityScreen() {
   const [twoFactorMethod, setTwoFactorMethod] = useState<string>('off');
   const [taggingEnabled, setTaggingEnabled] = useState<boolean>(true);
   const [directMessagesFrom, setDirectMessagesFrom] = useState<string>('everyone');
-  const [userEmail, setUserEmail] = useState<string>('user@example.com');
-  const [userPhone, setUserPhone] = useState<string>('+254 712 345 678');
-  const [isUpdating, setIsUpdating] = useState<boolean>(false);
-  const [passwordStrength, setPasswordStrength] = useState<number>(0);
-
-  const getPrefs = trpc.settings.getPreferences.useQuery(undefined, { staleTime: 60_000 });
-  const updatePrefs = trpc.settings.updatePreferences.useMutation();
-  const enable2FA = trpc.settings.enable2FA.useMutation();
-
-  useEffect(() => {    
-    const loadUserData = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          setUserEmail(user.email || 'user@example.com');
-          setUserPhone(user.phone || '+254 712 345 678');
-        }
-      } catch (error) {
-        console.error('Failed to load user data:', error);
-      }
-    };
-    loadUserData();
-  }, []);
-
-  useEffect(() => {
-    if (!getPrefs.data?.success) return;
-    const p: any = getPrefs.data.preferences ?? {};
-    const security = p.security ?? {};
-    const privacy = p.privacy ?? {};
-    
-    if (typeof security.twoFactorEnabled === 'boolean' && security.twoFactorEnabled) {
-      setTwoFactorMethod('email');
-    }
-    if (typeof security.biometricEnabled === 'boolean') setBiometricsEnabled(security.biometricEnabled);
-    if (typeof privacy.allowMessagesFromStrangers === 'boolean') {
-      setDirectMessagesFrom(privacy.allowMessagesFromStrangers ? 'everyone' : 'following');
-    }
-  }, [getPrefs.data?.success, getPrefs.data?.preferences]);
   
-  const calculatePasswordStrength = useCallback((password: string): number => {
-    let strength = 0;
-    if (password.length >= 8) strength += 25;
-    if (password.length >= 12) strength += 25;
-    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength += 25;
-    if (/[0-9]/.test(password)) strength += 15;
-    if (/[^a-zA-Z0-9]/.test(password)) strength += 10;
-    return Math.min(strength, 100);
-  }, []);
-
-  useEffect(() => {
-    if (newPassword) {
-      setPasswordStrength(calculatePasswordStrength(newPassword));
-    } else {
-      setPasswordStrength(0);
-    }
-  }, [newPassword, calculatePasswordStrength]);
-
-  const handleUpdatePassword = useCallback(async () => {
+  const handleUpdatePassword = useCallback(() => {
     if (!currentPassword.trim()) {
       Alert.alert('Error', 'Please enter your current password');
       return;
@@ -165,110 +107,16 @@ export default function SecurityScreen() {
       Alert.alert('Error', 'Password must be at least 8 characters long');
       return;
     }
-    if (passwordStrength < 50) {
-      Alert.alert('Weak Password', 'Please choose a stronger password with a mix of uppercase, lowercase, numbers, and special characters.');
-      return;
-    }
     
-    setIsUpdating(true);
-    try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
-      
-      Alert.alert('Success', 'Password updated successfully');
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      console.log('✅ Password updated successfully');
-    } catch (error: any) {
-      console.error('❌ Password update error:', error);
-      Alert.alert('Error', error.message || 'Failed to update password');
-    } finally {
-      setIsUpdating(false);
-    }
-  }, [currentPassword, newPassword, confirmPassword, passwordStrength]);
+    Alert.alert('Success', 'Password updated successfully');
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+  }, [currentPassword, newPassword, confirmPassword]);
   
   const handleChangePhoneNumber = useCallback(() => {
     Alert.alert('Change Phone Number', 'This feature will be available soon.');
   }, []);
-
-  const handleToggle2FA = useCallback(async (method: string) => {
-    if (method === 'off') {
-      setTwoFactorMethod('off');
-      try {
-        await updatePrefs.mutateAsync({ 
-          category: 'security', 
-          preferences: { twoFactorEnabled: false } 
-        });
-        console.log('✅ 2FA disabled');
-      } catch (error) {
-        console.error('❌ Failed to disable 2FA:', error);
-      }
-      return;
-    }
-
-    setIsUpdating(true);
-    try {
-      const result = await enable2FA.mutateAsync({ 
-        method: method as 'sms' | 'app' | 'email',
-        phone: method === 'sms' ? userPhone : undefined
-      });
-      
-      if (result.success) {
-        setTwoFactorMethod(method);
-        await updatePrefs.mutateAsync({ 
-          category: 'security', 
-          preferences: { twoFactorEnabled: true, twoFactorMethod: method } 
-        });
-        Alert.alert(
-          '2FA Enabled',
-          `Two-factor authentication via ${method} has been enabled successfully.`,
-          [{ text: 'OK' }]
-        );
-        console.log('✅ 2FA enabled:', method);
-      }
-    } catch (error: any) {
-      console.error('❌ 2FA setup error:', error);
-      Alert.alert('Error', 'Failed to enable 2FA. Please try again.');
-    } finally {
-      setIsUpdating(false);
-    }
-  }, [enable2FA, updatePrefs, userPhone]);
-
-  const handleBiometricsToggle = useCallback(async (enabled: boolean) => {
-    setBiometricsEnabled(enabled);
-    try {
-      await setItem('security_biometrics', enabled ? '1' : '0');
-      await updatePrefs.mutateAsync({ 
-        category: 'security', 
-        preferences: { biometricEnabled: enabled } 
-      });
-      console.log('✅ Biometrics setting updated:', enabled);
-    } catch (error) {
-      console.error('❌ Failed to update biometrics setting:', error);
-    }
-  }, [setItem, updatePrefs]);
-
-  const handlePrivacyToggle = useCallback(async (setting: string, value: boolean | string) => {
-    if (setting === 'tagging') {
-      setTaggingEnabled(value as boolean);
-    } else if (setting === 'directMessages') {
-      setDirectMessagesFrom(value as string);
-    }
-    
-    try {
-      await updatePrefs.mutateAsync({ 
-        category: 'privacy', 
-        preferences: { 
-          [setting === 'tagging' ? 'allowTagging' : 'allowMessagesFromStrangers']: 
-            setting === 'tagging' ? value : value === 'everyone'
-        } 
-      });
-      console.log('✅ Privacy setting updated:', setting, value);
-    } catch (error) {
-      console.error('❌ Failed to update privacy setting:', error);
-    }
-  }, [updatePrefs]);
   
   return (
     <View style={styles.container}>
@@ -352,35 +200,8 @@ export default function SecurityScreen() {
               </View>
             </View>
             
-            {newPassword.length > 0 && (
-              <View style={styles.passwordStrengthContainer}>
-                <View style={styles.passwordStrengthBar}>
-                  <View 
-                    style={[
-                      styles.passwordStrengthFill, 
-                      { 
-                        width: `${passwordStrength}%`,
-                        backgroundColor: passwordStrength < 50 ? '#EF4444' : passwordStrength < 75 ? '#F59E0B' : '#10B981'
-                      }
-                    ]} 
-                  />
-                </View>
-                <Text style={styles.passwordStrengthText}>
-                  {passwordStrength < 50 ? 'Weak' : passwordStrength < 75 ? 'Medium' : 'Strong'}
-                </Text>
-              </View>
-            )}
-            
-            <TouchableOpacity 
-              style={[styles.updateButton, isUpdating && styles.updateButtonDisabled]} 
-              onPress={handleUpdatePassword}
-              disabled={isUpdating}
-            >
-              {isUpdating ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.updateButtonText}>Update Password</Text>
-              )}
+            <TouchableOpacity style={styles.updateButton} onPress={handleUpdatePassword}>
+              <Text style={styles.updateButtonText}>Update Password</Text>
             </TouchableOpacity>
           </View>
         </SecuritySection>
@@ -428,7 +249,7 @@ export default function SecurityScreen() {
             icon: Smartphone,
             type: 'toggle',
             value: biometricsEnabled,
-            onToggle: handleBiometricsToggle
+            onToggle: setBiometricsEnabled
           }} />
           
           <View style={styles.noteContainer}>
@@ -442,11 +263,8 @@ export default function SecurityScreen() {
           subtitle="Link your phone to enable SMS-based 2FA and receive important account alerts."
         >
           <View style={styles.phoneSection}>
-            <View style={styles.phoneHeader}>
-              <Text style={styles.phoneLabel}>Phone number is linked</Text>
-              <CheckCircle size={20} color="#10B981" />
-            </View>
-            <Text style={styles.phoneNumber}>{userPhone}</Text>
+            <Text style={styles.phoneLabel}>Phone number is linked</Text>
+            <Text style={styles.phoneNumber}>+254 712 345 678</Text>
             <TouchableOpacity style={styles.changeNumberButton} onPress={handleChangePhoneNumber}>
               <Text style={styles.changeNumberText}>Change Number</Text>
             </TouchableOpacity>
@@ -457,12 +275,6 @@ export default function SecurityScreen() {
           title="Two-Factor Authentication (2FA)" 
           subtitle="Add an extra layer of security to your account. Receive a unique code each time you sign in."
         >
-          {isUpdating && (
-            <View style={{ paddingVertical: 12, alignItems: 'center' }}>
-              <ActivityIndicator color="#16A34A" />
-            </View>
-          )}
-          
           <SecurityRow option={{
             id: '2fa-off',
             title: 'Off',
@@ -470,17 +282,17 @@ export default function SecurityScreen() {
             icon: Lock,
             type: 'radio',
             value: twoFactorMethod === 'off',
-            onPress: () => handleToggle2FA('off')
+            onPress: () => setTwoFactorMethod('off')
           }} />
           
           <SecurityRow option={{
             id: '2fa-email',
             title: 'Email',
-            subtitle: `Receive a code via your email (${userEmail}).`,
+            subtitle: 'Receive a code via your email (janedoe@example.com).',
             icon: Mail,
             type: 'radio',
             value: twoFactorMethod === 'email',
-            onPress: () => handleToggle2FA('email')
+            onPress: () => setTwoFactorMethod('email')
           }} />
           
           <SecurityRow option={{
@@ -490,7 +302,7 @@ export default function SecurityScreen() {
             icon: MessageSquare,
             type: 'radio',
             value: twoFactorMethod === 'sms',
-            onPress: () => handleToggle2FA('sms')
+            onPress: () => setTwoFactorMethod('sms')
           }} />
         </SecuritySection>
         
@@ -505,7 +317,7 @@ export default function SecurityScreen() {
             icon: Shield,
             type: 'toggle',
             value: taggingEnabled,
-            onToggle: (v) => handlePrivacyToggle('tagging', v)
+            onToggle: setTaggingEnabled
           }} />
           
           <View style={styles.divider} />
@@ -519,7 +331,7 @@ export default function SecurityScreen() {
             icon: Shield,
             type: 'radio',
             value: directMessagesFrom === 'everyone',
-            onPress: () => handlePrivacyToggle('directMessages', 'everyone')
+            onPress: () => setDirectMessagesFrom('everyone')
           }} />
           
           <SecurityRow option={{
@@ -528,7 +340,7 @@ export default function SecurityScreen() {
             icon: Shield,
             type: 'radio',
             value: directMessagesFrom === 'following',
-            onPress: () => handlePrivacyToggle('directMessages', 'following')
+            onPress: () => setDirectMessagesFrom('following')
           }} />
         </SecuritySection>
       </ScrollView>
@@ -693,34 +505,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-  },
-  updateButtonDisabled: {
-    opacity: 0.6,
-  },
-  passwordStrengthContainer: {
-    marginBottom: 16,
-  },
-  passwordStrengthBar: {
-    height: 6,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginBottom: 6,
-  },
-  passwordStrengthFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  passwordStrengthText: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontWeight: '600',
-  },
-  phoneHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
   },
   subsectionTitle: {
     fontSize: 16,
