@@ -82,7 +82,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container} testID="profile-screen">
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingTop: insets.top }]} testID="profile-scroll">
+      <ScrollView contentContainerStyle={styles.scroll} testID="profile-scroll">
         <View style={styles.headerWrap}>
           <ImageBackground
             source={{ uri: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=2000&auto=format&fit=crop' }}
@@ -105,18 +105,18 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.identity}>
               <Text style={styles.greeting}>{greeting}</Text>
-              <Text style={styles.name} numberOfLines={1}>{user?.name ?? 'Banda User'}</Text>
+              <Text style={styles.name} numberOfLines={1}>{dashboardQuery.data?.data?.user?.full_name || user?.name || 'Banda User'}</Text>
               <View style={styles.metaRow}>
-                {!!user?.email && (
+                {!!(dashboardQuery.data?.data?.user?.email || user?.email) && (
                   <View style={styles.metaItem}>
                     <Mail size={14} color="#4B5563" />
-                    <Text style={styles.metaText}>{user.email}</Text>
+                    <Text style={styles.metaText}>{dashboardQuery.data?.data?.user?.email || user?.email}</Text>
                   </View>
                 )}
-                {!!user?.phone && (
+                {!!(dashboardQuery.data?.data?.user?.phone || user?.phone) && (
                   <View style={styles.metaItem}>
                     <Phone size={14} color="#4B5563" />
-                    <Text style={styles.metaText}>{user.phone}</Text>
+                    <Text style={styles.metaText}>{dashboardQuery.data?.data?.user?.phone || user?.phone}</Text>
                   </View>
                 )}
                 {!!user?.location && (
@@ -160,10 +160,10 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick actions</Text>
           <View style={styles.actionsGrid}>
-            <ActionTile title="My Account" subtitle="Verification & Subscription" onPress={onOpenAccount} icon={<ShieldCheck size={22} color="white" />} colors={["#2D5016", "#4A7C59"]} testID="qa-account" />
+            <ActionTile title="Verification" subtitle="Get Verified" onPress={() => router.push('/verification-dashboard' as any)} icon={<ShieldCheck size={22} color="white" />} colors={["#2D5016", "#4A7C59"]} testID="qa-verification" />
+            <ActionTile title="Subscription" subtitle="Upgrade Plan" onPress={() => router.push('/subscription' as any)} icon={<Crown size={22} color="white" />} colors={["#F59E0B", "#FBBF24"]} testID="qa-subscription" />
+            <ActionTile title="Loyalty" subtitle="Rewards & Points" onPress={() => router.push('/rewards-hub' as any)} icon={<Star size={22} color="white" />} colors={["#8B5CF6", "#A78BFA"]} testID="qa-loyalty" />
             <ActionTile title="Orders" subtitle="Track & Manage" onPress={onOpenOrders} icon={<Truck size={22} color="white" />} colors={["#1E40AF", "#3B82F6"]} testID="qa-orders" />
-            <ActionTile title="Wallet" subtitle="Balances & Activity" onPress={onOpenWallet} icon={<Wallet size={22} color="white" />} colors={["#8B4513", "#D97706"]} testID="qa-wallet" />
-            <ActionTile title="Marketplace" subtitle="Discover" onPress={() => router.push('/marketplace' as any)} icon={<ShoppingBag size={22} color="white" />} colors={["#065F46", "#10B981"]} testID="qa-market" />
           </View>
         </View>
 
@@ -260,7 +260,7 @@ function HighlightCard({ label, value, icon }: { label: string; value: string; i
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
-  scroll: { flexGrow: 1, paddingBottom: 24 },
+  scroll: { flexGrow: 1, paddingBottom: 100 },
 
   headerWrap: { marginBottom: 16 },
   cover: { height: 140, backgroundColor: '#E5E7EB' },

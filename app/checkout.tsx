@@ -891,7 +891,12 @@ export default function CheckoutScreen() {
                 {selectedAddress ? (
                   <>
                     <Text style={styles.cardTitle}>{selectedAddress.name}</Text>
-                    <Text style={styles.cardSubtext}>{selectedAddress.address}, {selectedAddress.city}</Text>
+                    <Text style={styles.cardSubtext}>
+                      {selectedAddress.address}
+                      {selectedAddress.ward && `, ${selectedAddress.ward}`}
+                      {selectedAddress.subCounty && `, ${selectedAddress.subCounty}`}
+                      {selectedAddress.county && `, ${selectedAddress.county}`}
+                    </Text>
                     <Text style={styles.cardPhone}>{selectedAddress.phone}</Text>
                   </>
                 ) : (
@@ -1263,7 +1268,11 @@ export default function CheckoutScreen() {
                           )}
                         </View>
                         <Text style={styles.addressCardText}>{address.address}</Text>
-                        <Text style={styles.addressCardText}>{address.city}</Text>
+                        <Text style={styles.addressCardText}>
+                          {address.ward && `${address.ward}, `}
+                          {address.subCounty && `${address.subCounty}, `}
+                          {address.county || address.city}
+                        </Text>
                       </View>
                     </View>
                     {selectedAddress?.id === address.id && (
