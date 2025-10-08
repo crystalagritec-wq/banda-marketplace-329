@@ -167,11 +167,6 @@ import { addAddressProcedure } from "@/backend/trpc/routes/addresses/add-address
 import { updateAddressProcedure } from "@/backend/trpc/routes/addresses/update-address";
 import { deleteAddressProcedure } from "@/backend/trpc/routes/addresses/delete-address";
 import { setDefaultAddressProcedure } from "@/backend/trpc/routes/addresses/set-default-address";
-import { getUserRewardsProcedure } from "@/backend/trpc/routes/rewards/get-user-rewards";
-import { completeChallengeProcedure as rewardsCompleteChallengeProcedure } from "@/backend/trpc/routes/rewards/complete-challenge";
-import { redeemPointsProcedure } from "@/backend/trpc/routes/rewards/redeem-points";
-import { submitDocumentsProcedure } from "@/backend/trpc/routes/verification/submit-documents";
-import { getSubscriptionPlansProcedure } from "@/backend/trpc/routes/subscription/get-plans";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -257,16 +252,9 @@ export const appRouter = createTRPCRouter({
   }),
   verification: createTRPCRouter({
     updateDocuments: updateVerificationDocumentsProcedure,
-    submitDocuments: submitDocumentsProcedure,
   }),
   subscription: createTRPCRouter({
     upgrade: upgradeSubscriptionProcedure,
-    getPlans: getSubscriptionPlansProcedure,
-  }),
-  rewards: createTRPCRouter({
-    getUserRewards: getUserRewardsProcedure,
-    completeChallenge: rewardsCompleteChallengeProcedure,
-    redeemPoints: redeemPointsProcedure,
   }),
   insights: createTRPCRouter({
     getMarketInsights: getMarketInsightsProcedure,
