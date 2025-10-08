@@ -187,18 +187,11 @@ export default function OrderDetailsScreen() {
   }, [orderId]);
 
   const handleTrackOrder = useCallback(() => {
-    if (order?.status === 'shipped') {
-      router.push({
-        pathname: '/live-tracking' as any,
-        params: { orderId },
-      });
-    } else {
-      router.push({
-        pathname: '/order-tracking' as any,
-        params: { orderId },
-      });
-    }
-  }, [orderId, router, order]);
+    router.push({
+      pathname: '/order-tracking' as any,
+      params: { orderId },
+    });
+  }, [orderId, router]);
 
   const handleViewQR = useCallback(() => {
     router.push({ pathname: '/order-qr' as any, params: { orderId } });
@@ -502,9 +495,7 @@ export default function OrderDetailsScreen() {
               onPress={handleTrackOrder}
             >
               <Navigation size={20} color="white" />
-              <Text style={styles.trackButtonText}>
-                {order.status === 'shipped' ? 'Live Track' : 'Track Order'}
-              </Text>
+              <Text style={styles.trackButtonText}>Track Order</Text>
             </TouchableOpacity>
           )}
 
