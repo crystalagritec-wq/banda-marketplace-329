@@ -1,107 +1,140 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Stack } from 'expo-router';
-import { ArrowLeft, Info } from 'lucide-react-native';
-import { useStorage } from '@/providers/storage-provider';
+import React, { useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { useRouter, Stack } from 'expo-router';
+import { ArrowLeft, Check, Globe } from 'lucide-react-native';
+import { useI18n, SupportedLanguage, getLanguageName } from '@/providers/i18n-provider';
+import { useTheme } from '@/providers/theme-provider';
 
-interface Language {
-  code: string;
-  name: string;
-  nativeName: string;
-}
+const AVAILABLE_LANGUAGES: SupportedLanguage[] = ['en', 'sw'];
 
-const AVAILABLE_LANGUAGES: Language[] = [
-  { code: 'en', name: 'English', nativeName: 'English' },
-  { code: 'sw', name: 'Swahili', nativeName: 'Kiswahili' },
-];
-
-function LanguageOption({ language, isSelected, onSelect }: { 
-  language: Language; 
+function LanguageOption({ 
+  languageCode, 
+  isSelected, 
+  onSelect,
+  colors 
+}: { 
+  languageCode: SupportedLanguage; 
   isSelected: boolean; 
-  onSelect: () => void; 
+  onSelect: () => void;
+  colors: any;
 }) {
+  const langInfo = getLanguageName(languageCode);
+  
   return (
     <TouchableOpacity 
-      style={[styles.languageOption, isSelected && styles.languageOptionSelected]} 
+      style={[
+        styles.languageOption, 
+        { borderBottomColor: colors.border },
+        isSelected && { backgroundColor: 'rgba(16,185,129,0.05)' }
+      ]} 
       onPress={onSelect}
+      activeOpacity={0.7}
     >
       <View style={styles.languageInfo}>
-        <Text style={[styles.languageName, isSelected && styles.languageNameSelected]}>
-          {language.name}
+        <Text style={[
+          styles.languageName, 
+          { color: isSelected ? '#16A34A' : colors.text }
+        ]}>
+          {langInfo.name}
         </Text>
-        {language.nativeName !== language.name && (
-          <Text style={[styles.languageNative, isSelected && styles.languageNativeSelected]}>
-            {language.nativeName}
+        {langInfo.nativeName !== langInfo.name && (
+          <Text style={[
+            styles.languageNative, 
+            { color: isSelected ? '#16A34A' : colors.mutedText }
+          ]}>
+            {langInfo.nativeName}
           </Text>
         )}
       </View>
       
-      <View style={[styles.radioButton, isSelected && styles.radioButtonSelected]}>
-        {isSelected && <View style={styles.radioButtonInner} />}
-      </View>
+      {isSelected && (
+        <View style={styles.checkIcon}>
+          <Check size={20} color="#16A34A" strokeWidth={3} />
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
 
 export default function LanguageScreen() {
   const router = useRouter();
-  const { getItem, setItem } = useStorage();
+  const { language, setLanguage, t } = useI18n();
+  const { colors } = useTheme();
   
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('en');
-  
-  const handleLanguageSelect = useCallback(async (languageCode: string) => {
-    setSelectedLanguage(languageCode);
+  const handleLanguageSelect = useCallback(async (languageCode: SupportedLanguage) => {
     try {
-      await setItem('settings_language', languageCode);
-      console.log('Language preference saved:', languageCode);
+      await setLanguage(languageCode);
+      Alert.alert(
+        t('settings.languageSettings.languageChanged'),
+        t('success.updated'),
+        [{ text: t('common.ok') }]
+      );
+      console.log('[Language] Language changed to:', languageCode);
     } catch (error) {
-      console.error('Failed to save language preference:', error);
+      console.error('[Language] Failed to change language:', error);
+      Alert.alert(
+        t('common.error'),
+        t('errors.somethingWentWrong'),
+        [{ text: t('common.ok') }]
+      );
     }
-  }, [setItem]);
+  }, [setLanguage, t]);
   
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen 
         options={{
-          title: 'Language',
+          title: t('settings.language'),
+          headerStyle: { backgroundColor: colors.card },
+          headerTintColor: colors.text,
           headerLeft: () => (
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <ArrowLeft size={24} color="#111827" />
+              <ArrowLeft size={24} color={colors.text} />
             </TouchableOpacity>
           ),
         }}
       />
       
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.header}>Language</Text>
-        <Text style={styles.subheader}>Choose your preferred language for the app.</Text>
+        <View style={[styles.headerSection, { backgroundColor: colors.card }]}>
+          <View style={styles.iconContainer}>
+            <Globe size={32} color="#16A34A" />
+          </View>
+          <Text style={[styles.header, { color: colors.text }]}>
+            {t('settings.languageSettings.title')}
+          </Text>
+          <Text style={[styles.subheader, { color: colors.mutedText }]}>
+            {t('settings.languageSettings.selectLanguage')}
+          </Text>
+        </View>
         
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Select a Language</Text>
-          <Text style={styles.sectionSubtitle}>
-            Your experience will be updated to reflect your selection. Currently showing languages available in Kenya.
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            {t('settings.languageSettings.availableLanguages')}
+          </Text>
+          <Text style={[styles.sectionSubtitle, { color: colors.mutedText }]}>
+            {t('settings.languageSettings.translationNote')}
           </Text>
           
-          <View style={styles.languageList}>
-            {AVAILABLE_LANGUAGES.map((language) => (
+          <View style={[styles.languageList, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            {AVAILABLE_LANGUAGES.map((langCode) => (
               <LanguageOption
-                key={language.code}
-                language={language}
-                isSelected={selectedLanguage === language.code}
-                onSelect={() => handleLanguageSelect(language.code)}
+                key={langCode}
+                languageCode={langCode}
+                isSelected={language === langCode}
+                onSelect={() => handleLanguageSelect(langCode)}
+                colors={colors}
               />
             ))}
           </View>
         </View>
         
-        <View style={styles.featureNotice}>
-          <View style={styles.featureNoticeHeader}>
-            <Info size={20} color="#3B82F6" />
-            <Text style={styles.featureNoticeTitle}>Feature in Development</Text>
-          </View>
-          <Text style={styles.featureNoticeText}>
-            Full app translation is coming soon. While you can select a language, the content will remain in English for now.
+        <View style={[styles.currentLanguageCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.currentLanguageLabel, { color: colors.mutedText }]}>
+            {t('settings.languageSettings.currentLanguage')}
+          </Text>
+          <Text style={[styles.currentLanguageValue, { color: colors.text }]}>
+            {getLanguageName(language).nativeName}
           </Text>
         </View>
       </ScrollView>
@@ -112,7 +145,6 @@ export default function LanguageScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9F9F9',
   },
   backButton: {
     padding: 8,
@@ -122,38 +154,49 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 32,
   },
+  headerSection: {
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+  iconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(16,185,129,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
   header: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#111827',
-    marginBottom: 6,
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 8,
+    textAlign: 'center',
   },
   subheader: {
     fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 24,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   section: {
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
+    fontSize: 16,
+    fontWeight: '600',
     marginBottom: 8,
   },
   sectionSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 18,
     marginBottom: 16,
   },
   languageList: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   languageOption: {
     flexDirection: 'row',
@@ -162,10 +205,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#F3F4F6',
-  },
-  languageOptionSelected: {
-    backgroundColor: 'rgba(16,185,129,0.05)',
   },
   languageInfo: {
     flex: 1,
@@ -173,58 +212,27 @@ const styles = StyleSheet.create({
   languageName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
-  },
-  languageNameSelected: {
-    color: '#16A34A',
   },
   languageNative: {
     fontSize: 14,
-    color: '#6B7280',
     marginTop: 2,
   },
-  languageNativeSelected: {
-    color: '#16A34A',
+  checkIcon: {
+    marginLeft: 12,
   },
-  radioButton: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#D1D5DB',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioButtonSelected: {
-    borderColor: '#16A34A',
-  },
-  radioButtonInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#16A34A',
-  },
-  featureNotice: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 12,
+  currentLanguageCard: {
     padding: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#3B82F6',
-  },
-  featureNoticeHeader: {
-    flexDirection: 'row',
+    borderRadius: 12,
+    borderWidth: 1,
     alignItems: 'center',
-    marginBottom: 8,
   },
-  featureNoticeTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E40AF',
-    marginLeft: 8,
+  currentLanguageLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginBottom: 4,
   },
-  featureNoticeText: {
-    fontSize: 14,
-    color: '#1E40AF',
-    lineHeight: 20,
+  currentLanguageValue: {
+    fontSize: 18,
+    fontWeight: '700',
   },
 });
