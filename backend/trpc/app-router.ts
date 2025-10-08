@@ -156,6 +156,11 @@ import { getPreferencesProcedure } from "@/backend/trpc/routes/settings/get-pref
 import { updatePreferencesProcedure } from "@/backend/trpc/routes/settings/update-preferences";
 import { enable2FAProcedure } from "@/backend/trpc/routes/settings/enable-2fa";
 import { verify2FAProcedure } from "@/backend/trpc/routes/settings/verify-2fa";
+import { getLiveLocationProcedure } from "@/backend/trpc/routes/tracking/get-live-location";
+import { updateDriverLocationProcedure } from "@/backend/trpc/routes/tracking/update-driver-location";
+import { addTipProcedure } from "@/backend/trpc/routes/tracking/add-tip";
+import { addDeliveryInstructionsProcedure } from "@/backend/trpc/routes/tracking/add-delivery-instructions";
+import { getETAProcedure } from "@/backend/trpc/routes/tracking/get-eta";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -384,6 +389,13 @@ export const appRouter = createTRPCRouter({
     updatePreferences: updatePreferencesProcedure,
     enable2FA: enable2FAProcedure,
     verify2FA: verify2FAProcedure,
+  }),
+  tracking: createTRPCRouter({
+    getLiveLocation: getLiveLocationProcedure,
+    updateDriverLocation: updateDriverLocationProcedure,
+    addTip: addTipProcedure,
+    addDeliveryInstructions: addDeliveryInstructionsProcedure,
+    getETA: getETAProcedure,
   }),
 });
 

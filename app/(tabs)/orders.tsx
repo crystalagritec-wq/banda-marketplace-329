@@ -294,13 +294,18 @@ export default function OrdersScreen() {
 
   const handleViewDetails = useCallback((orderId: string) => {
     console.log('OrdersScreen:handleViewDetails', orderId);
-    router.push({ pathname: '/order-details' as any, params: { orderId } });
+    router.push({ pathname: '/order-details-enhanced' as any, params: { orderId } });
   }, [router]);
 
   const handleTrackOrder = useCallback((orderId: string) => {
     console.log('OrdersScreen:handleTrackOrder', orderId);
-    router.push({ pathname: '/order-tracking' as any, params: { orderId } });
-  }, [router]);
+    const order = orders.find(o => o.id === orderId);
+    if (order?.status === 'shipped') {
+      router.push({ pathname: '/live-tracking' as any, params: { orderId } });
+    } else {
+      router.push({ pathname: '/order-tracking' as any, params: { orderId } });
+    }
+  }, [router, orders]);
 
   const handleReorder = useCallback((order: Order) => {
     console.log('OrdersScreen:handleReorder', order.id);
