@@ -20,6 +20,7 @@ import { ServiceInboardingProvider } from "@/providers/service-inboarding-provid
 import { AgriPayProvider } from "@/providers/agripay-provider";
 import { OrderProvider } from "@/providers/order-provider";
 import { I18nProvider } from "@/providers/i18n-provider";
+import { AppLockProvider } from "@/providers/app-lock-provider";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { useDeepLinking } from "@/hooks/useDeepLinking";
@@ -112,6 +113,7 @@ export default function RootLayout() {
             <StorageProvider>
               <I18nProvider>
                 <ThemeProvider>
+                <AppLockProvider>
                 <AuthProvider>
                   <AgriPayProvider>
                     <OnboardingProvider>
@@ -139,6 +141,7 @@ export default function RootLayout() {
                     </OnboardingProvider>
                   </AgriPayProvider>
                 </AuthProvider>
+                </AppLockProvider>
                 </ThemeProvider>
               </I18nProvider>
             </StorageProvider>

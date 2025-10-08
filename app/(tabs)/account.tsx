@@ -53,6 +53,14 @@ export default function AccountScreen() {
     }
   }, [sessionQuery.data]);
 
+  const displayName = user?.name || profileData?.user?.fullName || 'User';
+  const displayEmail = user?.email || profileData?.user?.email || 'user@example.com';
+  const displayPhone = user?.phone || profileData?.user?.phone || '';
+  const displayAvatar = user?.avatar || profileData?.user?.profilePictureUrl;
+  const displayVerified = user?.kycStatus === 'verified' || profileData?.user?.isVerified;
+  const displayReputation = user?.reputationScore || profileData?.user?.reputationScore || 0;
+  const displayTier = user?.membershipTier || profileData?.user?.membershipTier || 'basic';
+
   const handleLogout = () => {
     Alert.alert(
       'Logout',
@@ -137,9 +145,9 @@ export default function AccountScreen() {
         {/* Enhanced Profile Header */}
         <View style={styles.profileSection}>
           <View style={styles.avatarContainer}>
-            {user?.avatar || profileData?.user?.profilePictureUrl ? (
+            {displayAvatar ? (
               <Image
-                source={{ uri: user?.avatar || profileData?.user?.profilePictureUrl }}
+                source={{ uri: displayAvatar }}
                 style={styles.avatarImage}
               />
             ) : (
@@ -154,8 +162,8 @@ export default function AccountScreen() {
           
           <View style={styles.userInfoContainer}>
             <View style={styles.nameRow}>
-              <Text style={styles.userName}>{user?.name || profileData?.user?.fullName || 'User'}</Text>
-              {(user?.kycStatus === 'verified' || profileData?.user?.isVerified) && (
+              <Text style={styles.userName}>{displayName}</Text>
+              {displayVerified && (
                 <View style={styles.verifiedBadge}>
                   <Shield size={12} color="#10B981" />
                   <Text style={styles.verifiedText}>Verified</Text>
@@ -166,13 +174,13 @@ export default function AccountScreen() {
             {/* Contact Info */}
             <View style={styles.contactRow}>
               <Mail size={14} color="#6B7280" />
-              <Text style={styles.contactText}>{user?.email || profileData?.user?.email || 'user@example.com'}</Text>
+              <Text style={styles.contactText}>{displayEmail}</Text>
             </View>
             
-            {user?.phone && (
+            {displayPhone && (
               <View style={styles.contactRow}>
                 <Phone size={14} color="#6B7280" />
-                <Text style={styles.contactText}>{user.phone}</Text>
+                <Text style={styles.contactText}>{displayPhone}</Text>
               </View>
             )}
             
@@ -206,7 +214,7 @@ export default function AccountScreen() {
             <View style={styles.statIconContainer}>
               <TrendingUp size={20} color="#10B981" />
             </View>
-            <Text style={styles.statValue}>{user?.reputationScore || profileData?.user?.reputationScore || 0}</Text>
+            <Text style={styles.statValue}>{displayReputation}</Text>
             <Text style={styles.statLabel}>Reputation</Text>
           </View>
         </View>
@@ -229,22 +237,20 @@ export default function AccountScreen() {
         )}
 
         {/* Membership Tier */}
-        {(user?.membershipTier || profileData?.user?.membershipTier) && (
-          <View style={styles.membershipSection}>
-            <View style={styles.membershipCard}>
-              <View style={styles.membershipIconContainer}>
-                <Award size={24} color="#F59E0B" />
-              </View>
-              <View style={styles.membershipInfo}>
-                <Text style={styles.membershipLabel}>Membership Tier</Text>
-                <Text style={styles.membershipValue}>
-                  {(user?.membershipTier || profileData?.user?.membershipTier || 'basic').toUpperCase()}
-                </Text>
-              </View>
-              <ChevronRight size={20} color="#9CA3AF" />
+        <View style={styles.membershipSection}>
+          <View style={styles.membershipCard}>
+            <View style={styles.membershipIconContainer}>
+              <Award size={24} color="#F59E0B" />
             </View>
+            <View style={styles.membershipInfo}>
+              <Text style={styles.membershipLabel}>Membership Tier</Text>
+              <Text style={styles.membershipValue}>
+                {displayTier.toUpperCase()}
+              </Text>
+            </View>
+            <ChevronRight size={20} color="#9CA3AF" />
           </View>
-        )}
+        </View>
 
         <View style={styles.menuSection}>
           {menuItems.map((item, index) => {
