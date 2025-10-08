@@ -9,13 +9,8 @@ if (Platform.OS !== 'web') {
 }
 
 // Supabase configuration
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://nsdqzhxlckctkncviehf.supabase.co';
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZHF6aHhsY2tjdGtuY3ZpZWhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3MTg4ODIsImV4cCI6MjA3NDI5NDg4Mn0.eTX1NneeL4pAqx0ejVVRwwqnxrh3ITmgvypvVHYKq-w';
-
-// Log configuration for debugging
-console.log('🔧 Supabase Configuration:');
-console.log('URL:', supabaseUrl);
-console.log('Anon Key:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'Not provided');
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_KEY || '';
 
 // Create Supabase client with proper configuration
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {

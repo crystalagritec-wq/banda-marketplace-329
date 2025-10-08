@@ -4,12 +4,8 @@ import superjson from "superjson";
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://nsdqzhxlckctkncviehf.supabase.co';
-const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZHF6aHhsY2tjdGtuY3ZpZWhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3MTg4ODIsImV4cCI6MjA3NDI5NDg4Mn0.eTX1NneeL4pAqx0ejVVRwwqnxrh3ITmgvypvVHYKq-w';
-
-console.log('🔧 Backend Supabase Configuration:');
-console.log('URL:', supabaseUrl);
-console.log('Key:', supabaseKey ? `${supabaseKey.substring(0, 20)}...` : 'Not provided');
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_KEY || '';
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
