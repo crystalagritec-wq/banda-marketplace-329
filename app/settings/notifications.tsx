@@ -1,9 +1,10 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Stack } from 'expo-router';
 import { ArrowLeft, Bell, Mail, Smartphone, Users, ShoppingBag, MessageSquare } from 'lucide-react-native';
 import { useStorage } from '@/providers/storage-provider';
+import { trpc } from '@/lib/trpc';
 
 interface NotificationSetting {
   id: string;
@@ -60,6 +61,11 @@ function NotificationRow({ setting }: { setting: NotificationSetting }) {
 export default function NotificationsScreen() {
   const router = useRouter();
   const { getItem, setItem } = useStorage();
+
+  const getPrefs = trpc.settings.getPreferences.useQuery(undefined, {
+    staleTime: 60_000,
+  });
+  const updatePrefs = trpc.settings.updatePreferences.useMutation();
   
   // Channel settings
   const [pushNotifications, setPushNotifications] = useState<boolean>(true);
@@ -73,6 +79,32 @@ export default function NotificationsScreen() {
   // Marketplace settings
   const [itemSold, setItemSold] = useState<boolean>(true);
   const [newBidOnItem, setNewBidOnItem] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!getPrefs.data?.success) return;
+    const p = getPrefs.data.preferences as any;
+    const notif = p?.notifications ?? {};
+    const push = notif.push ?? {};
+    const email = notif.email ?? {};
+    setPushNotifications(Boolean(push.enabled ?? true));
+    setEmailNotifications(Boolean(email.enabled ?? true));
+    // local fallbacks
+    (async () => {
+      try {
+        const inApp = await getItem('notification_in_app');
+        setInAppNotifications(inApp ? inApp === '1' : true);
+      } catch {}
+    })();
+  }, [getPrefs.data?.success, getPrefs.data?.preferences, getItem]);
+  
+  const syncPreferences = useCallback(async (partial: Record<string, unknown>) => {
+    try {
+      await updatePrefs.mutateAsync({ category: 'notifications', preferences: partial });
+    } catch (e) {
+      Alert.alert('Update failed', 'We could not save your notification setting.');
+      throw e;
+    }
+  }, [updatePrefs]);
   
   const saveSetting = useCallback(async (key: string, value: boolean) => {
     try {
@@ -83,15 +115,15 @@ export default function NotificationsScreen() {
     }
   }, [setItem]);
   
-  const handlePushToggle = useCallback((enabled: boolean) => {
+  const handlePushToggle = useCallback(async (enabled: boolean) => {
     setPushNotifications(enabled);
-    saveSetting('push', enabled);
-  }, [saveSetting]);
+    await syncPreferences({ push: { enabled } });
+  }, [syncPreferences]);
   
-  const handleEmailToggle = useCallback((enabled: boolean) => {
+  const handleEmailToggle = useCallback(async (enabled: boolean) => {
     setEmailNotifications(enabled);
-    saveSetting('email', enabled);
-  }, [saveSetting]);
+    await syncPreferences({ email: { enabled } });
+  }, [syncPreferences]);
   
   const handleInAppToggle = useCallback((enabled: boolean) => {
     setInAppNotifications(enabled);
@@ -177,7 +209,7 @@ export default function NotificationsScreen() {
   ];
   
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="notifications-screen">
       <Stack.Screen 
         options={{
           title: 'Notifications',
@@ -191,7 +223,14 @@ export default function NotificationsScreen() {
       
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.header}>Notifications</Text>
-        <Text style={styles.subheader}>Manage how you receive notifications from ShambaConnect.</Text>
+        <Text style={styles.subheader}>Manage how you receive notifications from Banda.</Text>
+        {getPrefs.isLoading ? (
+          <View style={{ paddingVertical: 24, alignItems: 'center' }}>
+            <ActivityIndicator color="#16A34A" />
+          </View>
+        ) : getPrefs.error ? (
+          <Text style={{ color: '#B91C1C', padding: 12 }}>Failed to load preferences.</Text>
+        ) : null}
         
         <NotificationSection 
           title="Channels" 
