@@ -325,8 +325,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingTop: 8,
-    paddingBottom: 24,
+    paddingBottom: 32,
   },
   header: {
     fontSize: 28,
