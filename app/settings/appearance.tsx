@@ -1,10 +1,11 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Stack } from 'expo-router';
-import { ArrowLeft, Sun, Moon, Monitor, Type, Layout, Wifi } from 'lucide-react-native';
+import { ArrowLeft, Sun, Moon, Monitor, Type, Wifi } from 'lucide-react-native';
 import { useStorage } from '@/providers/storage-provider';
 import { useTheme } from '@/providers/theme-provider';
+import { trpc } from '@/lib/trpc';
 
 interface ThemeOption {
   id: string;
@@ -95,18 +96,34 @@ export default function AppearanceScreen() {
   const router = useRouter();
   const { getItem, setItem } = useStorage();
   const theme = useTheme();
+
+  const getPrefs = trpc.settings.getPreferences.useQuery(undefined, { staleTime: 60_000 });
+  const updatePrefs = trpc.settings.updatePreferences.useMutation();
   
   const [selectedTheme, setSelectedTheme] = useState<string>(theme.mode);
   const [highContrastMode, setHighContrastMode] = useState<boolean>(theme.highContrast);
   const [lowDataMode, setLowDataMode] = useState<boolean>(theme.lowDataMode);
   const [fontSize, setFontSize] = useState<string>(theme.fontSize);
   const [layoutDensity, setLayoutDensity] = useState<string>(theme.layoutDensity);
+
+  useEffect(() => {
+    if (!getPrefs.data?.success) return;
+    const p: any = getPrefs.data.preferences ?? {};
+    const appearance = p.appearance ?? {};
+    const accessibility = p.accessibility ?? {};
+    if (appearance.theme && typeof appearance.theme === 'string') setSelectedTheme(appearance.theme);
+    if (appearance.fontSize && typeof appearance.fontSize === 'string') setFontSize(appearance.fontSize);
+    if (appearance.layoutDensity && typeof appearance.layoutDensity === 'string') setLayoutDensity(appearance.layoutDensity);
+    if (typeof accessibility.highContrast === 'boolean') setHighContrastMode(accessibility.highContrast);
+    if (typeof accessibility.lowDataMode === 'boolean') setLowDataMode(accessibility.lowDataMode);
+  }, [getPrefs.data?.success, getPrefs.data?.preferences]);
   
   const handleThemeSelect = useCallback(async (themeId: string) => {
     setSelectedTheme(themeId);
     try {
       await theme.setMode(themeId as any);
       await setItem('settings_theme', themeId);
+      await updatePrefs.mutateAsync({ category: 'appearance', preferences: { theme: themeId } });
       console.log('Theme preference saved:', themeId);
     } catch (error) {
       console.error('Failed to save theme preference:', error);
@@ -118,44 +135,52 @@ export default function AppearanceScreen() {
     try {
       await theme.setHighContrast(enabled);
       await setItem('settings_high_contrast', enabled ? '1' : '0');
+      await updatePrefs.mutateAsync({ category: 'accessibility', preferences: { highContrast: enabled } });
       console.log('High contrast mode:', enabled);
     } catch (error) {
       console.error('Failed to save high contrast preference:', error);
+      Alert.alert('Update failed', 'Could not update High Contrast preference.');
     }
-  }, [setItem, theme]);
+  }, [setItem, theme, updatePrefs]);
 
   const handleLowDataModeToggle = useCallback(async (enabled: boolean) => {
     setLowDataMode(enabled);
     try {
       await theme.setLowDataMode(enabled);
       await setItem('settings_low_data_mode', enabled ? '1' : '0');
+      await updatePrefs.mutateAsync({ category: 'accessibility', preferences: { lowDataMode: enabled } });
       console.log('Low data mode:', enabled);
     } catch (error) {
       console.error('Failed to save low data mode preference:', error);
+      Alert.alert('Update failed', 'Could not update Low Data Mode preference.');
     }
-  }, [setItem, theme]);
+  }, [setItem, theme, updatePrefs]);
   
   const handleFontSizeSelect = useCallback(async (size: string) => {
     setFontSize(size);
     try {
       await theme.setFontSize(size as any);
       await setItem('settings_font_size', size);
+      await updatePrefs.mutateAsync({ category: 'appearance', preferences: { fontSize: size } });
       console.log('Font size preference saved:', size);
     } catch (error) {
       console.error('Failed to save font size preference:', error);
+      Alert.alert('Update failed', 'Could not update Font Size preference.');
     }
-  }, [setItem, theme]);
+  }, [setItem, theme, updatePrefs]);
   
   const handleLayoutDensitySelect = useCallback(async (density: string) => {
     setLayoutDensity(density);
     try {
       await theme.setLayoutDensity(density as any);
       await setItem('settings_layout_density', density);
+      await updatePrefs.mutateAsync({ category: 'appearance', preferences: { layoutDensity: density } });
       console.log('Layout density preference saved:', density);
     } catch (error) {
       console.error('Failed to save layout density preference:', error);
+      Alert.alert('Update failed', 'Could not update Layout Density preference.');
     }
-  }, [setItem, theme]);
+  }, [setItem, theme, updatePrefs]);
   
   return (
     <View style={styles.container}>
@@ -173,6 +198,11 @@ export default function AppearanceScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.header}>Appearance</Text>
         <Text style={styles.subheader}>Customize the look and feel of the app to your preference.</Text>
+        {getPrefs.isLoading && (
+          <View style={{ paddingVertical: 12, alignItems: 'center' }}>
+            <ActivityIndicator color="#16A34A" />
+          </View>
+        )}
         
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Theme</Text>
