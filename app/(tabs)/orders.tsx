@@ -35,6 +35,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCart, type Order } from '@/providers/cart-provider';
+import { useOrders } from '@/providers/order-provider';
 import { useDisputes } from '@/providers/dispute-provider';
 import { supabase } from '@/lib/supabase';
 
@@ -236,13 +237,17 @@ export default function OrdersScreen() {
     return addr?.phone ?? '+254700000000';
   }, [addresses]);
 
+  const { refetchActive, isRefetching } = useOrders();
+
   const onRefresh = useCallback(async () => {
     console.log('OrdersScreen:onRefresh');
     setRefreshing(true);
-    setTimeout(() => {
+    try {
+      await refetchActive();
+    } finally {
       setRefreshing(false);
-    }, 1000);
-  }, []);
+    }
+  }, [refetchActive]);
 
   const handleViewDetails = useCallback((orderId: string) => {
     console.log('OrdersScreen:handleViewDetails', orderId);
@@ -554,7 +559,7 @@ export default function OrdersScreen() {
         <ScrollView
           style={styles.content}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          refreshControl={<RefreshControl refreshing={refreshing || isRefetching} onRefresh={onRefresh} />}
         >
           {filteredOrders.length > 0 ? (
             filteredOrders.map((order) => (
