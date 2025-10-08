@@ -161,6 +161,11 @@ import { updateDriverLocationProcedure } from "@/backend/trpc/routes/tracking/up
 import { addTipProcedure } from "@/backend/trpc/routes/tracking/add-tip";
 import { addDeliveryInstructionsProcedure } from "@/backend/trpc/routes/tracking/add-delivery-instructions";
 import { getETAProcedure } from "@/backend/trpc/routes/tracking/get-eta";
+import { getAddressesProcedure } from "@/backend/trpc/routes/addresses/get-addresses";
+import { addAddressProcedure } from "@/backend/trpc/routes/addresses/add-address";
+import { updateAddressProcedure } from "@/backend/trpc/routes/addresses/update-address";
+import { deleteAddressProcedure } from "@/backend/trpc/routes/addresses/delete-address";
+import { setDefaultAddressProcedure } from "@/backend/trpc/routes/addresses/set-default-address";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -396,6 +401,13 @@ export const appRouter = createTRPCRouter({
     addTip: addTipProcedure,
     addDeliveryInstructions: addDeliveryInstructionsProcedure,
     getETA: getETAProcedure,
+  }),
+  addresses: createTRPCRouter({
+    getAddresses: getAddressesProcedure,
+    addAddress: addAddressProcedure,
+    updateAddress: updateAddressProcedure,
+    deleteAddress: deleteAddressProcedure,
+    setDefaultAddress: setDefaultAddressProcedure,
   }),
 });
 

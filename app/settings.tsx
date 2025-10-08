@@ -121,7 +121,7 @@ export default function SettingsScreen() {
     { id: 'edit', title: 'Edit Profile', subtitle: 'Change your photo, name and bio', icon: User, onPress: () => router.push('/(tabs)/account' as any) },
     { id: 'security', title: 'Security', subtitle: 'Password and 2‑factor authentication', icon: Lock, onPress: () => router.push('/settings/security' as any) },
     { id: 'privacy', title: 'Privacy', subtitle: 'Control your data visibility', icon: Shield, onPress: () => Alert.alert('Privacy Settings', 'Privacy settings will be available in the next update.') },
-    { id: 'shipping', title: 'Shipping Addresses', subtitle: 'Manage your delivery locations', icon: MapPin, onPress: () => router.push('/settings/shipping' as any) },
+    { id: 'shipping', title: 'Delivery Addresses', subtitle: 'Manage your delivery locations', icon: MapPin, onPress: () => router.push('/address' as any) },
   ];
 
   const appItems: ListItem[] = [
