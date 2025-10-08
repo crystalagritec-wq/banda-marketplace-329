@@ -16,7 +16,6 @@ import {
   Repeat,
   Filter as FilterIcon,
   QrCode,
-  Download,
 } from 'lucide-react-native';
 import React, { useState, useCallback, useMemo } from 'react';
 import {
@@ -36,6 +35,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCart, type Order } from '@/providers/cart-provider';
 import { useOrders } from '@/providers/order-provider';
+import { type Product } from '@/constants/products';
 import { useDisputes } from '@/providers/dispute-provider';
 import { useAddresses, type UnifiedAddress } from '@/providers/address-provider';
 import { supabase } from '@/lib/supabase';
@@ -226,9 +226,10 @@ const OrderCard = ({
 export default function OrdersScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { orders, updateOrderStatus } = useCart();
+  const { updateOrderStatus } = useCart();
   const { addresses } = useAddresses();
   const { disputeStats, createDispute } = useDisputes();
+  const { activeOrders, refetchActive, isRefetching, lastRefresh } = useOrders();
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [selectedTab, setSelectedTab] = useState<'requests' | 'inTransit' | 'delivered' | 'cancelled' | 'all'>('all');
   const [query, setQuery] = useState<string>('');
@@ -239,7 +240,47 @@ export default function OrdersScreen() {
     return addr?.phone ?? '+254700000000';
   }, [addresses]);
 
-  const { refetchActive, isRefetching } = useOrders();
+  const orders = useMemo(() => {
+    return activeOrders.map((serverOrder): Order => ({
+      id: serverOrder.id,
+      items: (serverOrder.items || []).map((item) => ({
+        product: {
+          id: item.id || item.productId || '',
+          name: item.name || 'Unknown Product',
+          price: item.unit_price || 0,
+          image: item.image || 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400',
+          vendor: item.vendor || 'Unknown Vendor',
+          location: 'Kenya',
+          category: 'General',
+          rating: 4.5,
+          reviews: 0,
+          inStock: true,
+          description: '',
+          unit: 'kg',
+          coordinates: { lat: -1.2921, lng: 36.8219 },
+        } as Product,
+        quantity: item.quantity || 1,
+      })),
+      subtotal: (serverOrder.total || 0) - (serverOrder.delivery_fee || 0) - (serverOrder.service_fee || 0),
+      deliveryFee: serverOrder.delivery_fee || 0,
+      discount: 0,
+      total: serverOrder.total || 0,
+      address: {
+        name: 'Default Address',
+        address: 'Nairobi, Kenya',
+        city: 'Nairobi',
+        phone: defaultPhone,
+      },
+      paymentMethod: {
+        id: '1',
+        type: 'mpesa',
+        name: 'M-Pesa',
+        isDefault: true,
+      },
+      status: (serverOrder.status === 'in_transit' ? 'shipped' : serverOrder.status === 'placed' ? 'pending' : serverOrder.status) as Order['status'],
+      createdAt: serverOrder.createdAt instanceof Date ? serverOrder.createdAt : new Date(serverOrder.createdAt || Date.now()),
+    }));
+  }, [activeOrders, defaultPhone]);
 
   const onRefresh = useCallback(async () => {
     console.log('OrdersScreen:onRefresh');
@@ -368,37 +409,9 @@ export default function OrdersScreen() {
     );
   }, [orders, createDispute, router]);
 
-  const handleViewQR = useCallback(async (orderId: string) => {
-    console.log('OrdersScreen:handleViewQR', orderId);
-    try {
-      const { data, error } = await supabase
-        .rpc('fetch_order_details', {
-          order_id: orderId
-        });
-
-      if (error) {
-        throw error;
-      }
-
-      // Navigate to QR view or show QR modal
-      Alert.alert(
-        'Order QR Code',
-        'QR code for order verification',
-        [
-          { text: 'View QR', onPress: () => router.push({ pathname: '/order-qr' as any, params: { orderId } }) },
-          { text: 'Download', onPress: () => downloadOrderQR(orderId) },
-          { text: 'Cancel', style: 'cancel' }
-        ]
-      );
-    } catch (error) {
-      console.error('Error fetching order QR:', error);
-      Alert.alert('Error', 'Failed to load order QR code');
-    }
-  }, [router]);
-
   const downloadOrderQR = useCallback(async (orderId: string) => {
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .rpc('generate_order_qr', {
           order_id: orderId,
           format: 'png'
@@ -414,6 +427,35 @@ export default function OrdersScreen() {
       Alert.alert('Error', 'Failed to download QR code');
     }
   }, []);
+
+  const handleViewQR = useCallback(async (orderId: string) => {
+    console.log('OrdersScreen:handleViewQR', orderId);
+    try {
+      const { error } = await supabase
+        .rpc('fetch_order_details', {
+          order_id: orderId
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      Alert.alert(
+        'Order QR Code',
+        'QR code for order verification',
+        [
+          { text: 'View QR', onPress: () => router.push({ pathname: '/order-qr' as any, params: { orderId } }) },
+          { text: 'Download', onPress: () => downloadOrderQR(orderId) },
+          { text: 'Cancel', style: 'cancel' }
+        ]
+      );
+    } catch (error) {
+      console.error('Error fetching order QR:', error);
+      Alert.alert('Error', 'Failed to load order QR code');
+    }
+  }, [router, downloadOrderQR]);
+
+
 
   const statusCounts = useMemo(() => {
     const counts = { requests: 0, inTransit: 0, delivered: 0, cancelled: 0 };
@@ -453,7 +495,7 @@ export default function OrdersScreen() {
       });
     }
 
-    list = [...list].sort((a, b) => {
+    list = [...list].sort((a: Order, b: Order) => {
       if (sortBy === 'amount') return b.total - a.total;
       if (sortBy === 'oldest') return a.createdAt.getTime() - b.createdAt.getTime();
       return b.createdAt.getTime() - a.createdAt.getTime();
@@ -492,7 +534,10 @@ export default function OrdersScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]} testID="orders-screen">
       <LinearGradient colors={['#F5F5DC', '#FFFFFF']} style={styles.gradient}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>My Orders</Text>
+          <View>
+            <Text style={styles.headerTitle}>My Orders</Text>
+            <Text style={styles.lastUpdate}>Last updated: {lastRefresh.toLocaleTimeString()}</Text>
+          </View>
           <Text style={styles.orderCount}>{orders.length} orders</Text>
         </View>
 
@@ -656,6 +701,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '800',
     color: '#1F2937',
+  },
+  lastUpdate: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 4,
   },
   orderCount: {
     fontSize: 16,
