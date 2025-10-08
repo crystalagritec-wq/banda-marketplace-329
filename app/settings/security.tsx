@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Switch, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Switch, Alert, ActivityIndicator, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Stack } from 'expo-router';
 import { ArrowLeft, Key, Lock, Smartphone, Mail, MessageSquare, Shield, Eye, EyeOff, CheckCircle } from 'lucide-react-native';
@@ -193,74 +193,70 @@ export default function SecurityScreen() {
   const [newPhoneNumber, setNewPhoneNumber] = useState<string>('');
   const [otpCode, setOtpCode] = useState<string>('');
   const [otpSent, setOtpSent] = useState<boolean>(false);
+  const [showPhoneModal, setShowPhoneModal] = useState<boolean>(false);
+  const [showOtpModal, setShowOtpModal] = useState<boolean>(false);
 
   const handleChangePhoneNumber = useCallback(() => {
-    Alert.prompt(
-      'Change Phone Number',
-      'Enter your new phone number with country code (e.g., +254712345678)',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Send Code',
-          onPress: async (phone) => {
-            if (!phone || phone.length < 10) {
-              Alert.alert('Invalid Phone', 'Please enter a valid phone number');
-              return;
-            }
-            setIsChangingPhone(true);
-            setNewPhoneNumber(phone);
-            try {
-              const result = await changePhone.mutateAsync({ newPhone: phone });
-              if (result.requiresOtp) {
-                setOtpSent(true);
-                Alert.prompt(
-                  'Verify Phone Number',
-                  'Enter the verification code sent to your new phone number',
-                  [
-                    { text: 'Cancel', style: 'cancel', onPress: () => {
-                      setIsChangingPhone(false);
-                      setOtpSent(false);
-                    }},
-                    {
-                      text: 'Verify',
-                      onPress: async (otp) => {
-                        if (!otp || otp.length < 4) {
-                          Alert.alert('Invalid Code', 'Please enter the verification code');
-                          setIsChangingPhone(false);
-                          setOtpSent(false);
-                          return;
-                        }
-                        try {
-                          const verifyResult = await changePhone.mutateAsync({
-                            newPhone: phone,
-                            otp,
-                          });
-                          if (verifyResult.success) {
-                            Alert.alert('Success', 'Phone number updated successfully');
-                            setUserPhone(phone);
-                          }
-                        } catch (error: any) {
-                          Alert.alert('Error', error.message || 'Failed to verify code');
-                        } finally {
-                          setIsChangingPhone(false);
-                          setOtpSent(false);
-                        }
-                      },
-                    },
-                  ],
-                  'plain-text'
-                );
-              }
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to send verification code');
-              setIsChangingPhone(false);
-            }
-          },
-        },
-      ],
-      'plain-text'
-    );
-  }, [changePhone]);
+    setNewPhoneNumber('');
+    setShowPhoneModal(true);
+  }, []);
+
+  const handleSendCode = useCallback(async () => {
+    if (!newPhoneNumber || newPhoneNumber.length < 10) {
+      Alert.alert('Invalid Phone', 'Please enter a valid phone number');
+      return;
+    }
+    setIsChangingPhone(true);
+    try {
+      const result = await changePhone.mutateAsync({ newPhone: newPhoneNumber });
+      if (result.requiresOtp) {
+        setOtpSent(true);
+        setShowPhoneModal(false);
+        setOtpCode('');
+        setShowOtpModal(true);
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to send verification code');
+    } finally {
+      setIsChangingPhone(false);
+    }
+  }, [newPhoneNumber, changePhone]);
+
+  const handleVerifyOtp = useCallback(async () => {
+    if (!otpCode || otpCode.length < 4) {
+      Alert.alert('Invalid Code', 'Please enter the verification code');
+      return;
+    }
+    setIsChangingPhone(true);
+    try {
+      const verifyResult = await changePhone.mutateAsync({
+        newPhone: newPhoneNumber,
+        otp: otpCode,
+      });
+      if (verifyResult.success) {
+        Alert.alert('Success', 'Phone number updated successfully');
+        setUserPhone(newPhoneNumber);
+        setShowOtpModal(false);
+        setOtpSent(false);
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to verify code');
+    } finally {
+      setIsChangingPhone(false);
+    }
+  }, [otpCode, newPhoneNumber, changePhone]);
+
+  const handleCancelPhoneChange = useCallback(() => {
+    setShowPhoneModal(false);
+    setNewPhoneNumber('');
+  }, []);
+
+  const handleCancelOtpVerify = useCallback(() => {
+    setShowOtpModal(false);
+    setOtpCode('');
+    setOtpSent(false);
+    setIsChangingPhone(false);
+  }, []);
 
   const handleToggle2FA = useCallback(async (method: string) => {
     if (method === 'off') {
@@ -608,6 +604,95 @@ export default function SecurityScreen() {
           }} />
         </SecuritySection>
       </ScrollView>
+
+      <Modal
+        visible={showPhoneModal}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCancelPhoneChange}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Change Phone Number</Text>
+            <Text style={styles.modalDescription}>
+              Enter your new phone number with country code (e.g., +254712345678)
+            </Text>
+            <TextInput
+              style={styles.modalInput}
+              value={newPhoneNumber}
+              onChangeText={setNewPhoneNumber}
+              placeholder="+254712345678"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="phone-pad"
+              autoFocus
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={handleCancelPhoneChange}
+              >
+                <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonConfirm]}
+                onPress={handleSendCode}
+                disabled={isChangingPhone}
+              >
+                {isChangingPhone ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.modalButtonTextConfirm}>Send Code</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showOtpModal}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCancelOtpVerify}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Verify Phone Number</Text>
+            <Text style={styles.modalDescription}>
+              Enter the verification code sent to your new phone number
+            </Text>
+            <TextInput
+              style={styles.modalInput}
+              value={otpCode}
+              onChangeText={setOtpCode}
+              placeholder="Enter code"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="number-pad"
+              maxLength={6}
+              autoFocus
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={handleCancelOtpVerify}
+              >
+                <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonConfirm]}
+                onPress={handleVerifyOtp}
+                disabled={isChangingPhone}
+              >
+                {isChangingPhone ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.modalButtonTextConfirm}>Verify</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -863,6 +948,73 @@ const styles = StyleSheet.create({
   changeNumberText: {
     color: '#374151',
     fontSize: 14,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  modalInput: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#111827',
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+  },
+  modalButtonCancel: {
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+  },
+  modalButtonConfirm: {
+    backgroundColor: '#16A34A',
+  },
+  modalButtonTextCancel: {
+    color: '#374151',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalButtonTextConfirm: {
+    color: '#fff',
+    fontSize: 16,
     fontWeight: '600',
   },
 });
