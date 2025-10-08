@@ -245,21 +245,16 @@ class AuthService {
   async verifyOTP(identifier: string, otp: string, channel: 'sms' | 'whatsapp' | 'email'): Promise<AuthResult> {
     try {
       console.log(`🔐 Verifying OTP for ${channel}:`, identifier);
-      console.log('🔐 OTP received:', otp, 'Length:', otp?.length, 'Type:', typeof otp);
 
       // Validate OTP format
       if (!otp || otp.length !== 6 || !/^\d{6}$/.test(otp)) {
-        console.error('❌ OTP validation failed:', { otp, length: otp?.length, isDigits: /^\d{6}$/.test(otp || '') });
         return { success: false, error: 'OTP must be 6 digits.' };
       }
 
-      // Check for demo OTP codes first (case-insensitive, trimmed)
+      // Check for demo OTP codes first
       const demoOTPs = ['123456', '000000', '111111', '999999', '555555'];
-      const normalizedOTP = otp.trim();
-      console.log('🔍 Checking demo OTPs:', { normalizedOTP, demoOTPs, includes: demoOTPs.includes(normalizedOTP) });
-      
-      if (demoOTPs.includes(normalizedOTP)) {
-        console.log('✅ Demo OTP code accepted:', normalizedOTP, 'for identifier:', identifier);
+      if (demoOTPs.includes(otp)) {
+        console.log('✅ Demo OTP code accepted:', otp, 'for identifier:', identifier);
         
         // For demo mode, simulate successful verification
         try {
