@@ -156,6 +156,7 @@ import { getPreferencesProcedure } from "@/backend/trpc/routes/settings/get-pref
 import { updatePreferencesProcedure } from "@/backend/trpc/routes/settings/update-preferences";
 import { enable2FAProcedure } from "@/backend/trpc/routes/settings/enable-2fa";
 import { verify2FAProcedure } from "@/backend/trpc/routes/settings/verify-2fa";
+import { changePhoneProcedure } from "@/backend/trpc/routes/settings/change-phone";
 import { getLiveLocationProcedure } from "@/backend/trpc/routes/tracking/get-live-location";
 import { updateDriverLocationProcedure } from "@/backend/trpc/routes/tracking/update-driver-location";
 import { addTipProcedure } from "@/backend/trpc/routes/tracking/add-tip";
@@ -394,6 +395,7 @@ export const appRouter = createTRPCRouter({
     updatePreferences: updatePreferencesProcedure,
     enable2FA: enable2FAProcedure,
     verify2FA: verify2FAProcedure,
+    changePhone: changePhoneProcedure,
   }),
   tracking: createTRPCRouter({
     getLiveLocation: getLiveLocationProcedure,
