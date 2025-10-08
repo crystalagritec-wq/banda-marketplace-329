@@ -3,12 +3,8 @@ import { protectedProcedure } from '@/backend/trpc/create-context';
 export const fetchUserSessionProcedure = protectedProcedure
   .query(async ({ ctx }: { ctx: any }) => {
     const userId = ctx.user.id;
-    const userName = ctx.user.name || 'User';
-    const userEmail = ctx.user.email || 'user@example.com';
-    const userPhone = ctx.user.phone || '+254700000000';
-    const userRole = ctx.user.role || 'buyer';
 
-    console.log('📊 Fetching user session details:', { userId, userName, userEmail, userPhone });
+    console.log('📊 Fetching user session details:', { userId });
 
     try {
       // In production, fetch from Supabase with joins
@@ -23,24 +19,24 @@ export const fetchUserSessionProcedure = protectedProcedure
       //   .eq('user_id', userId)
       //   .single();
 
-      // Use actual user data from context
+      // Mock session data for demo
       const sessionData = {
         user: {
           id: userId,
-          fullName: userName,
-          email: userEmail,
-          phone: userPhone,
-          location: ctx.user.location || 'Nairobi, Kenya',
+          fullName: 'John Farmer',
+          email: 'john@example.com',
+          phone: '+254705256259',
+          location: 'Nairobi, Kenya',
           profilePictureUrl: null,
-          isVerified: ctx.user.verified || true,
+          isVerified: true,
           reputationScore: 88,
-          membershipTier: ctx.user.subscription_tier?.toLowerCase() || 'basic',
+          membershipTier: 'gold',
           kycStatus: 'verified',
           createdAt: '2024-01-15T10:30:00Z',
           lastLogin: new Date().toISOString(),
         },
         role: {
-          roleType: userRole,
+          roleType: 'vendor',
           tier: 'verified',
           verificationStatus: 'human_verified',
           itemLimit: 50,

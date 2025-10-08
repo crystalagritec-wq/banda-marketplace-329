@@ -19,6 +19,7 @@ import {
   ChevronRight,
   MessageCircle,
   Settings as SettingsIcon,
+  Activity,
 } from 'lucide-react-native';
 import { useAuth } from '@/providers/auth-provider';
 import { useStorage } from '@/providers/storage-provider';
@@ -119,7 +120,7 @@ export default function SettingsScreen() {
   const accountItems: ListItem[] = [
     { id: 'edit', title: 'Edit Profile', subtitle: 'Change your photo, name and bio', icon: User, onPress: () => router.push('/(tabs)/account' as any) },
     { id: 'security', title: 'Security', subtitle: 'Password and 2‑factor authentication', icon: Lock, onPress: () => router.push('/settings/security' as any) },
-    { id: 'privacy', title: 'Privacy', subtitle: 'Control your data visibility', icon: Shield, onPress: () => router.push('/settings/privacy' as any) },
+    { id: 'privacy', title: 'Privacy', subtitle: 'Control your data visibility', icon: Shield, onPress: () => Alert.alert('Privacy Settings', 'Privacy settings will be available in the next update.') },
     { id: 'shipping', title: 'Delivery Addresses', subtitle: 'Manage your delivery locations', icon: MapPin, onPress: () => router.push('/address' as any) },
   ];
 
@@ -149,6 +150,10 @@ export default function SettingsScreen() {
     { id: 'feedback', title: 'Submit Feedback', subtitle: 'Suggest a feature or report a bug', icon: SettingsIcon, onPress: () => router.push('/settings/feedback' as any) },
   ];
 
+  const systemItems: ListItem[] = [
+    { id: 'system-health', title: 'System Health Check', subtitle: 'Monitor AgriPay & TradeGuard status', icon: Activity, onPress: () => router.push('/system-test' as any) },
+  ];
+
   return (
     <View style={styles.container} testID="settings-screen">
       <ScrollView contentContainerStyle={styles.content}>
@@ -165,6 +170,10 @@ export default function SettingsScreen() {
 
         <Section title="Support & Feedback" description="Get help and share your thoughts with us.">
           {supportItems.map((it) => (<Row key={it.id} item={it} />))}
+        </Section>
+
+        <Section title="System" description="Monitor system health and performance.">
+          {systemItems.map((it) => (<Row key={it.id} item={it} />))}
         </Section>
 
         <Section title="About">

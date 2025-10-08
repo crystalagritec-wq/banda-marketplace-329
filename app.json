@@ -25,8 +25,7 @@
         ],
         "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera",
         "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to access your microphone",
-        "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos",
-        "NSFaceIDUsageDescription": "Allow $(PRODUCT_NAME) to use Face ID."
+        "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos"
       },
       "usesIcloudStorage": true
     },
@@ -46,9 +45,7 @@
         "CAMERA",
         "RECORD_AUDIO",
         "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "USE_BIOMETRIC",
-        "USE_FINGERPRINT"
+        "WRITE_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -88,12 +85,6 @@
         "expo-document-picker",
         {
           "iCloudContainerEnvironment": "Production"
-        }
-      ],
-      [
-        "expo-local-authentication",
-        {
-          "faceIDPermission": "Allow $(PRODUCT_NAME) to use Face ID."
         }
       ]
     ],
