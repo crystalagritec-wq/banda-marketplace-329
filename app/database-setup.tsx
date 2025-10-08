@@ -9,9 +9,11 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CheckCircle, XCircle, AlertCircle, RefreshCw, Database } from 'lucide-react-native';
+import { CheckCircle, XCircle, AlertCircle, RefreshCw, Database, Lock } from 'lucide-react-native';
 import { runDatabaseDiagnostics } from '@/utils/database-setup';
 import { testDatabaseConnection } from '@/lib/supabase';
+import { useRouter } from 'expo-router';
+import { useAuth } from '@/providers/auth-provider';
 
 interface DiagnosticResult {
   success: boolean;
@@ -19,8 +21,16 @@ interface DiagnosticResult {
   details?: string;
 }
 
+const ADMIN_EMAILS = [
+  'admin@banda.com',
+  'dev@banda.com',
+];
+
 export default function DatabaseSetupScreen() {
+  const router = useRouter();
+  const { user } = useAuth();
   const [isRunning, setIsRunning] = useState<boolean>(false);
+  const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
   const [results, setResults] = useState<{
     connection: DiagnosticResult | null;
     tables: DiagnosticResult | null;
@@ -31,8 +41,38 @@ export default function DatabaseSetupScreen() {
     testUser: null,
   });
 
-  // Run initial connection test on mount
   useEffect(() => {
+    const checkAuthorization = () => {
+      if (!user) {
+        console.log('🔒 Database setup: No user logged in');
+        setIsAuthorized(false);
+        return;
+      }
+
+      const userEmail = user.email?.toLowerCase() || '';
+      const isAdmin = ADMIN_EMAILS.some(email => userEmail === email.toLowerCase());
+      
+      if (!isAdmin) {
+        console.log('🔒 Database setup: Unauthorized access attempt by:', userEmail);
+        setIsAuthorized(false);
+        Alert.alert(
+          'Access Denied',
+          'This screen is only accessible to system administrators.',
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+        return;
+      }
+
+      console.log('✅ Database setup: Admin access granted');
+      setIsAuthorized(true);
+    };
+
+    checkAuthorization();
+  }, [user, router]);
+
+  useEffect(() => {
+    if (!isAuthorized) return;
+
     const quickTest = async () => {
       console.log('🔍 Running quick connection test...');
       const connectionResult = await testDatabaseConnection();
@@ -46,7 +86,7 @@ export default function DatabaseSetupScreen() {
       }));
     };
     quickTest();
-  }, []);
+  }, [isAuthorized]);
 
   const runDiagnostics = async () => {
     setIsRunning(true);
@@ -97,6 +137,26 @@ export default function DatabaseSetupScreen() {
       ]
     );
   };
+
+  if (!isAuthorized) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.unauthorizedContainer}>
+          <Lock size={64} color="#EF4444" />
+          <Text style={styles.unauthorizedTitle}>Access Restricted</Text>
+          <Text style={styles.unauthorizedText}>
+            This diagnostic tool is only available to system administrators.
+          </Text>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.backButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -315,5 +375,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1E40AF',
     lineHeight: 20,
+  },
+  unauthorizedContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  unauthorizedTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginTop: 24,
+    marginBottom: 12,
+  },
+  unauthorizedText: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  backButton: {
+    backgroundColor: '#3B82F6',
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+  },
+  backButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
