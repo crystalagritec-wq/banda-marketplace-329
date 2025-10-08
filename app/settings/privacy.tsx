@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Stack } from 'expo-router';
@@ -73,9 +73,11 @@ export default function PrivacyScreen() {
   const [shareDataWithPartners, setShareDataWithPartners] = useState<boolean>(false);
   const [activityStatus, setActivityStatus] = useState<boolean>(true);
   const [readReceipts, setReadReceipts] = useState<boolean>(true);
+  const hasLoadedRef = useRef<boolean>(false);
 
   useEffect(() => {
-    if (!getPrefs.data?.success) return;
+    if (!getPrefs.data?.success || hasLoadedRef.current) return;
+    
     const p = getPrefs.data.preferences as any;
     const privacy = p?.privacy ?? {};
     
@@ -86,15 +88,17 @@ export default function PrivacyScreen() {
     if (typeof privacy.allowMessagesFromStrangers === 'boolean') setAllowMessagesFromStrangers(privacy.allowMessagesFromStrangers);
     if (typeof privacy.shareDataWithPartners === 'boolean') setShareDataWithPartners(privacy.shareDataWithPartners);
     
-    (async () => {
+    const loadLocalSettings = async () => {
       try {
         const activity = await getItem('privacy_activity_status');
         const receipts = await getItem('privacy_read_receipts');
         if (activity !== null) setActivityStatus(activity === '1');
         if (receipts !== null) setReadReceipts(receipts === '1');
+        hasLoadedRef.current = true;
       } catch {}
-    })();
-  }, [getPrefs.data?.success, getPrefs.data?.preferences, getItem]);
+    };
+    loadLocalSettings();
+  }, [getPrefs.data?.success, getItem]);
   
   const syncPreferences = useCallback(async (partial: Record<string, unknown>) => {
     try {

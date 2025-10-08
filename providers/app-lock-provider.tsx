@@ -29,29 +29,29 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
   const [lockMethod, setLockMethodState] = useState<AppLockMethod>('none');
   const [biometricsEnabled, setBiometricsEnabledState] = useState<boolean>(false);
 
-  const loadSettings = useCallback(async () => {
-    try {
-      const method = await getItem('app_lock_method');
-      const biometrics = await getItem('app_lock_biometrics');
-      
-      if (method) {
-        setLockMethodState(method as AppLockMethod);
-        if (method !== 'none') {
-          setIsLocked(true);
-        }
-      }
-      
-      if (biometrics) {
-        setBiometricsEnabledState(biometrics === '1');
-      }
-    } catch (error) {
-      console.error('Failed to load app lock settings:', error);
-    }
-  }, [getItem]);
-
   useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const method = await getItem('app_lock_method');
+        const biometrics = await getItem('app_lock_biometrics');
+        
+        if (method) {
+          setLockMethodState(method as AppLockMethod);
+          if (method !== 'none') {
+            setIsLocked(true);
+          }
+        }
+        
+        if (biometrics) {
+          setBiometricsEnabledState(biometrics === '1');
+        }
+      } catch (error) {
+        console.error('Failed to load app lock settings:', error);
+      }
+    };
+    
     loadSettings();
-  }, [loadSettings]);
+  }, [getItem]);
 
   const setLockMethod = useCallback(async (method: AppLockMethod) => {
     try {

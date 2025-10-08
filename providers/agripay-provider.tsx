@@ -110,10 +110,10 @@ export const [AgriPayProvider, useAgriPay] = createContextHook(() => {
       }
     };
 
-    if (!wallet && user?.id) {
+    if (user?.id) {
       loadCachedWallet();
     }
-  }, [user?.id, wallet]);
+  }, [user?.id]);
 
   useEffect(() => {
     console.log('[AgriPayProvider] Wallet query state:', {
@@ -178,7 +178,7 @@ export const [AgriPayProvider, useAgriPay] = createContextHook(() => {
       };
       saveWalletSession();
     }
-  }, [wallet?.id, wallet?.balance, wallet?.reserve_balance, wallet?.status]);
+  }, [wallet]);
 
   useEffect(() => {
     if (!wallet?.id) return;
