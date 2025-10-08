@@ -81,8 +81,8 @@ export default function ProfileScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]} testID="profile-screen">
-      <ScrollView contentContainerStyle={styles.scroll} testID="profile-scroll">
+    <View style={styles.container} testID="profile-screen">
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingTop: insets.top }]} testID="profile-scroll">
         <View style={styles.headerWrap}>
           <ImageBackground
             source={{ uri: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=2000&auto=format&fit=crop' }}
@@ -260,7 +260,7 @@ function HighlightCard({ label, value, icon }: { label: string; value: string; i
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
-  scroll: { paddingBottom: 24 },
+  scroll: { flexGrow: 1, paddingBottom: 24 },
 
   headerWrap: { marginBottom: 16 },
   cover: { height: 140, backgroundColor: '#E5E7EB' },
