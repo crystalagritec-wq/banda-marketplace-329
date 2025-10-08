@@ -1,70 +1,123 @@
 import { protectedProcedure } from '@/backend/trpc/create-context';
+import { supabase } from '@/lib/supabase';
 
 export const fetchUserSessionProcedure = protectedProcedure
   .query(async ({ ctx }: { ctx: any }) => {
     const userId = ctx.user.id;
-    const userName = ctx.user.name || 'User';
-    const userEmail = ctx.user.email || 'user@example.com';
-    const userPhone = ctx.user.phone || '+254700000000';
-    const userRole = ctx.user.role || 'buyer';
 
-    console.log('📊 Fetching user session details:', { userId, userName, userEmail, userPhone });
+    console.log('📊 Fetching user session details for userId:', userId);
 
     try {
-      // In production, fetch from Supabase with joins
-      // const { data, error } = await supabase
-      //   .from('users')
-      //   .select(`
-      //     *,
-      //     user_roles(*),
-      //     subscriptions(*),
-      //     verification_requests(*)
-      //   `)
-      //   .eq('user_id', userId)
-      //   .single();
+      // Fetch actual user data from Supabase
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
 
-      // Use actual user data from context
+      if (userError) {
+        console.error('❌ Error fetching user from database:', userError);
+        // Fallback to context data if database fetch fails
+        const sessionData = {
+          user: {
+            id: userId,
+            fullName: ctx.user.name || 'User',
+            email: ctx.user.email || 'user@example.com',
+            phone: ctx.user.phone || '',
+            location: ctx.user.location || 'Nairobi, Kenya',
+            profilePictureUrl: ctx.user.avatar || null,
+            isVerified: ctx.user.kycStatus === 'verified' || false,
+            reputationScore: ctx.user.reputationScore || 0,
+            membershipTier: ctx.user.membershipTier || 'basic',
+            kycStatus: ctx.user.kycStatus || 'pending',
+            createdAt: new Date().toISOString(),
+            lastLogin: new Date().toISOString(),
+          },
+          role: {
+            roleType: ctx.user.role || 'buyer',
+            tier: ctx.user.tier || 'none',
+            verificationStatus: 'unverified',
+            itemLimit: 0,
+            isActive: true,
+          },
+          subscription: {
+            tier: 'none',
+            status: 'inactive',
+            startDate: null,
+            endDate: null,
+          },
+          stats: {
+            totalOrders: 0,
+            completedDeliveries: 0,
+            customerRating: 0,
+            totalEarnings: 0,
+            productsListed: 0,
+            servicesOffered: 0,
+          },
+          badges: [],
+          preferences: {
+            language: 'en',
+            currency: 'KES',
+            notifications: {
+              email: true,
+              sms: true,
+              push: true,
+            },
+          },
+        };
+
+        return {
+          success: true,
+          data: sessionData,
+        };
+      }
+
+      console.log('✅ User data fetched from database:', {
+        name: userData.full_name,
+        email: userData.email,
+        phone: userData.phone
+      });
+
+      // Build session data from database
       const sessionData = {
         user: {
-          id: userId,
-          fullName: userName,
-          email: userEmail,
-          phone: userPhone,
-          location: ctx.user.location || 'Nairobi, Kenya',
-          profilePictureUrl: null,
-          isVerified: ctx.user.verified || true,
-          reputationScore: 88,
-          membershipTier: ctx.user.subscription_tier?.toLowerCase() || 'basic',
-          kycStatus: 'verified',
-          createdAt: '2024-01-15T10:30:00Z',
-          lastLogin: new Date().toISOString(),
+          id: userData.user_id,
+          fullName: userData.full_name || 'User',
+          email: userData.email || 'user@example.com',
+          phone: userData.phone || '',
+          location: userData.location || 'Nairobi, Kenya',
+          profilePictureUrl: userData.photo_url || null,
+          isVerified: userData.kyc_status === 'verified',
+          reputationScore: userData.reputation_score || 0,
+          membershipTier: userData.tier === 'none' ? 'basic' : 
+                         userData.tier === 'verified' ? 'basic' :
+                         userData.tier === 'gold' ? 'premium' : 'elite',
+          kycStatus: userData.kyc_status || 'pending',
+          createdAt: userData.created_at || new Date().toISOString(),
+          lastLogin: userData.last_login || new Date().toISOString(),
         },
         role: {
-          roleType: userRole,
-          tier: 'verified',
-          verificationStatus: 'human_verified',
-          itemLimit: 50,
+          roleType: userData.user_role || 'buyer',
+          tier: userData.tier || 'none',
+          verificationStatus: userData.verification_status || 'unverified',
+          itemLimit: userData.item_limit || 0,
           isActive: true,
         },
         subscription: {
-          tier: 'gold',
-          status: 'active',
-          startDate: '2024-01-01T00:00:00Z',
-          endDate: '2024-12-31T23:59:59Z',
+          tier: userData.subscription_status || 'none',
+          status: userData.subscription_status === 'none' ? 'inactive' : 'active',
+          startDate: userData.created_at || null,
+          endDate: null,
         },
         stats: {
-          totalOrders: 47,
-          completedDeliveries: 89,
-          customerRating: 4.8,
-          totalEarnings: 156800,
-          productsListed: 24,
-          servicesOffered: 6,
+          totalOrders: 0,
+          completedDeliveries: 0,
+          customerRating: 0,
+          totalEarnings: 0,
+          productsListed: 0,
+          servicesOffered: 0,
         },
-        badges: [
-          { name: 'Top Seller', earnedAt: '2024-02-15T00:00:00Z' },
-          { name: 'Community Helper', earnedAt: '2024-03-01T00:00:00Z' },
-          { name: 'Early Adopter', earnedAt: '2024-01-15T00:00:00Z' },
-        ],
+        badges: [],
         preferences: {
           language: 'en',
           currency: 'KES',
@@ -76,7 +129,7 @@ export const fetchUserSessionProcedure = protectedProcedure
         },
       };
 
-      console.log('✅ Session data fetched successfully');
+      console.log('✅ Session data built successfully');
 
       return {
         success: true,

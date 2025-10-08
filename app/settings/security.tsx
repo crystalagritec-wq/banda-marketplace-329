@@ -623,7 +623,8 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 32,
+    paddingTop: 8,
+    paddingBottom: 24,
   },
   header: {
     fontSize: 28,

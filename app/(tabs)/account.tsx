@@ -158,6 +158,12 @@ export default function AccountScreen() {
 
   const menuItems = [
     {
+      icon: Award,
+      label: 'Rewards Hub',
+      route: '/rewards-hub',
+      color: '#F59E0B',
+    },
+    {
       icon: Wallet,
       label: 'Wallet',
       route: '/wallet',
@@ -220,8 +226,8 @@ export default function AccountScreen() {
   ];
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]} testID="account-screen">
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+    <View style={styles.container} testID="account-screen">
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Enhanced Profile Header with Gradient Background */}
         <LinearGradient
           colors={['#2D5016', '#4A7C59', '#F9FAFB']}
@@ -419,7 +425,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: 32,
   },
   headerGradient: {
     paddingBottom: 24,

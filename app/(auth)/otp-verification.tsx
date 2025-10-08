@@ -392,6 +392,7 @@ export default function OTPVerificationScreen() {
     try {
       setIsVerifying(true);
       console.log('🔐 Verifying OTP:', otpCode, 'for identifier:', identifier);
+      console.log('📋 Signup data:', { fullName: params.fullName, phone: params.whatsapp, country: params.country });
       
       // Use auth service to verify OTP
       const result = await authService.verifyOTP(identifier, otpCode, currentChannel);
@@ -417,6 +418,28 @@ export default function OTPVerificationScreen() {
       }
       
       console.log('✅ OTP verification successful');
+      
+      // If this is a signup and user needs to be created
+      if (mode === 'signup' && result.requiresProfile && params.fullName && params.whatsapp) {
+        console.log('👤 Creating new user account with full details...');
+        
+        const createResult = await createUser({
+          fullName: params.fullName,
+          email: identifier,
+          phone: params.whatsapp,
+          countryCode: params.country || 'KE',
+          termsAccepted: true,
+          providerType: 'phone'
+        });
+        
+        if (!createResult.success) {
+          console.error('❌ User creation failed:', createResult.error);
+          Alert.alert('Error', createResult.error || 'Failed to create account');
+          return;
+        }
+        
+        console.log('✅ User account created successfully');
+      }
       
       // Clear OTP inputs
       setOtp(['', '', '', '', '', '']);

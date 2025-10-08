@@ -146,10 +146,11 @@ export default function HomeScreen() {
   ];
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       <ScrollView 
         style={styles.content} 
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -546,9 +547,13 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  scrollContent: {
+    paddingBottom: 24,
+  },
   header: {
     backgroundColor: COLORS.surface,
     paddingHorizontal: 20,
+    paddingTop: 16,
     paddingBottom: 20,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
@@ -802,7 +807,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   bottomSpacing: {
-    height: 20,
+    height: 8,
   },
   // New styles for product sections
   sectionTitleRow: {
