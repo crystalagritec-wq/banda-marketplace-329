@@ -29,10 +29,6 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
   const [lockMethod, setLockMethodState] = useState<AppLockMethod>('none');
   const [biometricsEnabled, setBiometricsEnabledState] = useState<boolean>(false);
 
-  useEffect(() => {
-    loadSettings();
-  }, [loadSettings]);
-
   const loadSettings = useCallback(async () => {
     try {
       const method = await getItem('app_lock_method');
@@ -52,6 +48,10 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
       console.error('Failed to load app lock settings:', error);
     }
   }, [getItem]);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   const setLockMethod = useCallback(async (method: AppLockMethod) => {
     try {
