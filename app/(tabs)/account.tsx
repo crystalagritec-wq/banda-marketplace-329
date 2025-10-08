@@ -8,7 +8,10 @@ import {
   TouchableOpacity,
   Alert,
   Image,
+  ActivityIndicator,
+  Platform,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import {
   User as UserIcon,
   Settings,
@@ -30,7 +33,10 @@ import {
   Mail,
   Edit,
   TrendingUp,
+  Crown,
+  ShieldCheck,
 } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/providers/auth-provider';
 import { useLoyalty } from '@/providers/loyalty-provider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -38,14 +44,18 @@ import { trpc } from '@/lib/trpc';
 
 
 export default function AccountScreen() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateProfile } = useAuth();
   const { points, badges } = useLoyalty();
   const insets = useSafeAreaInsets();
   const [profileData, setProfileData] = useState<any>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const sessionQuery = trpc.profile.fetchSession.useQuery(undefined, {
     enabled: !!user,
   });
+
+  const uploadPhotoMutation = trpc.profile.uploadPhoto.useMutation();
+  const updateProfileMutation = trpc.profile.update.useMutation();
 
   useEffect(() => {
     if (sessionQuery.data?.success && sessionQuery.data.data) {
@@ -60,6 +70,7 @@ export default function AccountScreen() {
   const displayVerified = user?.kycStatus === 'verified' || profileData?.user?.isVerified;
   const displayReputation = user?.reputationScore || profileData?.user?.reputationScore || 0;
   const displayTier = user?.membershipTier || profileData?.user?.membershipTier || 'basic';
+  const displayRole = user?.role || 'buyer';
 
   const handleLogout = () => {
     Alert.alert(
@@ -76,7 +87,82 @@ export default function AccountScreen() {
     router.push('/profile' as any);
   };
 
+  const handleUploadPhoto = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Required', 'Please allow access to your photo library to upload a profile picture.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setUploadingPhoto(true);
+        const asset = result.assets[0];
+        
+        let base64Data = '';
+        if (Platform.OS === 'web') {
+          const response = await fetch(asset.uri);
+          const blob = await response.blob();
+          base64Data = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const base64 = (reader.result as string).split(',')[1];
+              resolve(base64);
+            };
+            reader.readAsDataURL(blob);
+          });
+        } else {
+          const response = await fetch(asset.uri);
+          const blob = await response.blob();
+          const reader = new FileReader();
+          base64Data = await new Promise<string>((resolve) => {
+            reader.onloadend = () => {
+              const base64 = (reader.result as string).split(',')[1];
+              resolve(base64);
+            };
+            reader.readAsDataURL(blob);
+          });
+        }
+
+        const uploadResult = await uploadPhotoMutation.mutateAsync({
+          photoBase64: base64Data,
+          mimeType: 'image/jpeg',
+        });
+
+        if (uploadResult.success && uploadResult.photoUrl) {
+          await updateProfile({ avatar: uploadResult.photoUrl });
+          
+          await updateProfileMutation.mutateAsync({
+            profilePictureUrl: uploadResult.photoUrl,
+          });
+          
+          Alert.alert('Success', 'Profile picture updated successfully!');
+          sessionQuery.refetch();
+        }
+      }
+    } catch (error) {
+      console.error('Photo upload error:', error);
+      Alert.alert('Error', 'Failed to upload photo. Please try again.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const menuItems = [
+    {
+      icon: Award,
+      label: 'Rewards Hub',
+      route: '/rewards-hub',
+      color: '#F59E0B',
+    },
     {
       icon: Wallet,
       label: 'Wallet',
@@ -140,83 +226,119 @@ export default function AccountScreen() {
   ];
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]} testID="account-screen">
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Enhanced Profile Header */}
-        <View style={styles.profileSection}>
-          <View style={styles.avatarContainer}>
-            {displayAvatar ? (
-              <Image
-                source={{ uri: displayAvatar }}
-                style={styles.avatarImage}
-              />
-            ) : (
-              <View style={styles.avatar}>
-                <UserIcon size={40} color="#2D5016" />
-              </View>
-            )}
-            <TouchableOpacity style={styles.cameraButton} onPress={handleEditProfile}>
-              <Camera size={16} color="white" />
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.userInfoContainer}>
-            <View style={styles.nameRow}>
-              <Text style={styles.userName}>{displayName}</Text>
-              {displayVerified && (
-                <View style={styles.verifiedBadge}>
-                  <Shield size={12} color="#10B981" />
-                  <Text style={styles.verifiedText}>Verified</Text>
+    <View style={styles.container} testID="account-screen">
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Enhanced Profile Header with Gradient Background */}
+        <LinearGradient
+          colors={['#2D5016', '#4A7C59', '#F9FAFB']}
+          style={styles.headerGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+        >
+          <View style={styles.profileSection}>
+            <View style={styles.avatarContainer}>
+              {displayAvatar ? (
+                <Image
+                  source={{ uri: displayAvatar }}
+                  style={styles.avatarImage}
+                />
+              ) : (
+                <View style={styles.avatar}>
+                  <UserIcon size={48} color="#2D5016" />
                 </View>
               )}
+              <TouchableOpacity 
+                style={styles.cameraButton} 
+                onPress={handleUploadPhoto}
+                disabled={uploadingPhoto}
+              >
+                {uploadingPhoto ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Camera size={18} color="white" />
+                )}
+              </TouchableOpacity>
             </View>
             
-            {/* Contact Info */}
-            <View style={styles.contactRow}>
-              <Mail size={14} color="#6B7280" />
-              <Text style={styles.contactText}>{displayEmail}</Text>
-            </View>
-            
-            {displayPhone && (
-              <View style={styles.contactRow}>
-                <Phone size={14} color="#6B7280" />
-                <Text style={styles.contactText}>{displayPhone}</Text>
+            <View style={styles.userInfoContainer}>
+              <View style={styles.nameRow}>
+                <Text style={styles.userName}>{displayName}</Text>
+                {displayVerified && (
+                  <View style={styles.verifiedBadge}>
+                    <ShieldCheck size={14} color="#10B981" />
+                  </View>
+                )}
               </View>
-            )}
-            
-            {/* Edit Profile Button */}
-            <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
-              <Edit size={14} color="#2D5016" />
-              <Text style={styles.editButtonText}>Edit Profile</Text>
-            </TouchableOpacity>
+              
+              {/* Role Badge */}
+              <View style={styles.roleBadge}>
+                <Text style={styles.roleText}>{displayRole.toUpperCase()}</Text>
+              </View>
+              
+              {/* Contact Info */}
+              <View style={styles.contactContainer}>
+                <View style={styles.contactRow}>
+                  <Mail size={14} color="#E5E7EB" />
+                  <Text style={styles.contactText}>{displayEmail}</Text>
+                </View>
+                
+                {displayPhone && (
+                  <View style={styles.contactRow}>
+                    <Phone size={14} color="#E5E7EB" />
+                    <Text style={styles.contactText}>{displayPhone}</Text>
+                  </View>
+                )}
+              </View>
+              
+              {/* Edit Profile Button */}
+              <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
+                <Edit size={14} color="#2D5016" />
+                <Text style={styles.editButtonText}>Edit Profile</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        </LinearGradient>
 
         {/* Stats Section */}
         <View style={styles.statsSection}>
-          <View style={styles.statCard}>
-            <View style={styles.statIconContainer}>
-              <Award size={20} color="#F59E0B" />
-            </View>
-            <Text style={styles.statValue}>{points || 0}</Text>
-            <Text style={styles.statLabel}>Loyalty Points</Text>
-          </View>
+          <TouchableOpacity style={styles.statCard} activeOpacity={0.7}>
+            <LinearGradient
+              colors={['#FEF3C7', '#FDE68A']}
+              style={styles.statGradient}
+            >
+              <View style={styles.statIconContainer}>
+                <Award size={24} color="#F59E0B" />
+              </View>
+              <Text style={styles.statValue}>{points || 0}</Text>
+              <Text style={styles.statLabel}>Loyalty Points</Text>
+            </LinearGradient>
+          </TouchableOpacity>
           
-          <View style={styles.statCard}>
-            <View style={styles.statIconContainer}>
-              <Star size={20} color="#3B82F6" />
-            </View>
-            <Text style={styles.statValue}>{badges?.length || 0}</Text>
-            <Text style={styles.statLabel}>Badges Earned</Text>
-          </View>
+          <TouchableOpacity style={styles.statCard} activeOpacity={0.7}>
+            <LinearGradient
+              colors={['#DBEAFE', '#BFDBFE']}
+              style={styles.statGradient}
+            >
+              <View style={styles.statIconContainer}>
+                <Star size={24} color="#3B82F6" />
+              </View>
+              <Text style={styles.statValue}>{badges?.length || 0}</Text>
+              <Text style={styles.statLabel}>Badges</Text>
+            </LinearGradient>
+          </TouchableOpacity>
           
-          <View style={styles.statCard}>
-            <View style={styles.statIconContainer}>
-              <TrendingUp size={20} color="#10B981" />
-            </View>
-            <Text style={styles.statValue}>{displayReputation}</Text>
-            <Text style={styles.statLabel}>Reputation</Text>
-          </View>
+          <TouchableOpacity style={styles.statCard} activeOpacity={0.7}>
+            <LinearGradient
+              colors={['#D1FAE5', '#A7F3D0']}
+              style={styles.statGradient}
+            >
+              <View style={styles.statIconContainer}>
+                <TrendingUp size={24} color="#10B981" />
+              </View>
+              <Text style={styles.statValue}>{displayReputation}</Text>
+              <Text style={styles.statLabel}>Reputation</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
 
         {/* Badges Display */}
@@ -237,10 +359,19 @@ export default function AccountScreen() {
         )}
 
         {/* Membership Tier */}
-        <View style={styles.membershipSection}>
-          <View style={styles.membershipCard}>
+        <TouchableOpacity 
+          style={styles.membershipSection}
+          onPress={() => router.push('/subscription' as any)}
+          activeOpacity={0.7}
+        >
+          <LinearGradient
+            colors={['#FEF3C7', '#FBBF24']}
+            style={styles.membershipCard}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
             <View style={styles.membershipIconContainer}>
-              <Award size={24} color="#F59E0B" />
+              <Crown size={28} color="#92400E" />
             </View>
             <View style={styles.membershipInfo}>
               <Text style={styles.membershipLabel}>Membership Tier</Text>
@@ -248,9 +379,9 @@ export default function AccountScreen() {
                 {displayTier.toUpperCase()}
               </Text>
             </View>
-            <ChevronRight size={20} color="#9CA3AF" />
-          </View>
-        </View>
+            <ChevronRight size={24} color="#92400E" />
+          </LinearGradient>
+        </TouchableOpacity>
 
         <View style={styles.menuSection}>
           {menuItems.map((item, index) => {
@@ -294,42 +425,56 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: 32,
+  },
+  headerGradient: {
+    paddingBottom: 24,
   },
   profileSection: {
     alignItems: 'center',
     paddingVertical: 32,
     paddingHorizontal: 20,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   avatarContainer: {
     position: 'relative',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#F3F4F6',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'white',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: 'white',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
   },
   avatarImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 4,
+    borderColor: 'white',
   },
   cameraButton: {
     position: 'absolute',
     bottom: 0,
     right: 0,
     backgroundColor: '#2D5016',
-    borderRadius: 16,
-    padding: 8,
+    borderRadius: 20,
+    padding: 10,
     borderWidth: 3,
     borderColor: 'white',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   userInfoContainer: {
     alignItems: 'center',
@@ -342,86 +487,99 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   userName: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: 'white',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   verifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
+    backgroundColor: 'rgba(16, 185, 129, 0.9)',
+    padding: 6,
+    borderRadius: 20,
   },
-  verifiedText: {
-    fontSize: 12,
-    color: '#10B981',
-    fontWeight: '600',
-    marginLeft: 4,
+  roleBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  roleText: {
+    fontSize: 11,
+    color: 'white',
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  contactContainer: {
+    gap: 6,
+    marginBottom: 16,
   },
   contactRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginTop: 4,
+    gap: 8,
   },
   contactText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: 'white',
+    opacity: 0.9,
   },
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginTop: 12,
-  },
-  editButtonText: {
-    fontSize: 14,
-    color: '#2D5016',
-    fontWeight: '600',
-  },
-  statsSection: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
+    gap: 8,
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 24,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  editButtonText: {
+    fontSize: 14,
+    color: '#2D5016',
+    fontWeight: '700',
+  },
+  statsSection: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 16,
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  statIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F9FAFB',
+  statGradient: {
+    padding: 16,
     alignItems: 'center',
-    justifyContent: 'center',
+  },
+  statIconContainer: {
     marginBottom: 8,
   },
   statValue: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#1F2937',
     marginBottom: 4,
   },
   statLabel: {
-    fontSize: 12,
-    color: '#6B7280',
+    fontSize: 11,
+    color: '#4B5563',
     textAlign: 'center',
+    fontWeight: '600',
   },
   badgesDisplaySection: {
     paddingHorizontal: 20,
@@ -471,36 +629,36 @@ const styles = StyleSheet.create({
   membershipCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    elevation: 2,
+    borderRadius: 16,
+    padding: 20,
+    elevation: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
   },
   membershipIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FEF3C7',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(146, 64, 14, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 16,
   },
   membershipInfo: {
     flex: 1,
   },
   membershipLabel: {
-    fontSize: 12,
-    color: '#6B7280',
+    fontSize: 13,
+    color: '#92400E',
     marginBottom: 4,
+    fontWeight: '600',
   },
   membershipValue: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#78350F',
   },
   menuSection: {
     paddingHorizontal: 20,

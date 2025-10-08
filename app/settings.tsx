@@ -151,7 +151,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.container} testID="settings-screen">
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.header}>Settings</Text>
         <Text style={styles.subheader}>Manage your account settings and preferences.</Text>
 
@@ -211,7 +211,7 @@ export function ErrorBoundary({ error }: { error: Error }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F3F4F6' },
-  content: { padding: 16, paddingBottom: 32 },
+  content: { padding: 16, paddingTop: 8, paddingBottom: 24 },
   header: { fontSize: 28, fontWeight: '800', color: '#111827', marginBottom: 6 },
   subheader: { fontSize: 14, color: '#6B7280', marginBottom: 12 },
   section: { marginBottom: 16 },
