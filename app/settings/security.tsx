@@ -188,9 +188,79 @@ export default function SecurityScreen() {
     }
   }, [currentPassword, newPassword, confirmPassword, passwordStrength]);
   
+  const changePhone = trpc.settings.changePhone.useMutation();
+  const [isChangingPhone, setIsChangingPhone] = useState<boolean>(false);
+  const [newPhoneNumber, setNewPhoneNumber] = useState<string>('');
+  const [otpCode, setOtpCode] = useState<string>('');
+  const [otpSent, setOtpSent] = useState<boolean>(false);
+
   const handleChangePhoneNumber = useCallback(() => {
-    Alert.alert('Change Phone Number', 'This feature will be available soon.');
-  }, []);
+    Alert.prompt(
+      'Change Phone Number',
+      'Enter your new phone number with country code (e.g., +254712345678)',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send Code',
+          onPress: async (phone) => {
+            if (!phone || phone.length < 10) {
+              Alert.alert('Invalid Phone', 'Please enter a valid phone number');
+              return;
+            }
+            setIsChangingPhone(true);
+            setNewPhoneNumber(phone);
+            try {
+              const result = await changePhone.mutateAsync({ newPhone: phone });
+              if (result.requiresOtp) {
+                setOtpSent(true);
+                Alert.prompt(
+                  'Verify Phone Number',
+                  'Enter the verification code sent to your new phone number',
+                  [
+                    { text: 'Cancel', style: 'cancel', onPress: () => {
+                      setIsChangingPhone(false);
+                      setOtpSent(false);
+                    }},
+                    {
+                      text: 'Verify',
+                      onPress: async (otp) => {
+                        if (!otp || otp.length < 4) {
+                          Alert.alert('Invalid Code', 'Please enter the verification code');
+                          setIsChangingPhone(false);
+                          setOtpSent(false);
+                          return;
+                        }
+                        try {
+                          const verifyResult = await changePhone.mutateAsync({
+                            newPhone: phone,
+                            otp,
+                          });
+                          if (verifyResult.success) {
+                            Alert.alert('Success', 'Phone number updated successfully');
+                            setUserPhone(phone);
+                          }
+                        } catch (error: any) {
+                          Alert.alert('Error', error.message || 'Failed to verify code');
+                        } finally {
+                          setIsChangingPhone(false);
+                          setOtpSent(false);
+                        }
+                      },
+                    },
+                  ],
+                  'plain-text'
+                );
+              }
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to send verification code');
+              setIsChangingPhone(false);
+            }
+          },
+        },
+      ],
+      'plain-text'
+    );
+  }, [changePhone]);
 
   const handleToggle2FA = useCallback(async (method: string) => {
     if (method === 'off') {
@@ -406,7 +476,10 @@ export default function SecurityScreen() {
             icon: Key,
             type: 'radio',
             value: lockMethod === 'pin',
-            onPress: () => setLockMethod('pin')
+            onPress: () => {
+              setLockMethod('pin');
+              router.push('/app-lock-setup?method=pin');
+            }
           }} />
           
           <SecurityRow option={{
@@ -415,7 +488,10 @@ export default function SecurityScreen() {
             icon: Shield,
             type: 'radio',
             value: lockMethod === 'pattern',
-            onPress: () => setLockMethod('pattern')
+            onPress: () => {
+              setLockMethod('pattern');
+              router.push('/app-lock-setup?method=pattern');
+            }
           }} />
           
           <View style={styles.divider} />

@@ -20,6 +20,7 @@ import { ServiceInboardingProvider } from "@/providers/service-inboarding-provid
 import { AgriPayProvider } from "@/providers/agripay-provider";
 import { OrderProvider } from "@/providers/order-provider";
 import { I18nProvider } from "@/providers/i18n-provider";
+import { AppLockProvider } from "@/providers/app-lock-provider";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { useDeepLinking } from "@/hooks/useDeepLinking";
@@ -84,6 +85,18 @@ function RootLayoutNav() {
       <Stack.Screen name="inboarding/service-payment" options={{ headerShown: false }} />
       <Stack.Screen name="inboarding/service-summary" options={{ headerShown: false }} />
       <Stack.Screen name="service-provider-dashboard" options={{ headerShown: false }} />
+      <Stack.Screen name="settings/security" options={{ headerShown: false }} />
+      <Stack.Screen name="settings/privacy" options={{ headerShown: false }} />
+      <Stack.Screen name="settings/appearance" options={{ headerShown: false }} />
+      <Stack.Screen name="settings/language" options={{ headerShown: false }} />
+      <Stack.Screen name="settings/notifications" options={{ headerShown: false }} />
+      <Stack.Screen name="settings/help" options={{ headerShown: false }} />
+      <Stack.Screen name="settings/feedback" options={{ headerShown: false }} />
+      <Stack.Screen name="settings/legal" options={{ headerShown: false }} />
+      <Stack.Screen name="settings/delete-account" options={{ headerShown: false }} />
+      <Stack.Screen name="app-lock-setup" options={{ headerShown: false }} />
+      <Stack.Screen name="wallet-create-pin" options={{ headerShown: false }} />
+      <Stack.Screen name="wallet-onboarding" options={{ headerShown: false }} />
     </Stack>
   );
 }
@@ -113,6 +126,7 @@ export default function RootLayout() {
               <I18nProvider>
                 <ThemeProvider>
                 <AuthProvider>
+                  <AppLockProvider>
                   <AgriPayProvider>
                     <OnboardingProvider>
                       <ServiceInboardingProvider>
@@ -138,6 +152,7 @@ export default function RootLayout() {
                       </ServiceInboardingProvider>
                     </OnboardingProvider>
                   </AgriPayProvider>
+                  </AppLockProvider>
                 </AuthProvider>
                 </ThemeProvider>
               </I18nProvider>
