@@ -891,20 +891,19 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   termsBox: {
-    height: 280,
+    height: 320,
     marginBottom: 20,
     borderWidth: 1,
     borderColor: '#D1D5DB',
     borderRadius: 12,
     backgroundColor: '#FAFAFA',
-    overflow: 'hidden',
   },
   termsScrollContainer: {
-    flex: 1,
-    paddingRight: 4,
+    maxHeight: 320,
   },
   termsContainer: {
     padding: 16,
+    paddingBottom: 24,
   },
   termsTitle: {
     fontSize: 16,
