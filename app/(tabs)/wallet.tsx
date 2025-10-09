@@ -29,7 +29,7 @@ import { useAuth } from '@/providers/auth-provider';
 import { useAgriPay } from '@/providers/agripay-provider';
 import { router } from 'expo-router';
 import { trpc } from '@/lib/trpc';
-
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Transaction {
   id: string;
@@ -55,7 +55,7 @@ interface Transaction {
 
 
 export default function WalletScreen() {
-
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const agriPayContext = useAgriPay();
   
@@ -283,7 +283,7 @@ export default function WalletScreen() {
 
   if (walletLoading && !wallet) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]} testID="wallet-loading-state">
+      <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]} testID="wallet-loading-state">
         <ActivityIndicator size="large" color="#2D5016" />
         <Text style={{ marginTop: 16, color: '#666', fontSize: 16 }}>Loading wallet...</Text>
       </View>
@@ -292,7 +292,7 @@ export default function WalletScreen() {
 
   if (!wallet) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 }]} testID="wallet-missing-state">
+      <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 }]} testID="wallet-missing-state">
         <Text style={{ color: '#2D5016', fontSize: 18, fontWeight: '700', textAlign: 'center' }}>No wallet found</Text>
         <Text style={{ color: '#666', marginTop: 8, textAlign: 'center' }}>We&apos;ll take you to set it up.</Text>
         <TouchableOpacity onPress={() => router.replace('/wallet-welcome' as any)} style={{ marginTop: 16, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#2D5016', borderRadius: 8 }} testID="go-wallet-welcome">
@@ -303,7 +303,7 @@ export default function WalletScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <LinearGradient colors={['#F5F5DC', '#FFFFFF']} style={styles.gradient}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.header}>

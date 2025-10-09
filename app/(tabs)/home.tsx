@@ -9,7 +9,7 @@ import {
   useWindowDimensions
 } from 'react-native';
 import { useRouter } from 'expo-router';
-
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { 
   ShoppingBag, 
   TrendingUp, 
@@ -47,6 +47,7 @@ const COLORS = {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { addToCart } = useCart();
   const [greeting, setGreeting] = useState('');

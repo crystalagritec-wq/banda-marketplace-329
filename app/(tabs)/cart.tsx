@@ -27,7 +27,7 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCart } from '@/providers/cart-provider';
 import Colors from '@/constants/colors';
 import { trpc } from '@/lib/trpc';
@@ -45,7 +45,7 @@ function formatPrice(amount: number) {
 
 export default function CartScreen() {
   const router = useRouter();
-
+  const insets = useSafeAreaInsets();
   const { cartItems, cartSummary, groupedBySeller, updateQuantity, removeFromCart } = useCart();
   const [promoCode, setPromoCode] = useState<string>('');
   const [promoApplied, setPromoApplied] = useState<boolean>(false);
@@ -169,7 +169,7 @@ export default function CartScreen() {
     return (
       <View style={styles.container}>
         <LinearGradient colors={[Colors.primary.cream, '#FFFFFF']} style={styles.gradient}>
-          <View style={styles.header}>
+          <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
             <Text style={styles.headerTitle}>Your Cart</Text>
             <View style={styles.headerBadge}>
               <ShoppingCart size={20} color={Colors.primary.green} />
@@ -203,7 +203,7 @@ export default function CartScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient colors={[Colors.primary.cream, '#FFFFFF']} style={styles.gradient}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <View style={styles.headerLeft}>
             <Text style={styles.headerTitle}>Your Cart</Text>
             <View style={styles.headerSubtitle}>
@@ -476,8 +476,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 16,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },

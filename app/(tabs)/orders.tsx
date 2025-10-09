@@ -32,7 +32,7 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCart, type Order } from '@/providers/cart-provider';
 import { useOrders } from '@/providers/order-provider';
 import { type Product } from '@/constants/products';
@@ -225,7 +225,7 @@ const OrderCard = ({
 
 export default function OrdersScreen() {
   const router = useRouter();
-
+  const insets = useSafeAreaInsets();
   const { updateOrderStatus } = useCart();
   const { addresses } = useAddresses();
   const { disputeStats, createDispute } = useDisputes();
@@ -536,7 +536,7 @@ export default function OrdersScreen() {
   }, [router]);
 
   return (
-    <View style={styles.container} testID="orders-screen">
+    <View style={[styles.container, { paddingTop: insets.top }]} testID="orders-screen">
       <LinearGradient colors={['#F5F5DC', '#FFFFFF']} style={styles.gradient}>
         <View style={styles.header}>
           <View>
@@ -698,8 +698,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 16,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },

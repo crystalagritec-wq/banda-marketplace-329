@@ -9,7 +9,7 @@ import {
   Image,
   FlatList,
 } from 'react-native';
-
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   MessageCircle,
   Users,
@@ -184,7 +184,7 @@ const experts: Expert[] = [
 export default function CommunityScreen() {
   const [activeTab, setActiveTab] = useState<'forums' | 'discussions' | 'experts'>('forums');
   const [searchQuery, setSearchQuery] = useState<string>('');
-
+  const insets = useSafeAreaInsets();
 
   const renderForumCategory = ({ item }: { item: ForumCategory }) => (
     <TouchableOpacity style={styles.categoryCard} testID={`category-${item.id}`}>
@@ -288,7 +288,7 @@ export default function CommunityScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.headerTitle}>Community</Text>
         <TouchableOpacity style={styles.newPostButton} testID="new-post-button">
           <Plus size={20} color={WHITE} />
@@ -410,8 +410,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 16,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E5',
   },
