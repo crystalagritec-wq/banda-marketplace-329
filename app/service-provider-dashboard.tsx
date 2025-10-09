@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { 
@@ -6,25 +6,28 @@ import {
   Settings, Bell, Award, Users, Calendar 
 } from 'lucide-react-native';
 import { useServiceInboarding } from '@/providers/service-inboarding-provider';
+import { useServiceProviderDashboard } from '@/hooks/useServiceProviderDashboard';
 import { useState } from 'react';
 
 export default function ServiceProviderDashboard() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { state } = useServiceInboarding();
+  const { stats: dashboardStats, recentRequests, isLoading, refetch } = useServiceProviderDashboard();
   
   const [refreshing, setRefreshing] = useState(false);
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1500);
+    await refetch();
+    setRefreshing(false);
   };
 
   const stats = [
-    { label: 'Active Requests', value: '0', icon: Briefcase, color: '#007AFF' },
-    { label: 'Completed', value: '0', icon: Clock, color: '#34C759' },
-    { label: 'Earnings', value: 'KES 0', icon: DollarSign, color: '#FF9500' },
-    { label: 'Rating', value: '0.0', icon: Star, color: '#FFD700' },
+    { label: 'Active Requests', value: dashboardStats.activeRequests.toString(), icon: Briefcase, color: '#007AFF' },
+    { label: 'Completed', value: dashboardStats.completedRequests.toString(), icon: Clock, color: '#34C759' },
+    { label: 'Earnings', value: `KES ${dashboardStats.totalEarnings.toLocaleString()}`, icon: DollarSign, color: '#FF9500' },
+    { label: 'Rating', value: dashboardStats.rating.toFixed(1), icon: Star, color: '#FFD700' },
   ];
 
   return (
@@ -50,6 +53,12 @@ export default function ServiceProviderDashboard() {
         </View>
       </View>
 
+      {isLoading && !refreshing ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>Loading dashboard...</Text>
+        </View>
+      ) : (
       <ScrollView 
         style={styles.scrollView} 
         contentContainerStyle={styles.scrollContent}
@@ -189,7 +198,38 @@ export default function ServiceProviderDashboard() {
             )}
           </View>
         </View>
+
+        {recentRequests.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recent Requests</Text>
+              <TouchableOpacity>
+                <Text style={styles.seeAllText}>View All</Text>
+              </TouchableOpacity>
+            </View>
+            {recentRequests.slice(0, 3).map((request: any) => (
+              <View key={request.id} style={styles.requestCard}>
+                <View style={styles.requestHeader}>
+                  <Text style={styles.requestCategory}>{request.service_category}</Text>
+                  <View style={[
+                    styles.requestStatusBadge,
+                    request.status === 'pending' && styles.statusPending,
+                    request.status === 'accepted' && styles.statusAccepted,
+                    request.status === 'completed' && styles.statusCompleted,
+                  ]}>
+                    <Text style={styles.requestStatusText}>{request.status}</Text>
+                  </View>
+                </View>
+                <Text style={styles.requestDescription} numberOfLines={2}>
+                  {request.description}
+                </Text>
+                <Text style={styles.requestLocation}>{request.location}</Text>
+              </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
+      )}
     </View>
   );
 }
@@ -446,5 +486,67 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600' as const,
     color: '#1C1C1E',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    padding: 40,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#8E8E93',
+  },
+  requestCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  requestHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    marginBottom: 8,
+  },
+  requestCategory: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#1C1C1E',
+    textTransform: 'capitalize' as const,
+  },
+  requestStatusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: '#E5E7EB',
+  },
+  statusPending: {
+    backgroundColor: '#FF950015',
+  },
+  statusAccepted: {
+    backgroundColor: '#007AFF15',
+  },
+  statusCompleted: {
+    backgroundColor: '#34C75915',
+  },
+  requestStatusText: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#1C1C1E',
+    textTransform: 'capitalize' as const,
+  },
+  requestDescription: {
+    fontSize: 14,
+    color: '#3C3C43',
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  requestLocation: {
+    fontSize: 13,
+    color: '#8E8E93',
   },
 });
