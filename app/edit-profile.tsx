@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -33,16 +33,27 @@ interface EditProfileForm {
 }
 
 export default function EditProfileScreen() {
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
-  const [formData, setFormData] = useState<EditProfileForm>({
-    fullName: (user as any)?.name ?? '',
-    email: user?.email ?? '',
-    phone: (user as any)?.phone ?? '',
-    location: (user as any)?.location ?? '',
-    bio: (user as any)?.bio ?? '',
+  const sessionQuery = trpc.profile.fetchSession.useQuery(undefined, {
+    retry: 1,
+    staleTime: 30_000,
   });
+
+  const initialForm: EditProfileForm = useMemo(() => ({
+    fullName: (sessionQuery.data?.data?.user?.fullName as string) ?? (user?.name ?? ''),
+    email: (sessionQuery.data?.data?.user?.email as string) ?? (user?.email ?? ''),
+    phone: (sessionQuery.data?.data?.user?.phone as string) ?? ((user as any)?.phone ?? ''),
+    location: (sessionQuery.data?.data?.user?.location as string) ?? ((user as any)?.location ?? ''),
+    bio: (sessionQuery.data?.data?.user as any)?.bio ?? '',
+  }), [sessionQuery.data?.data?.user, user?.email, user?.name]);
+
+  const [formData, setFormData] = useState<EditProfileForm>(initialForm);
+
+  useEffect(() => {
+    setFormData(initialForm);
+  }, [initialForm]);
 
   const updateProfileMutation = trpc.profile.update.useMutation();
 
@@ -57,13 +68,29 @@ export default function EditProfileScreen() {
     try {
       setIsSaving(true);
 
-      await updateProfileMutation.mutateAsync({
+      const res = await updateProfileMutation.mutateAsync({
         fullName: formData.fullName,
         email: formData.email,
         phone: formData.phone,
         location: formData.location,
         bio: formData.bio,
       });
+
+      try {
+        if (res?.profile) {
+          await updateProfile({
+            name: res.profile.fullName ?? user?.name ?? '',
+            email: res.profile.email ?? user?.email ?? '',
+            phone: res.profile.phone ?? (user as any)?.phone ?? '',
+            location: res.profile.location ?? (user as any)?.location,
+            avatar: res.profile.profilePictureUrl ?? user?.avatar,
+          } as any);
+        }
+      } catch (e) {
+        console.log('[EditProfile] Failed to sync auth user after update', e);
+      }
+
+      await sessionQuery.refetch();
 
       Alert.alert('Success', 'Profile updated successfully', [
         { text: 'OK', onPress: () => router.back() },
@@ -104,7 +131,7 @@ export default function EditProfileScreen() {
           <View style={styles.photoSection}>
             <View style={styles.photoContainer}>
               <Image
-                source={{ uri: (user as any)?.avatar ?? DEFAULT_AVATAR }}
+                source={{ uri: ((sessionQuery.data?.data?.user?.profilePictureUrl as string) ?? (user?.avatar ?? DEFAULT_AVATAR)) }}
                 style={styles.photo}
                 contentFit="cover"
                 transition={300}
