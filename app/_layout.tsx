@@ -47,56 +47,56 @@ function RootLayoutNav() {
   useDeepLinking();
   
   return (
-    <Stack screenOptions={{ headerBackTitle: "Back" }}>
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
-      <Stack.Screen name="checkout" options={{ presentation: "modal", headerShown: false }} />
-      <Stack.Screen name="payment-processing" options={{ presentation: "modal", headerShown: false }} />
-      <Stack.Screen name="order-success" options={{ presentation: "modal", headerShown: false }} />
-      <Stack.Screen name="wallet-welcome" options={{ headerShown: false }} />
-      <Stack.Screen name="favorites" options={{ headerShown: false }} />
-      <Stack.Screen name="settings" options={{ headerShown: false }} />
-      <Stack.Screen name="my-products" options={{ headerShown: false }} />
-      <Stack.Screen name="insights" options={{ headerShown: false }} />
-      <Stack.Screen name="notifications" options={{ headerShown: false }} />
-      <Stack.Screen name="address" options={{ headerShown: false }} />
-      <Stack.Screen name="disputes" options={{ headerShown: false }} />
-      <Stack.Screen name="dispute/[disputeId]" options={{ headerShown: false }} />
-      <Stack.Screen name="order-details" options={{ headerShown: false }} />
-      <Stack.Screen name="order-tracking" options={{ headerShown: false }} />
-      <Stack.Screen name="order-qr" options={{ headerShown: false }} />
-      <Stack.Screen name="qr-scanner" options={{ headerShown: false }} />
-      <Stack.Screen name="onboarding/welcome" options={{ headerShown: false }} />
-      <Stack.Screen name="onboarding/intro-tour" options={{ headerShown: false }} />
-      <Stack.Screen name="onboarding/role-selection" options={{ headerShown: false }} />
-      <Stack.Screen name="onboarding/shop/profile" options={{ headerShown: false }} />
-      <Stack.Screen name="onboarding/shop/products" options={{ headerShown: false }} />
-      <Stack.Screen name="onboarding/shop/wallet" options={{ headerShown: false }} />
-      <Stack.Screen name="onboarding/shop/tutorial" options={{ headerShown: false }} />
-      <Stack.Screen name="dashboard" options={{ headerShown: false }} />
-      <Stack.Screen name="inboarding/service-role" options={{ headerShown: false }} />
-      <Stack.Screen name="inboarding/service-details" options={{ headerShown: false }} />
-      <Stack.Screen name="inboarding/service-types" options={{ headerShown: false }} />
-      <Stack.Screen name="inboarding/service-verification" options={{ headerShown: false }} />
-      <Stack.Screen name="inboarding/service-equipment" options={{ headerShown: false }} />
-      <Stack.Screen name="inboarding/service-availability" options={{ headerShown: false }} />
-      <Stack.Screen name="inboarding/service-payment" options={{ headerShown: false }} />
-      <Stack.Screen name="inboarding/service-summary" options={{ headerShown: false }} />
-      <Stack.Screen name="service-provider-dashboard" options={{ headerShown: false }} />
-      <Stack.Screen name="settings/security" options={{ headerShown: false }} />
-      <Stack.Screen name="settings/privacy" options={{ headerShown: false }} />
-      <Stack.Screen name="settings/appearance" options={{ headerShown: false }} />
-      <Stack.Screen name="settings/language" options={{ headerShown: false }} />
-      <Stack.Screen name="settings/notifications" options={{ headerShown: false }} />
-      <Stack.Screen name="settings/help" options={{ headerShown: false }} />
-      <Stack.Screen name="settings/feedback" options={{ headerShown: false }} />
-      <Stack.Screen name="settings/legal" options={{ headerShown: false }} />
-      <Stack.Screen name="settings/delete-account" options={{ headerShown: false }} />
-      <Stack.Screen name="app-lock-setup" options={{ headerShown: false }} />
-      <Stack.Screen name="wallet-create-pin" options={{ headerShown: false }} />
-      <Stack.Screen name="wallet-onboarding" options={{ headerShown: false }} />
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="auth/callback" />
+      <Stack.Screen name="checkout" options={{ presentation: "modal" }} />
+      <Stack.Screen name="payment-processing" options={{ presentation: "modal" }} />
+      <Stack.Screen name="order-success" options={{ presentation: "modal" }} />
+      <Stack.Screen name="wallet-welcome" />
+      <Stack.Screen name="favorites" />
+      <Stack.Screen name="settings" />
+      <Stack.Screen name="my-products" />
+      <Stack.Screen name="insights" />
+      <Stack.Screen name="notifications" />
+      <Stack.Screen name="address" />
+      <Stack.Screen name="disputes" />
+      <Stack.Screen name="dispute/[disputeId]" />
+      <Stack.Screen name="order-details" />
+      <Stack.Screen name="order-tracking" />
+      <Stack.Screen name="order-qr" />
+      <Stack.Screen name="qr-scanner" />
+      <Stack.Screen name="onboarding/welcome" />
+      <Stack.Screen name="onboarding/intro-tour" />
+      <Stack.Screen name="onboarding/role-selection" />
+      <Stack.Screen name="onboarding/shop/profile" />
+      <Stack.Screen name="onboarding/shop/products" />
+      <Stack.Screen name="onboarding/shop/wallet" />
+      <Stack.Screen name="onboarding/shop/tutorial" />
+      <Stack.Screen name="dashboard" />
+      <Stack.Screen name="inboarding/service-role" />
+      <Stack.Screen name="inboarding/service-details" />
+      <Stack.Screen name="inboarding/service-types" />
+      <Stack.Screen name="inboarding/service-verification" />
+      <Stack.Screen name="inboarding/service-equipment" />
+      <Stack.Screen name="inboarding/service-availability" />
+      <Stack.Screen name="inboarding/service-payment" />
+      <Stack.Screen name="inboarding/service-summary" />
+      <Stack.Screen name="service-provider-dashboard" />
+      <Stack.Screen name="settings/security" />
+      <Stack.Screen name="settings/privacy" />
+      <Stack.Screen name="settings/appearance" />
+      <Stack.Screen name="settings/language" />
+      <Stack.Screen name="settings/notifications" />
+      <Stack.Screen name="settings/help" />
+      <Stack.Screen name="settings/feedback" />
+      <Stack.Screen name="settings/legal" />
+      <Stack.Screen name="settings/delete-account" />
+      <Stack.Screen name="app-lock-setup" />
+      <Stack.Screen name="wallet-create-pin" />
+      <Stack.Screen name="wallet-onboarding" />
     </Stack>
   );
 }
