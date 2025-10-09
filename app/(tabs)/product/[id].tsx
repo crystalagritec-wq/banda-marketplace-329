@@ -659,7 +659,11 @@ export default function ProductDetailsScreen() {
                   </View>
                 )}
 
-                <View style={styles.vendorCard}>
+                <TouchableOpacity 
+                  style={styles.vendorCard}
+                  onPress={() => router.push(`/vendor/${current.id}` as any)}
+                  activeOpacity={0.7}
+                >
                   <View style={styles.vendorHeader}>
                     <View style={styles.vendorAvatar}>
                       <User size={20} color="#2D5016" />
@@ -682,12 +686,23 @@ export default function ProductDetailsScreen() {
                           </View>
                         )}
                       </View>
+                      <View style={styles.viewShopRow}>
+                        <Text style={styles.viewShopText}>View Shop</Text>
+                        <ChevronRight size={14} color="#2D5016" />
+                      </View>
                     </View>
-                    <TouchableOpacity style={styles.contactBtn} onPress={handleContact} testID="contact-vendor">
+                    <TouchableOpacity 
+                      style={styles.contactBtn} 
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleContact();
+                      }} 
+                      testID="contact-vendor"
+                    >
                       <Phone size={16} color="#2D5016" />
                     </TouchableOpacity>
                   </View>
-                </View>
+                </TouchableOpacity>
 
                 <View style={styles.featuresSection}>
                   <Text style={styles.featuresTitle}>Product Features</Text>
@@ -1315,6 +1330,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     marginVertical: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   vendorHeader: {
     flexDirection: 'row',
@@ -1357,6 +1374,17 @@ const styles = StyleSheet.create({
   location: {
     fontSize: 12,
     color: '#666',
+  },
+  viewShopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+  },
+  viewShopText: {
+    fontSize: 13,
+    color: '#2D5016',
+    fontWeight: '600',
   },
   distanceBadge: {
     marginLeft: 4,
