@@ -1284,7 +1284,7 @@ export default function CheckoutScreen() {
                   style={styles.addNewButton}
                   onPress={() => {
                     setShowAddressModal(false);
-                    router.push('/settings/shipping');
+                    router.push('/address');
                   }}
                 >
                   <Plus size={20} color="#10B981" />
