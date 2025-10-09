@@ -17,6 +17,8 @@ import { fetchProductDetailsProcedure } from "@/backend/trpc/routes/products/fet
 import { getProductPoliciesProcedure } from "@/backend/trpc/routes/products/get-policies";
 import { getAIRecommendationsProcedure } from "@/backend/trpc/routes/products/get-ai-recommendations";
 import { getFrequentlyBoughtTogetherProcedure } from "@/backend/trpc/routes/products/get-frequently-bought-together";
+import { awardPurchasePointsProcedure } from "@/backend/trpc/routes/products/award-purchase-points";
+import { getProductPointsProcedure } from "@/backend/trpc/routes/products/get-product-points";
 import { fetchCategoriesByLocationProcedure } from "@/backend/trpc/routes/categories/fetch-by-location";
 import { logPaymentSuccessProcedure } from "@/backend/trpc/routes/orders/log-payment-success";
 import { generateOrderQRProcedure } from "@/backend/trpc/routes/orders/generate-qr";
@@ -172,6 +174,10 @@ import { completeChallengeProcedure as rewardsCompleteChallengeProcedure } from 
 import { redeemPointsProcedure } from "@/backend/trpc/routes/rewards/redeem-points";
 import { submitDocumentsProcedure } from "@/backend/trpc/routes/verification/submit-documents";
 import { getSubscriptionPlansProcedure } from "@/backend/trpc/routes/subscription/get-plans";
+import { createBoostProcedure } from "@/backend/trpc/routes/boost/create-boost";
+import { getActiveBoostsProcedure } from "@/backend/trpc/routes/boost/get-active-boosts";
+import { getBoostPackagesProcedure } from "@/backend/trpc/routes/boost/get-boost-packages";
+import { cancelBoostProcedure } from "@/backend/trpc/routes/boost/cancel-boost";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -205,6 +211,8 @@ export const appRouter = createTRPCRouter({
     getFrequentlyBoughtTogether: getFrequentlyBoughtTogetherProcedure,
     getDeliveryPreview: getDeliveryPreviewProcedure,
     getNearestSellers: getNearestSellersProcedure,
+    awardPurchasePoints: awardPurchasePointsProcedure,
+    getProductPoints: getProductPointsProcedure,
   }),
   categories: createTRPCRouter({
     fetchByLocation: fetchCategoriesByLocationProcedure,
@@ -422,6 +430,12 @@ export const appRouter = createTRPCRouter({
     updateAddress: updateAddressProcedure,
     deleteAddress: deleteAddressProcedure,
     setDefaultAddress: setDefaultAddressProcedure,
+  }),
+  boost: createTRPCRouter({
+    createBoost: createBoostProcedure,
+    getActiveBoosts: getActiveBoostsProcedure,
+    getPackages: getBoostPackagesProcedure,
+    cancelBoost: cancelBoostProcedure,
   }),
 });
 
