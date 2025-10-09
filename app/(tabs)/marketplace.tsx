@@ -450,7 +450,7 @@ export default function MarketplaceScreen() {
   }, []);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       <LinearGradient colors={['#F8FAFC', WHITE]} style={styles.gradient}>
         {/* Header */}
         <View style={styles.header}>
