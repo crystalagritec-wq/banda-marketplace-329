@@ -102,6 +102,32 @@ export function getVendorId(product: ProductWithVendor | null | undefined): stri
 }
 
 /**
+ * Check if user has a shop
+ * Checks both profile data and product existence
+ */
+export function hasShopProfile(shopData: any): boolean {
+  if (!shopData) return false;
+  return shopData.exists === true;
+}
+
+/**
+ * Get shop info from query data
+ */
+export function getShopInfo(shopData: any) {
+  if (!shopData || !shopData.exists) return null;
+  
+  return {
+    id: shopData.shop?.id || shopData.profile?.id,
+    name: shopData.shop?.name || getVendorDisplayName(shopData.profile),
+    verified: shopData.shop?.verified || shopData.profile?.verified || false,
+    avatar: shopData.shop?.avatar || shopData.profile?.avatar_url,
+    location: shopData.shop?.location || getVendorLocation(shopData.profile),
+    businessType: shopData.shop?.businessType || shopData.profile?.business_type,
+    hasProducts: shopData.hasProducts || false,
+  };
+}
+
+/**
  * Format vendor for display in product cards
  */
 export function formatVendorForProduct(profile: VendorProfile | null | undefined) {

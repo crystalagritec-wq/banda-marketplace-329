@@ -32,6 +32,7 @@ import {
 } from 'lucide-react-native';
 import { useAuth } from '@/providers/auth-provider';
 import { trpc } from '@/lib/trpc';
+import { hasShopProfile, getShopInfo } from '@/utils/vendor-helpers';
 
 interface StatItem {
   label: string;
@@ -96,8 +97,12 @@ export default function ProfileScreen() {
   };
 
   const hasShop = useMemo(() => {
-    return shopQuery.data?.exists === true;
-  }, [shopQuery.data?.exists]);
+    return hasShopProfile(shopQuery.data);
+  }, [shopQuery.data]);
+  
+  const shopInfo = useMemo(() => {
+    return getShopInfo(shopQuery.data);
+  }, [shopQuery.data]);
   
   const hasServiceProvider = useMemo(() => {
     return serviceProviderQuery.data?.profile != null;
