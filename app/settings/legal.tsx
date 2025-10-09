@@ -16,18 +16,15 @@ export default function LegalScreen() {
   const router = useRouter();
   
   const handleTermsOfUse = () => {
-    console.log('Opening Terms of Use...');
-    // In a real app, this would navigate to a detailed terms page or open a web view
+    router.push('/settings/terms-of-use');
   };
   
   const handleTermsOfSale = () => {
-    console.log('Opening Terms of Sale...');
-    // In a real app, this would navigate to a detailed terms page or open a web view
+    router.push('/settings/terms-of-sale');
   };
   
   const handlePrivacyPolicy = () => {
-    console.log('Opening Privacy Policy...');
-    // In a real app, this would navigate to a detailed privacy page or open a web view
+    router.push('/settings/privacy-policy');
   };
   
   const legalDocuments: LegalDocument[] = [
