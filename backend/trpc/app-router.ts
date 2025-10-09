@@ -190,6 +190,19 @@ import { assignDriverProcedure } from "@/backend/trpc/routes/logistics/assign-dr
 import { getAvailableDriversProcedure } from "@/backend/trpc/routes/logistics/get-available-drivers";
 import { uploadDeliveryProofProcedure } from "@/backend/trpc/routes/logistics/upload-delivery-proof";
 import { rateDriverProcedure } from "@/backend/trpc/routes/logistics/rate-driver";
+import { uploadServiceProofEnhancedProcedure } from "@/backend/trpc/routes/service-providers/upload-service-proof-enhanced";
+import { rateServiceProviderEnhancedProcedure } from "@/backend/trpc/routes/service-providers/rate-service-provider-enhanced";
+import { getServiceRequestsEnhancedProcedure } from "@/backend/trpc/routes/service-providers/get-service-requests-enhanced";
+import { updateRequestStatusEnhancedProcedure } from "@/backend/trpc/routes/service-providers/update-request-status-enhanced";
+import { uploadDeliveryProofEnhancedProcedure } from "@/backend/trpc/routes/logistics/upload-delivery-proof-enhanced";
+import { rateDriverEnhancedProcedure } from "@/backend/trpc/routes/logistics/rate-driver-enhanced";
+import { getDriverDeliveriesEnhancedProcedure } from "@/backend/trpc/routes/logistics/get-driver-deliveries-enhanced";
+import { requestPayoutEnhancedProcedure } from "@/backend/trpc/routes/logistics/request-payout-enhanced";
+import { updateDeliveryStatusEnhancedProcedure } from "@/backend/trpc/routes/logistics/update-delivery-status-enhanced";
+import { uploadProductImagesProcedure } from "@/backend/trpc/routes/shop/upload-product-images";
+import { createProductVariantProcedure } from "@/backend/trpc/routes/shop/create-product-variant";
+import { getInventoryAlertsEnhancedProcedure } from "@/backend/trpc/routes/shop/get-inventory-alerts-enhanced";
+import { submitShopVerificationProcedure } from "@/backend/trpc/routes/shop/submit-shop-verification";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -270,6 +283,11 @@ export const appRouter = createTRPCRouter({
     getAvailableDrivers: getAvailableDriversProcedure,
     uploadDeliveryProof: uploadDeliveryProofProcedure,
     rateDriver: rateDriverProcedure,
+    uploadDeliveryProofEnhanced: uploadDeliveryProofEnhancedProcedure,
+    rateDriverEnhanced: rateDriverEnhancedProcedure,
+    getDriverDeliveriesEnhanced: getDriverDeliveriesEnhancedProcedure,
+    requestPayoutEnhanced: requestPayoutEnhancedProcedure,
+    updateDeliveryStatusEnhanced: updateDeliveryStatusEnhancedProcedure,
   }),
   qr: createTRPCRouter({
     generate: generateQRProcedure,
@@ -394,6 +412,10 @@ export const appRouter = createTRPCRouter({
     updateOrderStatus: updateVendorOrderStatusProcedure,
     getFinancialReport: getFinancialReportProcedure,
     getMyShop: getMyShopProcedure,
+    uploadProductImages: uploadProductImagesProcedure,
+    createProductVariant: createProductVariantProcedure,
+    getInventoryAlertsEnhanced: getInventoryAlertsEnhancedProcedure,
+    submitShopVerification: submitShopVerificationProcedure,
   }),
   logisticsInboarding: createTRPCRouter({
     createOwnerProfile: createOwnerProfileProcedure,
@@ -412,6 +434,10 @@ export const appRouter = createTRPCRouter({
     uploadServiceProof: uploadServiceProofProcedure,
     rateServiceProvider: rateServiceProviderProcedure,
     getMyProfile: getMyServiceProfileProcedure,
+    uploadServiceProofEnhanced: uploadServiceProofEnhancedProcedure,
+    rateServiceProviderEnhanced: rateServiceProviderEnhancedProcedure,
+    getServiceRequestsEnhanced: getServiceRequestsEnhancedProcedure,
+    updateRequestStatusEnhanced: updateRequestStatusEnhancedProcedure,
   }),
   agripay: createTRPCRouter({
     createWallet: createWalletProcedure,
