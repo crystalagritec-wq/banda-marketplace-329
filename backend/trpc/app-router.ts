@@ -17,6 +17,8 @@ import { fetchProductDetailsProcedure } from "@/backend/trpc/routes/products/fet
 import { getProductPoliciesProcedure } from "@/backend/trpc/routes/products/get-policies";
 import { getAIRecommendationsProcedure } from "@/backend/trpc/routes/products/get-ai-recommendations";
 import { getFrequentlyBoughtTogetherProcedure } from "@/backend/trpc/routes/products/get-frequently-bought-together";
+import { awardPurchasePointsProcedure } from "@/backend/trpc/routes/products/award-purchase-points";
+import { getProductPointsProcedure } from "@/backend/trpc/routes/products/get-product-points";
 import { fetchCategoriesByLocationProcedure } from "@/backend/trpc/routes/categories/fetch-by-location";
 import { logPaymentSuccessProcedure } from "@/backend/trpc/routes/orders/log-payment-success";
 import { generateOrderQRProcedure } from "@/backend/trpc/routes/orders/generate-qr";
@@ -205,6 +207,8 @@ export const appRouter = createTRPCRouter({
     getFrequentlyBoughtTogether: getFrequentlyBoughtTogetherProcedure,
     getDeliveryPreview: getDeliveryPreviewProcedure,
     getNearestSellers: getNearestSellersProcedure,
+    awardPurchasePoints: awardPurchasePointsProcedure,
+    getProductPoints: getProductPointsProcedure,
   }),
   categories: createTRPCRouter({
     fetchByLocation: fetchCategoriesByLocationProcedure,
