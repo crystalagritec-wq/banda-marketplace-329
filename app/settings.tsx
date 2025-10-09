@@ -213,7 +213,7 @@ export function ErrorBoundary({ error }: { error: Error }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F3F4F6' },
-  content: { padding: 16, paddingTop: 8, paddingBottom: 24 },
+  content: { padding: 16, paddingTop: 48, paddingBottom: 24 },
   header: { fontSize: 28, fontWeight: '800', color: '#111827', marginBottom: 6 },
   subheader: { fontSize: 14, color: '#6B7280', marginBottom: 12 },
   section: { marginBottom: 16 },
