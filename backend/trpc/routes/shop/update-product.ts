@@ -12,6 +12,22 @@ export const updateShopProductProcedure = protectedProcedure
     stock: z.number().int().nonnegative().optional(),
     unit: z.string().optional(),
     images: z.array(z.string().url()).optional(),
+    location: z.object({
+      coordinates: z.object({
+        lat: z.number(),
+        lng: z.number(),
+      }),
+      label: z.string().optional(),
+      address: z.string().optional(),
+      city: z.string().optional(),
+      county: z.string().optional(),
+      countyId: z.string().optional(),
+      subCounty: z.string().optional(),
+      subCountyId: z.string().optional(),
+      ward: z.string().optional(),
+      wardId: z.string().optional(),
+    }).optional(),
+    rewardPoints: z.number().int().nonnegative().optional(),
     status: z.enum(['active', 'inactive', 'draft']).optional(),
   }))
   .mutation(async ({ input, ctx }) => {
@@ -35,12 +51,36 @@ export const updateShopProductProcedure = protectedProcedure
         throw new Error('Unauthorized to update this product');
       }
 
+      const updatePayload: any = {
+        ...updateData,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (input.location) {
+        updatePayload.location_lat = input.location.coordinates.lat;
+        updatePayload.location_lng = input.location.coordinates.lng;
+        updatePayload.location_label = input.location.label;
+        updatePayload.location_address = input.location.address;
+        updatePayload.location_city = input.location.city;
+        updatePayload.location_county = input.location.county;
+        updatePayload.location_county_id = input.location.countyId;
+        updatePayload.location_sub_county = input.location.subCounty;
+        updatePayload.location_sub_county_id = input.location.subCountyId;
+        updatePayload.location_ward = input.location.ward;
+        updatePayload.location_ward_id = input.location.wardId;
+        console.log('[Shop Product] Updating product location');
+      }
+
+      if (input.rewardPoints !== undefined) {
+        updatePayload.reward_points = input.rewardPoints;
+        console.log('[Shop Product] Updating reward points:', input.rewardPoints);
+      }
+
+      delete updatePayload.location;
+
       const { data, error } = await ctx.supabase
         .from('marketplace_products')
-        .update({
-          ...updateData,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updatePayload)
         .eq('id', productId)
         .select()
         .single();

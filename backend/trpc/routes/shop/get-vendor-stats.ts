@@ -41,7 +41,7 @@ export const getVendorStatsProcedure = protectedProcedure
     const { data: products, error: productsError } = await ctx.supabase
       .from('marketplace_products')
       .select('id, stock_quantity, views')
-      .eq('seller_id', input.vendorId);
+      .eq('user_id', input.vendorId);
 
     if (productsError) {
       console.error('[Vendor Stats] Error fetching products:', productsError);

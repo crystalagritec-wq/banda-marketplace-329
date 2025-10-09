@@ -35,6 +35,14 @@ export const getMyShopProcedure = protectedProcedure.query(async ({ ctx }) => {
   return {
     exists: hasShop || hasProducts,
     profile: hasShop ? profile : null,
+    shop: hasShop ? {
+      id: profile.id,
+      name: profile.vendor_display_name || profile.business_name || profile.full_name || 'My Shop',
+      verified: profile.verified || false,
+      avatar: profile.avatar_url,
+      location: profile.location,
+      businessType: profile.business_type,
+    } : null,
     hasProducts,
   };
 });

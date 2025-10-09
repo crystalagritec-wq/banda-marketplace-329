@@ -95,8 +95,13 @@ export default function ProfileScreen() {
     );
   };
 
-  const hasShop = shopQuery.data?.exists === true;
-  const hasServiceProvider = serviceProviderQuery.data?.profile !== null && serviceProviderQuery.data?.profile !== undefined;
+  const hasShop = useMemo(() => {
+    return shopQuery.data?.exists === true;
+  }, [shopQuery.data?.exists]);
+  
+  const hasServiceProvider = useMemo(() => {
+    return serviceProviderQuery.data?.profile != null;
+  }, [serviceProviderQuery.data?.profile]);
 
   return (
     <View style={styles.container} testID="profile-screen">

@@ -58,13 +58,14 @@ export const getVendorProfileProcedure = publicProcedure
         }),
       };
 
-      const vendorDisplayName = profile.business_name || profile.full_name || 'Unknown Vendor';
+      const vendorDisplayName = profile.vendor_display_name || profile.business_name || profile.full_name || 'Unknown Vendor';
       
       return {
         profile: {
           id: profile.id,
           name: vendorDisplayName,
           vendor_name: vendorDisplayName,
+          vendor_display_name: profile.vendor_display_name,
           avatar: profile.avatar_url,
           location: profile.location || 'Kenya',
           location_city: profile.location_city,
@@ -73,6 +74,7 @@ export const getVendorProfileProcedure = publicProcedure
           location_lng: profile.location_lng,
           bio: profile.bio || 'Welcome to my shop!',
           verified: profile.verified || false,
+          vendor_verified: profile.verified || false,
           businessName: profile.business_name || profile.full_name,
           businessType: profile.business_type || 'Vendor',
           phone: profile.phone,
