@@ -203,6 +203,9 @@ import { uploadProductImagesProcedure } from "@/backend/trpc/routes/shop/upload-
 import { createProductVariantProcedure } from "@/backend/trpc/routes/shop/create-product-variant";
 import { getInventoryAlertsEnhancedProcedure } from "@/backend/trpc/routes/shop/get-inventory-alerts-enhanced";
 import { submitShopVerificationProcedure } from "@/backend/trpc/routes/shop/submit-shop-verification";
+import { completeShopOnboardingProcedure } from "@/backend/trpc/routes/shop/complete-onboarding";
+import { completeServiceOnboardingProcedure } from "@/backend/trpc/routes/service-providers/complete-onboarding";
+import { completeLogisticsOnboardingProcedure } from "@/backend/trpc/routes/logistics-inboarding/complete-onboarding";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -416,11 +419,13 @@ export const appRouter = createTRPCRouter({
     createProductVariant: createProductVariantProcedure,
     getInventoryAlertsEnhanced: getInventoryAlertsEnhancedProcedure,
     submitShopVerification: submitShopVerificationProcedure,
+    completeOnboarding: completeShopOnboardingProcedure,
   }),
   logisticsInboarding: createTRPCRouter({
     createOwnerProfile: createOwnerProfileProcedure,
     createDriverProfile: createDriverProfileProcedure,
     getProfile: getLogisticsProfileProcedure,
+    completeOnboarding: completeLogisticsOnboardingProcedure,
   }),
   serviceProviders: createTRPCRouter({
     addSpecialization: addSpecializationProcedure,
@@ -438,6 +443,7 @@ export const appRouter = createTRPCRouter({
     rateServiceProviderEnhanced: rateServiceProviderEnhancedProcedure,
     getServiceRequestsEnhanced: getServiceRequestsEnhancedProcedure,
     updateRequestStatusEnhanced: updateRequestStatusEnhancedProcedure,
+    completeOnboarding: completeServiceOnboardingProcedure,
   }),
   agripay: createTRPCRouter({
     createWallet: createWalletProcedure,
