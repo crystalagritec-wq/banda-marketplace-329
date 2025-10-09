@@ -59,6 +59,7 @@ import { useLoyalty } from '@/providers/loyalty-provider';
 import CartFeedback from '@/components/CartFeedback';
 import { useLocation } from '@/providers/location-provider';
 import { calculateDistance } from '@/utils/geo-distance';
+import { getVendorId } from '@/utils/vendor-helpers';
 import ProductImageGallery from '@/components/ProductImageGallery';
 import ProductChat from '@/components/ProductChat';
 import ProductQA from '@/components/ProductQA';
@@ -661,7 +662,14 @@ export default function ProductDetailsScreen() {
 
                 <TouchableOpacity 
                   style={styles.vendorCard}
-                  onPress={() => router.push(`/vendor/${current.id}` as any)}
+                  onPress={() => {
+                    const vendorId = getVendorId(current as any);
+                    if (vendorId) {
+                      router.push(`/vendor/${vendorId}` as any);
+                    } else {
+                      console.warn('No vendor ID found for product:', current.id);
+                    }
+                  }}
                   activeOpacity={0.7}
                 >
                   <View style={styles.vendorHeader}>

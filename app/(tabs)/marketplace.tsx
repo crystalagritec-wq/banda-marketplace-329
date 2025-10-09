@@ -45,6 +45,7 @@ import { useLoading } from '@/hooks/useLoading';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useLocation } from '@/providers/location-provider';
 import { calculateDistance } from '@/utils/geo-distance';
+import { convertToCartProduct } from '@/utils/vendor-helpers';
 
 const GREEN = '#2E7D32' as const;
 const ORANGE = '#F57C00' as const;
@@ -301,7 +302,8 @@ export default function MarketplaceScreen() {
   const handleAddToCart = useCallback(async (product: Product) => {
     await withLoading(async () => {
       await new Promise(resolve => setTimeout(resolve, 300));
-      addToCart(product as any, 1);
+      const cartProduct = convertToCartProduct(product);
+      addToCart(cartProduct, 1);
       
       if (lastProductRef.current === product.id && feedbackVisible) {
         countRef.current += 1;
@@ -358,10 +360,12 @@ export default function MarketplaceScreen() {
         );
       }
       return {
+        ...product,
         id: product.id,
         name: product.title,
         price: product.price,
         vendor: product.vendor_name || 'Unknown Vendor',
+        vendor_id: product.user_id || product.vendor_id,
         location: product.location_county || product.location_city || 'Unknown',
         rating: product.rating || 0,
         image: product.images?.[0] || 'https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400',
@@ -376,7 +380,7 @@ export default function MarketplaceScreen() {
         stock: product.stock,
         unit: product.unit || 'unit',
         inStock: product.stock > 0,
-        vendorVerified: product.status === 'active',
+        vendorVerified: product.vendor_verified || product.status === 'active',
         negotiable: product.negotiable,
         fastDelivery: false,
       };
