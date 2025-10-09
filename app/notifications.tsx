@@ -6,25 +6,31 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
   ArrowLeft, 
   Search, 
   ShoppingCart, 
-  Tractor, 
   Gift, 
-  AlertTriangle, 
-  Tag, 
   MessageCircle,
-  Handshake
+  Package,
+  Truck,
+  DollarSign,
+  Star,
+  Bell,
+  CheckCircle2,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { trpc } from '@/lib/trpc';
+import { useAuth } from '@/providers/auth-provider';
 
 interface Notification {
   id: string;
-  type: 'recommendation' | 'offer' | 'reminder' | 'request' | 'promo';
+  type: string;
   title: string;
   description: string;
   time: string;
@@ -33,6 +39,15 @@ interface Notification {
   iconBg: string;
   isRead: boolean;
   badge?: string;
+}
+
+interface NotificationData {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  created_at: string;
+  is_read: boolean;
 }
 
 interface ChatMessage {
@@ -47,82 +62,77 @@ interface ChatMessage {
 export default function NotificationsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'offers' | 'requests'>('all');
+  const [refreshing, setRefreshing] = useState(false);
 
-  const notifications: Notification[] = [
-    {
-      id: '0',
-      type: 'recommendation',
-      title: 'New Review on Your Product',
-      description: 'Mary Wanjiku left a 5-star review on your "Fresh Maize" listing. Check it out and respond to build trust with buyers.',
-      time: '1 hour ago',
-      icon: MessageCircle,
-      iconColor: '#10B981',
-      iconBg: '#D1FAE5',
-      isRead: false,
-      badge: 'Review'
-    },
-    {
-      id: '1',
-      type: 'recommendation',
-      title: 'New Tractor Listing Near You',
-      description: 'A John Deere 5055E tractor was just listed in Kiambu County. Based on your farm size, this might be a good fit.',
-      time: '2 hours ago',
-      icon: Tractor,
-      iconColor: '#10B981',
-      iconBg: '#D1FAE5',
-      isRead: false,
-      badge: 'Recommendation'
-    },
-    {
-      id: '2',
-      type: 'offer',
-      title: '20% Off All Poultry Feeds',
-      description: 'For the next 48 hours, get 20% off all brands of poultry feed from the ShambaConnect Official Store.',
-      time: '8 hours ago',
-      icon: Gift,
-      iconColor: '#F59E0B',
-      iconBg: '#FEF3C7',
-      isRead: false,
-      badge: 'Offer'
-    },
-    {
-      id: '3',
-      type: 'reminder',
-      title: 'Verify Your Profile',
-      description: 'Complete your profile verification to unlock more features, including becoming a vendor or service provider.',
-      time: '1 day ago',
-      icon: AlertTriangle,
-      iconColor: '#F59E0B',
-      iconBg: '#FEF3C7',
-      isRead: true,
-      badge: 'Reminder'
-    },
-    {
-      id: '4',
-      type: 'request',
-      title: 'New Bid on Your "Dorper Lamb"',
-      description: 'A buyer has offered Ksh 7,200 for your Dorper Lamb. Respond now to accept or decline the offer.',
-      time: '2 days ago',
-      icon: Tag,
-      iconColor: '#8B5CF6',
-      iconBg: '#EDE9FE',
-      isRead: true,
-      badge: 'Request'
-    },
-    {
-      id: '5',
-      type: 'promo',
-      title: 'ShambaConnect partners with KCB',
-      description: 'We have partnered with KCB Bank to offer easier financing options for equipment and inputs. Learn more.',
-      time: '4 days ago',
-      icon: Handshake,
-      iconColor: '#3B82F6',
-      iconBg: '#DBEAFE',
-      isRead: true,
-      badge: 'Promo'
+  const notificationsQuery = trpc.notifications.getNotifications.useQuery(
+    { unreadOnly: false, limit: 50, offset: 0 },
+    { enabled: !!user?.id, refetchOnMount: true }
+  );
+
+  const markReadMutation = trpc.notifications.markRead.useMutation();
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await notificationsQuery.refetch();
+    setRefreshing(false);
+  };
+
+  const handleNotificationPress = async (notificationId: string, isRead: boolean) => {
+    if (!isRead) {
+      try {
+        await markReadMutation.mutateAsync({ notificationId });
+        notificationsQuery.refetch();
+      } catch (error) {
+        console.error('Failed to mark notification as read:', error);
+      }
     }
-  ];
+  };
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'order': return Package;
+      case 'delivery': return Truck;
+      case 'payment': return DollarSign;
+      case 'review': return Star;
+      case 'offer': return Gift;
+      case 'reminder': return Bell;
+      case 'message': return MessageCircle;
+      case 'success': return CheckCircle2;
+      default: return Bell;
+    }
+  };
+
+  const getNotificationColor = (type: string) => {
+    switch (type) {
+      case 'order': return { icon: '#10B981', bg: '#D1FAE5' };
+      case 'delivery': return { icon: '#3B82F6', bg: '#DBEAFE' };
+      case 'payment': return { icon: '#F59E0B', bg: '#FEF3C7' };
+      case 'review': return { icon: '#8B5CF6', bg: '#EDE9FE' };
+      case 'offer': return { icon: '#EF4444', bg: '#FEE2E2' };
+      case 'reminder': return { icon: '#F59E0B', bg: '#FEF3C7' };
+      case 'message': return { icon: '#10B981', bg: '#D1FAE5' };
+      case 'success': return { icon: '#10B981', bg: '#D1FAE5' };
+      default: return { icon: '#6B7280', bg: '#F3F4F6' };
+    }
+  };
+
+  const notifications: Notification[] = (notificationsQuery.data?.data || []).map((n: NotificationData) => {
+    const colors = getNotificationColor(n.type);
+    return {
+      id: n.id,
+      type: n.type,
+      title: n.title,
+      description: n.message,
+      time: new Date(n.created_at).toLocaleString(),
+      icon: getNotificationIcon(n.type),
+      iconColor: colors.icon,
+      iconBg: colors.bg,
+      isRead: n.is_read,
+      badge: n.type.charAt(0).toUpperCase() + n.type.slice(1),
+    };
+  });
 
   const chatMessages: ChatMessage[] = [
     {
@@ -152,11 +162,11 @@ export default function NotificationsScreen() {
   const getFilteredNotifications = () => {
     switch (activeTab) {
       case 'unread':
-        return notifications.filter(n => !n.isRead);
+        return notifications.filter((n: Notification) => !n.isRead);
       case 'offers':
-        return notifications.filter(n => n.type === 'offer' || n.type === 'promo');
+        return notifications.filter((n: Notification) => n.type === 'offer' || n.type === 'promo');
       case 'requests':
-        return notifications.filter(n => n.type === 'request');
+        return notifications.filter((n: Notification) => n.type === 'request');
       default:
         return notifications;
     }
@@ -165,21 +175,21 @@ export default function NotificationsScreen() {
   const getTabCount = (tab: string) => {
     switch (tab) {
       case 'unread':
-        return notifications.filter(n => !n.isRead).length;
+        return notifications.filter((n: Notification) => !n.isRead).length;
       case 'offers':
-        return notifications.filter(n => n.type === 'offer' || n.type === 'promo').length;
+        return notifications.filter((n: Notification) => n.type === 'offer' || n.type === 'promo').length;
       case 'requests':
-        return notifications.filter(n => n.type === 'request').length;
+        return notifications.filter((n: Notification) => n.type === 'request').length;
       default:
         return notifications.length;
     }
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       <LinearGradient colors={['#F5F5DC', '#FFFFFF']} style={styles.gradient}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
@@ -198,7 +208,19 @@ export default function NotificationsScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.content} 
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          {notificationsQuery.isLoading && !refreshing && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#10B981" />
+              <Text style={styles.loadingText}>Loading notifications...</Text>
+            </View>
+          )}
           {/* My Messages Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>My Messages</Text>
@@ -249,32 +271,48 @@ export default function NotificationsScreen() {
 
             {/* Notifications List */}
             <View style={styles.notificationsList}>
-              {getFilteredNotifications().map((notification) => {
-                const IconComponent = notification.icon;
-                return (
-                  <TouchableOpacity key={notification.id} style={styles.notificationItem}>
-                    <View style={[styles.notificationIcon, { backgroundColor: notification.iconBg }]}>
-                      <IconComponent size={20} color={notification.iconColor} />
-                    </View>
-                    
-                    <View style={styles.notificationContent}>
-                      <View style={styles.notificationHeader}>
-                        <Text style={styles.notificationTitle}>{notification.title}</Text>
-                        <View style={styles.notificationMeta}>
-                          <Text style={styles.notificationTime}>{notification.time}</Text>
-                          {!notification.isRead && <View style={styles.unreadDot} />}
+              {getFilteredNotifications().length === 0 && !notificationsQuery.isLoading ? (
+                <View style={styles.emptyState}>
+                  <Bell size={48} color="#D1D5DB" />
+                  <Text style={styles.emptyStateTitle}>No notifications yet</Text>
+                  <Text style={styles.emptyStateText}>You&apos;ll see updates about your orders, deliveries, and more here</Text>
+                </View>
+              ) : (
+                getFilteredNotifications().map((notification) => {
+                  const IconComponent = notification.icon;
+                  return (
+                    <TouchableOpacity 
+                      key={notification.id} 
+                      style={[
+                        styles.notificationItem,
+                        !notification.isRead && styles.notificationItemUnread
+                      ]}
+                      onPress={() => handleNotificationPress(notification.id, notification.isRead)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[styles.notificationIcon, { backgroundColor: notification.iconBg }]}>
+                        <IconComponent size={20} color={notification.iconColor} />
+                      </View>
+                      
+                      <View style={styles.notificationContent}>
+                        <View style={styles.notificationHeader}>
+                          <Text style={styles.notificationTitle}>{notification.title}</Text>
+                          <View style={styles.notificationMeta}>
+                            <Text style={styles.notificationTime}>{notification.time}</Text>
+                            {!notification.isRead && <View style={styles.unreadDot} />}
+                          </View>
+                        </View>
+                        
+                        <Text style={styles.notificationDescription} numberOfLines={2}>{notification.description}</Text>
+                        
+                        <View style={styles.notificationBadge}>
+                          <Text style={styles.notificationBadgeText}>{notification.badge}</Text>
                         </View>
                       </View>
-                      
-                      <Text style={styles.notificationDescription}>{notification.description}</Text>
-                      
-                      <View style={styles.notificationBadge}>
-                        <Text style={styles.notificationBadgeText}>{notification.badge}</Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
+                    </TouchableOpacity>
+                  );
+                })
+              )}
             </View>
           </View>
 
@@ -308,6 +346,8 @@ export default function NotificationsScreen() {
               ))}
             </View>
           </View>
+
+          <View style={{ height: insets.bottom + 20 }} />
         </ScrollView>
       </LinearGradient>
     </View>
@@ -315,16 +355,45 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   gradient: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingBottom: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+  },
+  loadingContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  emptyState: {
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
   },
   backButton: {
     padding: 8,
@@ -443,6 +512,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 1,
+  },
+  notificationItemUnread: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
   },
   notificationIcon: {
     width: 48,

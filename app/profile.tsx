@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   ImageBackground,
   Platform,
-  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
@@ -21,17 +20,14 @@ import {
   MapPin,
   Phone,
   Mail,
-  QrCode,
   Bell,
   Wallet,
   Truck,
-  ShoppingBag,
   Star,
   Clock,
 } from 'lucide-react-native';
 import { useAuth } from '@/providers/auth-provider';
 import { trpc } from '@/lib/trpc';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface StatItem {
   label: string;
@@ -40,7 +36,6 @@ interface StatItem {
 
 export default function ProfileScreen() {
   const { user } = useAuth();
-  const insets = useSafeAreaInsets();
   const [errorText, setErrorText] = useState<string | null>(null);
 
   const dashboardQuery = trpc.dashboard.getUserDashboard.useQuery({});
@@ -69,16 +64,8 @@ export default function ProfileScreen() {
 
   const onEditProfile = () => router.push('/settings' as any);
   const onViewNotifications = () => router.push('/notifications' as any);
-  const onOpenAccount = () => router.push('/account' as any);
   const onOpenOrders = () => router.push('/orders' as any);
   const onOpenWallet = () => router.push('/wallet' as any);
-  const onShowVerificationQR = () => {
-    if (Platform.OS === 'web') {
-      console.log('Verification QR: would display modal with QR for agent scanning.');
-    } else {
-      Alert.alert('Verification QR', 'Your verification QR would be shown here for agent scanning.');
-    }
-  };
 
   return (
     <View style={styles.container} testID="profile-screen">
@@ -134,17 +121,29 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.ribbonRow}>
-          <View style={styles.ribbon}>
+          <TouchableOpacity 
+            style={styles.ribbon} 
+            onPress={() => router.push('/my-verification' as any)}
+            activeOpacity={0.7}
+          >
             <ShieldCheck size={16} color="#10B981" />
             <Text style={styles.ribbonText}>{dashboardQuery.data?.data?.verification?.tier ?? 'Unverified'}</Text>
-          </View>
-          <View style={styles.ribbon}>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.ribbon}
+            onPress={() => router.push('/my-subscription' as any)}
+            activeOpacity={0.7}
+          >
             <Crown size={16} color="#F59E0B" />
             <Text style={styles.ribbonText}>{dashboardQuery.data?.data?.subscription?.current_tier ?? 'Free'}</Text>
-          </View>
-          <TouchableOpacity onPress={onShowVerificationQR} style={[styles.ribbon, styles.qr]} testID="show-verification-qr">
-            <QrCode size={16} color="#111827" />
-            <Text style={[styles.ribbonText, { color: '#111827' }]}>ID QR</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.ribbon}
+            onPress={() => router.push('/my-loyalty' as any)}
+            activeOpacity={0.7}
+          >
+            <Star size={16} color="#8B5CF6" />
+            <Text style={[styles.ribbonText, { color: '#8B5CF6' }]}>Rewards</Text>
           </TouchableOpacity>
         </View>
 
@@ -160,10 +159,10 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick actions</Text>
           <View style={styles.actionsGrid}>
-            <ActionTile title="Verification" subtitle="Get Verified" onPress={() => router.push('/verification-dashboard' as any)} icon={<ShieldCheck size={22} color="white" />} colors={["#2D5016", "#4A7C59"]} testID="qa-verification" />
-            <ActionTile title="Subscription" subtitle="Upgrade Plan" onPress={() => router.push('/subscription' as any)} icon={<Crown size={22} color="white" />} colors={["#F59E0B", "#FBBF24"]} testID="qa-subscription" />
-            <ActionTile title="Loyalty" subtitle="Rewards & Points" onPress={() => router.push('/rewards-hub' as any)} icon={<Star size={22} color="white" />} colors={["#8B5CF6", "#A78BFA"]} testID="qa-loyalty" />
             <ActionTile title="Orders" subtitle="Track & Manage" onPress={onOpenOrders} icon={<Truck size={22} color="white" />} colors={["#1E40AF", "#3B82F6"]} testID="qa-orders" />
+            <ActionTile title="Wallet" subtitle="AgriPay Balance" onPress={onOpenWallet} icon={<Wallet size={22} color="white" />} colors={["#10B981", "#34D399"]} testID="qa-wallet" />
+            <ActionTile title="Settings" subtitle="Account Settings" onPress={onEditProfile} icon={<Edit3 size={22} color="white" />} colors={["#6B7280", "#9CA3AF"]} testID="qa-settings" />
+            <ActionTile title="Notifications" subtitle="View Messages" onPress={onViewNotifications} icon={<Bell size={22} color="white" />} colors={["#EF4444", "#F87171"]} testID="qa-notifications" />
           </View>
         </View>
 
@@ -305,7 +304,7 @@ const styles = StyleSheet.create({
   bellBtn: { padding: 8 },
 
   ribbonRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginTop: 16 },
-  ribbon: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'white', borderRadius: 999, paddingVertical: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: '#E5E7EB' },
+  ribbon: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'white', borderRadius: 999, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: '#E5E7EB', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
   qr: { backgroundColor: '#F3F4F6' },
   ribbonText: { fontSize: 12, color: '#065F46', fontWeight: '600' },
 
