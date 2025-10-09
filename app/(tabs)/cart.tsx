@@ -167,9 +167,9 @@ export default function CartScreen() {
 
   if (cartItems.length === 0) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.container}>
         <LinearGradient colors={[Colors.primary.cream, '#FFFFFF']} style={styles.gradient}>
-          <View style={styles.header}>
+          <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
             <Text style={styles.headerTitle}>Your Cart</Text>
             <View style={styles.headerBadge}>
               <ShoppingCart size={20} color={Colors.primary.green} />
@@ -201,9 +201,9 @@ export default function CartScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       <LinearGradient colors={[Colors.primary.cream, '#FFFFFF']} style={styles.gradient}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <View style={styles.headerLeft}>
             <Text style={styles.headerTitle}>Your Cart</Text>
             <View style={styles.headerSubtitle}>
