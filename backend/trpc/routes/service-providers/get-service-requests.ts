@@ -1,56 +1,58 @@
 import { z } from 'zod';
 import { protectedProcedure } from '../../create-context';
-import { supabase } from '@/lib/supabase';
+import { TRPCError } from '@trpc/server';
 
 export const getServiceRequestsProcedure = protectedProcedure
   .input(
     z.object({
-      status: z.string().optional(),
-      asProvider: z.boolean().default(false),
+      status: z.enum(['pending', 'accepted', 'in_progress', 'completed', 'cancelled', 'disputed']).optional(),
+      limit: z.number().min(1).max(100).default(50),
+      offset: z.number().min(0).default(0),
     })
   )
-  .query(async ({ input, ctx }) => {
-    const userId = ctx.user?.id;
+  .query(async ({ ctx, input }) => {
+    const { supabase, user } = ctx;
 
-    if (!userId) {
-      throw new Error('User not authenticated');
+    const { data: serviceProvider, error: providerError } = await supabase
+      .from('service_providers')
+      .select('id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (providerError || !serviceProvider) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: 'Service provider profile not found',
+      });
     }
 
-    console.log('[getServiceRequests] Fetching requests for user:', userId);
-
-    let query = supabase.from('service_requests').select('*');
-
-    if (input.asProvider) {
-      const { data: provider, error: providerError } = await supabase
-        .from('service_providers')
-        .select('id')
-        .eq('user_id', userId)
-        .single();
-
-      if (providerError || !provider) {
-        console.error('[getServiceRequests] Provider not found:', providerError);
-        throw new Error('Service provider profile not found');
-      }
-
-      query = query.eq('provider_id', provider.id);
-    } else {
-      query = query.eq('requester_id', userId);
-    }
+    let query = supabase
+      .from('service_requests')
+      .select(`
+        *,
+        requester:profiles!service_requests_requester_id_fkey (
+          id,
+          full_name,
+          phone,
+          email
+        )
+      `)
+      .eq('provider_id', serviceProvider.id)
+      .order('created_at', { ascending: false })
+      .range(input.offset, input.offset + input.limit - 1);
 
     if (input.status) {
       query = query.eq('status', input.status);
     }
 
-    const { data: requests, error } = await query.order('created_at', { ascending: false });
+    const { data: requests, error } = await query;
 
     if (error) {
-      console.error('[getServiceRequests] Error fetching requests:', error);
-      throw new Error('Failed to fetch service requests');
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to fetch service requests',
+      });
     }
 
-    console.log('[getServiceRequests] Found requests:', requests?.length || 0);
-
-    return {
-      requests: requests || [],
-    };
+    return requests || [];
   });
