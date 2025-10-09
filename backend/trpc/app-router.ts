@@ -130,6 +130,9 @@ import { getDashboardStatsProcedure as getServiceDashboardStatsProcedure } from 
 import { createServiceRequestProcedure } from "@/backend/trpc/routes/service-providers/create-service-request";
 import { getServiceRequestsProcedure } from "@/backend/trpc/routes/service-providers/get-service-requests";
 import { updateRequestStatusProcedure } from "@/backend/trpc/routes/service-providers/update-request-status";
+import { updateDeliveryStatusProcedure } from "@/backend/trpc/routes/logistics/update-delivery-status";
+import { updateDriverLocationProcedure as logisticsUpdateDriverLocationProcedure } from "@/backend/trpc/routes/logistics/update-driver-location";
+import { getLiveTrackingProcedure } from "@/backend/trpc/routes/logistics/get-live-tracking";
 import { getMyShopProcedure } from "@/backend/trpc/routes/shop/get-my-shop";
 import { getMyServiceProfileProcedure } from "@/backend/trpc/routes/service-providers/get-my-profile";
 import { createWalletProcedure } from "@/backend/trpc/routes/agripay/create-wallet";
@@ -251,6 +254,9 @@ export const appRouter = createTRPCRouter({
     optimizeDeliveryRoutes: optimizeDeliveryRoutesProcedure,
     requestWithdrawal: requestWithdrawalProcedure,
     coordinatePickups: coordinatePickupsProcedure,
+    updateDeliveryStatus: updateDeliveryStatusProcedure,
+    updateDriverLocation: logisticsUpdateDriverLocationProcedure,
+    getLiveTracking: getLiveTrackingProcedure,
   }),
   qr: createTRPCRouter({
     generate: generateQRProcedure,
