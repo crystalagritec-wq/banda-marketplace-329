@@ -174,10 +174,6 @@ import { completeChallengeProcedure as rewardsCompleteChallengeProcedure } from 
 import { redeemPointsProcedure } from "@/backend/trpc/routes/rewards/redeem-points";
 import { submitDocumentsProcedure } from "@/backend/trpc/routes/verification/submit-documents";
 import { getSubscriptionPlansProcedure } from "@/backend/trpc/routes/subscription/get-plans";
-import { createBoostProcedure } from "@/backend/trpc/routes/boost/create-boost";
-import { getActiveBoostsProcedure } from "@/backend/trpc/routes/boost/get-active-boosts";
-import { getBoostPackagesProcedure } from "@/backend/trpc/routes/boost/get-boost-packages";
-import { cancelBoostProcedure } from "@/backend/trpc/routes/boost/cancel-boost";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -430,12 +426,6 @@ export const appRouter = createTRPCRouter({
     updateAddress: updateAddressProcedure,
     deleteAddress: deleteAddressProcedure,
     setDefaultAddress: setDefaultAddressProcedure,
-  }),
-  boost: createTRPCRouter({
-    createBoost: createBoostProcedure,
-    getActiveBoosts: getActiveBoostsProcedure,
-    getPackages: getBoostPackagesProcedure,
-    cancelBoost: cancelBoostProcedure,
   }),
 });
 
