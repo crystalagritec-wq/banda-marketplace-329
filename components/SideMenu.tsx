@@ -30,7 +30,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/providers/auth-provider';
 import { useWishlist } from '@/providers/wishlist-provider';
 import { useCart } from '@/providers/cart-provider';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { useWalletCheck } from '@/hooks/useWalletCheck';
 import WalletOnboardingModal from '@/components/WalletOnboardingModal';
 
@@ -56,7 +56,6 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
   const { user, logout } = useAuth();
   const { wishlistCount } = useWishlist();
   const { cartSummary } = useCart();
-  const insets = useSafeAreaInsets();
   const { wallet, hasWallet, isLoading } = useWalletCheck();
   const [showWalletOnboarding, setShowWalletOnboarding] = React.useState(false);
   const slideAnim = React.useRef(new Animated.Value(-MENU_WIDTH)).current;
@@ -323,7 +322,6 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
           style={[
             styles.menuContainer, 
             { 
-              paddingTop: insets.top,
               transform: [{ translateX: slideAnim }]
             }
           ]}

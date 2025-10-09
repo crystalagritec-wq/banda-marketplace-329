@@ -33,7 +33,7 @@ import {
   FlatList,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { useCart } from '@/providers/cart-provider';
 import { trpc } from '@/lib/trpc';
 import SideMenu from '@/components/SideMenu';
@@ -268,7 +268,6 @@ const ProductCard = React.memo<ProductCardProps>(({ product, onToggleFavorite, i
 export default function MarketplaceScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
   const { addToCart } = useCart();
   const { userLocation } = useLocation();
   const [searchQuery, setSearchQuery] = useState<string>('');
