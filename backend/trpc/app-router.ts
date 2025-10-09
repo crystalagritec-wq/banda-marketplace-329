@@ -181,6 +181,15 @@ import { createBoostProcedure } from "@/backend/trpc/routes/boost/create-boost";
 import { getActiveBoostsProcedure } from "@/backend/trpc/routes/boost/get-active-boosts";
 import { getBoostPackagesProcedure } from "@/backend/trpc/routes/boost/get-boost-packages";
 import { cancelBoostProcedure } from "@/backend/trpc/routes/boost/cancel-boost";
+import { getShopProductsFullProcedure } from "@/backend/trpc/routes/shop/get-shop-products-full";
+import { bulkUpdateProductsProcedure } from "@/backend/trpc/routes/shop/bulk-update-products";
+import { getInventoryAlertsProcedure } from "@/backend/trpc/routes/shop/get-inventory-alerts";
+import { uploadServiceProofProcedure } from "@/backend/trpc/routes/service-providers/upload-service-proof";
+import { rateServiceProviderProcedure } from "@/backend/trpc/routes/service-providers/rate-service-provider";
+import { assignDriverProcedure } from "@/backend/trpc/routes/logistics/assign-driver";
+import { getAvailableDriversProcedure } from "@/backend/trpc/routes/logistics/get-available-drivers";
+import { uploadDeliveryProofProcedure } from "@/backend/trpc/routes/logistics/upload-delivery-proof";
+import { rateDriverProcedure } from "@/backend/trpc/routes/logistics/rate-driver";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -257,6 +266,10 @@ export const appRouter = createTRPCRouter({
     updateDeliveryStatus: updateDeliveryStatusProcedure,
     updateDriverLocation: logisticsUpdateDriverLocationProcedure,
     getLiveTracking: getLiveTrackingProcedure,
+    assignDriver: assignDriverProcedure,
+    getAvailableDrivers: getAvailableDriversProcedure,
+    uploadDeliveryProof: uploadDeliveryProofProcedure,
+    rateDriver: rateDriverProcedure,
   }),
   qr: createTRPCRouter({
     generate: generateQRProcedure,
@@ -363,6 +376,9 @@ export const appRouter = createTRPCRouter({
   shop: createTRPCRouter({
     getDashboard: getShopDashboardProcedure,
     getProducts: getShopProductsProcedure,
+    getShopProductsFull: getShopProductsFullProcedure,
+    bulkUpdateProducts: bulkUpdateProductsProcedure,
+    getInventoryAlerts: getInventoryAlertsProcedure,
     updateProductStock: updateProductStockProcedure,
     getAnalytics: getShopAnalyticsProcedure,
     createProduct: createShopProductProcedure,
@@ -393,6 +409,8 @@ export const appRouter = createTRPCRouter({
     createServiceRequest: createServiceRequestProcedure,
     getServiceRequests: getServiceRequestsProcedure,
     updateRequestStatus: updateRequestStatusProcedure,
+    uploadServiceProof: uploadServiceProofProcedure,
+    rateServiceProvider: rateServiceProviderProcedure,
     getMyProfile: getMyServiceProfileProcedure,
   }),
   agripay: createTRPCRouter({
