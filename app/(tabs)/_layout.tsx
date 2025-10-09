@@ -82,8 +82,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="account"
           options={{
-            title: 'Account',
-            tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
+            href: null,
           }}
         />
         
@@ -122,6 +121,13 @@ export default function TabLayout() {
           name="product"
           options={{
             href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: 'Account',
+            tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
           }}
         />
       </Tabs>
