@@ -1,385 +1,368 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, RefreshControl } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
-import { useState, useMemo } from 'react';
-import { 
-  Briefcase, Clock, CheckCircle, XCircle, AlertCircle, 
-  Search, Filter, MapPin, Calendar, DollarSign, User,
-  Phone, MessageCircle, Star, ChevronRight
+import React, { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  RefreshControl,
+  Alert,
+  TextInput,
+  Modal,
+} from 'react-native';
+import { Stack } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  Briefcase,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Phone,
+  MapPin,
+  DollarSign,
+  Calendar,
+  User,
+  ChevronRight,
 } from 'lucide-react-native';
+import { useTheme } from '@/providers/theme-provider';
 import { trpc } from '@/lib/trpc';
 
-type RequestStatus = 'all' | 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled' | 'disputed';
+type RequestStatus = 'all' | 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled';
 
 export default function ServiceRequestsManagementScreen() {
-  const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const [selectedStatus, setSelectedStatus] = useState<RequestStatus>('all');
-  const [showFilters, setShowFilters] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [showActionModal, setShowActionModal] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+  const [actionNotes, setActionNotes] = useState('');
 
-  const { data: requests, isLoading, refetch } = trpc.serviceProviders.getServiceRequests.useQuery({
-    status: selectedStatus === 'all' ? undefined : selectedStatus,
+  const requestsQuery = trpc.serviceProviders.getServiceRequestsEnhanced.useQuery({
+    status: selectedStatus,
+    limit: 50,
+    offset: 0,
   });
 
-  const updateStatusMutation = trpc.serviceProviders.updateRequestStatus.useMutation({
+  const updateStatusMutation = trpc.serviceProviders.updateRequestStatusEnhanced.useMutation({
     onSuccess: () => {
-      refetch();
+      Alert.alert('Success', 'Request status updated successfully');
       setShowActionModal(false);
       setSelectedRequest(null);
+      setActionNotes('');
+      requestsQuery.refetch();
+    },
+    onError: (error) => {
+      Alert.alert('Error', error.message || 'Failed to update request status');
     },
   });
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refetch();
+    await requestsQuery.refetch();
     setRefreshing(false);
-  };
+  }, [requestsQuery]);
 
-  const filteredRequests = useMemo(() => {
-    if (!requests) return [];
-    
-    return requests.filter((request: any) => {
-      const matchesSearch = 
-        request.service_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        request.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        request.location_county.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      return matchesSearch;
+
+
+  const confirmStatusChange = (newStatus: 'accepted' | 'in_progress' | 'completed' | 'cancelled') => {
+    if (!selectedRequest) return;
+
+    updateStatusMutation.mutate({
+      requestId: selectedRequest.id,
+      status: newStatus,
+      notes: actionNotes || undefined,
     });
-  }, [requests, searchQuery]);
-
-  const statusCounts = useMemo(() => {
-    if (!requests) return {};
-    
-    return requests.reduce((acc: any, req: any) => {
-      acc[req.status] = (acc[req.status] || 0) + 1;
-      return acc;
-    }, {});
-  }, [requests]);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return '#FF9500';
-      case 'accepted': return '#007AFF';
-      case 'in_progress': return '#5856D6';
-      case 'completed': return '#34C759';
-      case 'cancelled': return '#8E8E93';
-      case 'disputed': return '#FF3B30';
-      default: return '#8E8E93';
+      case 'pending':
+        return '#F59E0B';
+      case 'accepted':
+        return '#3B82F6';
+      case 'in_progress':
+        return '#8B5CF6';
+      case 'completed':
+        return '#10B981';
+      case 'cancelled':
+        return '#EF4444';
+      default:
+        return theme.colors.mutedText;
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'pending': return Clock;
-      case 'accepted': return CheckCircle;
-      case 'in_progress': return Briefcase;
-      case 'completed': return CheckCircle;
-      case 'cancelled': return XCircle;
-      case 'disputed': return AlertCircle;
-      default: return Clock;
+      case 'pending':
+        return Clock;
+      case 'accepted':
+      case 'in_progress':
+        return Briefcase;
+      case 'completed':
+        return CheckCircle;
+      case 'cancelled':
+        return XCircle;
+      default:
+        return Clock;
     }
   };
 
-  const handleStatusUpdate = (newStatus: string) => {
-    if (!selectedRequest) return;
-    
-    updateStatusMutation.mutate({
-      requestId: selectedRequest.id,
-      status: newStatus,
-    });
-  };
+  const statusFilters: { label: string; value: RequestStatus }[] = [
+    { label: 'All', value: 'all' },
+    { label: 'Pending', value: 'pending' },
+    { label: 'Accepted', value: 'accepted' },
+    { label: 'In Progress', value: 'in_progress' },
+    { label: 'Completed', value: 'completed' },
+    { label: 'Cancelled', value: 'cancelled' },
+  ];
 
-  const renderRequestCard = (request: any) => {
-    const StatusIcon = getStatusIcon(request.status);
-    const statusColor = getStatusColor(request.status);
-
-    return (
-      <TouchableOpacity
-        key={request.id}
-        style={styles.requestCard}
-        onPress={() => {
-          setSelectedRequest(request);
-          setShowActionModal(true);
-        }}
-      >
-        <View style={styles.requestHeader}>
-          <View style={styles.requestTitleRow}>
-            <Briefcase size={20} color="#007AFF" />
-            <Text style={styles.requestTitle} numberOfLines={1}>
-              {request.service_name}
-            </Text>
-          </View>
-          <View style={[styles.statusBadge, { backgroundColor: `${statusColor}15` }]}>
-            <StatusIcon size={14} color={statusColor} />
-            <Text style={[styles.statusText, { color: statusColor }]}>
-              {request.status.replace('_', ' ')}
-            </Text>
-          </View>
-        </View>
-
-        <Text style={styles.requestDescription} numberOfLines={2}>
-          {request.description}
-        </Text>
-
-        <View style={styles.requestDetails}>
-          <View style={styles.detailRow}>
-            <MapPin size={16} color="#8E8E93" />
-            <Text style={styles.detailText}>
-              {request.location_county}, {request.location_sub_county || 'Kenya'}
-            </Text>
-          </View>
-
-          {request.scheduled_date && (
-            <View style={styles.detailRow}>
-              <Calendar size={16} color="#8E8E93" />
-              <Text style={styles.detailText}>
-                {new Date(request.scheduled_date).toLocaleDateString()}
-              </Text>
-            </View>
-          )}
-
-          {request.quoted_price && (
-            <View style={styles.detailRow}>
-              <DollarSign size={16} color="#34C759" />
-              <Text style={[styles.detailText, { color: '#34C759', fontWeight: '600' as const }]}>
-                KES {request.quoted_price.toLocaleString()}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.requestFooter}>
-          <View style={styles.requesterInfo}>
-            <User size={16} color="#8E8E93" />
-            <Text style={styles.requesterName}>
-              {request.requester?.full_name || 'Anonymous'}
-            </Text>
-          </View>
-          <ChevronRight size={20} color="#C7C7CC" />
-        </View>
-      </TouchableOpacity>
-    );
-  };
+  const requests = requestsQuery.data?.requests || [];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
       <Stack.Screen
         options={{
           title: 'Service Requests',
-          headerRight: () => (
-            <TouchableOpacity onPress={() => setShowFilters(!showFilters)}>
-              <Filter size={24} color="#007AFF" />
-            </TouchableOpacity>
-          ),
+          headerStyle: { backgroundColor: theme.colors.card },
+          headerTintColor: theme.colors.text,
         }}
       />
 
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Search size={20} color="#8E8E93" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search requests..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor="#8E8E93"
-          />
-        </View>
+      <View style={[styles.filterContainer, { backgroundColor: theme.colors.card }]}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {statusFilters.map((filter) => (
+            <TouchableOpacity
+              key={filter.value}
+              style={[
+                styles.filterButton,
+                {
+                  backgroundColor:
+                    selectedStatus === filter.value ? theme.colors.primary : 'transparent',
+                  borderColor: theme.colors.border,
+                },
+              ]}
+              onPress={() => setSelectedStatus(filter.value)}
+            >
+              <Text
+                style={[
+                  styles.filterText,
+                  {
+                    color:
+                      selectedStatus === filter.value ? '#FFFFFF' : theme.colors.text,
+                  },
+                ]}
+              >
+                {filter.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.statusFilters}
-        contentContainerStyle={styles.statusFiltersContent}
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
-        {(['all', 'pending', 'accepted', 'in_progress', 'completed', 'cancelled', 'disputed'] as RequestStatus[]).map((status) => (
-          <TouchableOpacity
-            key={status}
-            style={[
-              styles.statusFilter,
-              selectedStatus === status && styles.statusFilterActive,
-            ]}
-            onPress={() => setSelectedStatus(status)}
-          >
-            <Text
-              style={[
-                styles.statusFilterText,
-                selectedStatus === status && styles.statusFilterTextActive,
-              ]}
-            >
-              {status === 'all' ? 'All' : status.replace('_', ' ')}
+        {requestsQuery.isLoading ? (
+          <View style={styles.centerContainer}>
+            <Text style={[styles.loadingText, { color: theme.colors.mutedText }]}>
+              Loading requests...
             </Text>
-            {statusCounts[status] > 0 && (
-              <View style={[
-                styles.countBadge,
-                selectedStatus === status && styles.countBadgeActive,
-              ]}>
-                <Text style={[
-                  styles.countText,
-                  selectedStatus === status && styles.countTextActive,
-                ]}>
-                  {statusCounts[status]}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+          </View>
+        ) : requests.length === 0 ? (
+          <View style={styles.centerContainer}>
+            <Briefcase size={64} color={theme.colors.mutedText} />
+            <Text style={[styles.emptyText, { color: theme.colors.mutedText }]}>
+              No {selectedStatus !== 'all' ? selectedStatus : ''} requests found
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.requestsList}>
+            {requests.map((request: any) => {
+              const StatusIcon = getStatusIcon(request.status);
+              const statusColor = getStatusColor(request.status);
 
-      {isLoading && !refreshing ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.loadingText}>Loading requests...</Text>
-        </View>
-      ) : filteredRequests.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Briefcase size={64} color="#C7C7CC" />
-          <Text style={styles.emptyTitle}>No Requests Found</Text>
-          <Text style={styles.emptySubtitle}>
-            {searchQuery ? 'Try adjusting your search' : 'New requests will appear here'}
-          </Text>
-        </View>
-      ) : (
-        <ScrollView
-          style={styles.requestsList}
-          contentContainerStyle={styles.requestsListContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        >
-          {filteredRequests.map(renderRequestCard)}
-        </ScrollView>
-      )}
+              return (
+                <TouchableOpacity
+                  key={request.id}
+                  style={[styles.requestCard, { backgroundColor: theme.colors.card }]}
+                  onPress={() => {
+                    setSelectedRequest(request);
+                    setShowActionModal(true);
+                  }}
+                >
+                  <View style={styles.requestHeader}>
+                    <View style={styles.requestHeaderLeft}>
+                      <StatusIcon size={20} color={statusColor} />
+                      <Text style={[styles.requestCategory, { color: theme.colors.text }]}>
+                        {request.service_category}
+                      </Text>
+                    </View>
+                    <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
+                      <Text style={[styles.statusText, { color: statusColor }]}>
+                        {request.status}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Text
+                    style={[styles.requestDescription, { color: theme.colors.mutedText }]}
+                    numberOfLines={2}
+                  >
+                    {request.description}
+                  </Text>
+
+                  {request.requester && (
+                    <View style={styles.requesterInfo}>
+                      <User size={16} color={theme.colors.mutedText} />
+                      <Text style={[styles.requesterName, { color: theme.colors.text }]}>
+                        {request.requester.full_name || 'Unknown'}
+                      </Text>
+                    </View>
+                  )}
+
+                  {request.location && (
+                    <View style={styles.locationInfo}>
+                      <MapPin size={16} color={theme.colors.mutedText} />
+                      <Text style={[styles.locationText, { color: theme.colors.mutedText }]}>
+                        {request.location}
+                      </Text>
+                    </View>
+                  )}
+
+                  {request.service_fee && (
+                    <View style={styles.feeInfo}>
+                      <DollarSign size={16} color="#10B981" />
+                      <Text style={[styles.feeText, { color: '#10B981' }]}>
+                        KSh {Number(request.service_fee).toLocaleString()}
+                      </Text>
+                    </View>
+                  )}
+
+                  <View style={styles.requestFooter}>
+                    <View style={styles.dateInfo}>
+                      <Calendar size={14} color={theme.colors.mutedText} />
+                      <Text style={[styles.dateText, { color: theme.colors.mutedText }]}>
+                        {new Date(request.created_at).toLocaleDateString()}
+                      </Text>
+                    </View>
+                    <ChevronRight size={20} color={theme.colors.mutedText} />
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+      </ScrollView>
 
       <Modal
         visible={showActionModal}
-        animationType="slide"
         transparent
+        animationType="slide"
         onRequestClose={() => setShowActionModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Request Details</Text>
-              <TouchableOpacity onPress={() => setShowActionModal(false)}>
-                <XCircle size={24} color="#8E8E93" />
-              </TouchableOpacity>
-            </View>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+              Manage Request
+            </Text>
 
             {selectedRequest && (
-              <ScrollView style={styles.modalBody}>
-                <View style={styles.modalSection}>
-                  <Text style={styles.modalSectionTitle}>Service</Text>
-                  <Text style={styles.modalSectionText}>{selectedRequest.service_name}</Text>
-                  <Text style={styles.modalSectionSubtext}>{selectedRequest.category}</Text>
-                </View>
+              <>
+                <Text style={[styles.modalSubtitle, { color: theme.colors.mutedText }]}>
+                  {selectedRequest.service_category}
+                </Text>
 
-                <View style={styles.modalSection}>
-                  <Text style={styles.modalSectionTitle}>Description</Text>
-                  <Text style={styles.modalSectionText}>{selectedRequest.description}</Text>
-                </View>
-
-                <View style={styles.modalSection}>
-                  <Text style={styles.modalSectionTitle}>Location</Text>
-                  <Text style={styles.modalSectionText}>
-                    {selectedRequest.location_address || 
-                     `${selectedRequest.location_county}, ${selectedRequest.location_sub_county || 'Kenya'}`}
-                  </Text>
-                </View>
-
-                {selectedRequest.scheduled_date && (
-                  <View style={styles.modalSection}>
-                    <Text style={styles.modalSectionTitle}>Scheduled For</Text>
-                    <Text style={styles.modalSectionText}>
-                      {new Date(selectedRequest.scheduled_date).toLocaleString()}
-                    </Text>
-                  </View>
-                )}
-
-                {selectedRequest.quoted_price && (
-                  <View style={styles.modalSection}>
-                    <Text style={styles.modalSectionTitle}>Quoted Price</Text>
-                    <Text style={[styles.modalSectionText, { color: '#34C759', fontSize: 20, fontWeight: '700' as const }]}>
-                      KES {selectedRequest.quoted_price.toLocaleString()}
-                    </Text>
-                  </View>
-                )}
-
-                <View style={styles.modalSection}>
-                  <Text style={styles.modalSectionTitle}>Requester</Text>
-                  <View style={styles.requesterCard}>
-                    <User size={24} color="#007AFF" />
-                    <View style={styles.requesterDetails}>
-                      <Text style={styles.requesterCardName}>
-                        {selectedRequest.requester?.full_name || 'Anonymous'}
-                      </Text>
-                      {selectedRequest.requester?.phone && (
-                        <Text style={styles.requesterCardPhone}>
-                          {selectedRequest.requester.phone}
-                        </Text>
-                      )}
-                    </View>
-                    <View style={styles.requesterActions}>
-                      <TouchableOpacity style={styles.iconAction}>
-                        <Phone size={20} color="#007AFF" />
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.iconAction}>
-                        <MessageCircle size={20} color="#34C759" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </View>
-
-                <View style={styles.modalSection}>
-                  <Text style={styles.modalSectionTitle}>Update Status</Text>
-                  <View style={styles.statusActions}>
-                    {selectedRequest.status === 'pending' && (
-                      <>
-                        <TouchableOpacity
-                          style={[styles.actionButton, styles.acceptButton]}
-                          onPress={() => handleStatusUpdate('accepted')}
-                          disabled={updateStatusMutation.isLoading}
-                        >
-                          <CheckCircle size={20} color="#FFFFFF" />
-                          <Text style={styles.actionButtonText}>Accept</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[styles.actionButton, styles.rejectButton]}
-                          onPress={() => handleStatusUpdate('cancelled')}
-                          disabled={updateStatusMutation.isLoading}
-                        >
-                          <XCircle size={20} color="#FFFFFF" />
-                          <Text style={styles.actionButtonText}>Decline</Text>
-                        </TouchableOpacity>
-                      </>
-                    )}
-
-                    {selectedRequest.status === 'accepted' && (
+                <View style={styles.actionButtons}>
+                  {selectedRequest.status === 'pending' && (
+                    <>
                       <TouchableOpacity
-                        style={[styles.actionButton, styles.startButton]}
-                        onPress={() => handleStatusUpdate('in_progress')}
-                        disabled={updateStatusMutation.isLoading}
-                      >
-                        <Briefcase size={20} color="#FFFFFF" />
-                        <Text style={styles.actionButtonText}>Start Work</Text>
-                      </TouchableOpacity>
-                    )}
-
-                    {selectedRequest.status === 'in_progress' && (
-                      <TouchableOpacity
-                        style={[styles.actionButton, styles.completeButton]}
-                        onPress={() => handleStatusUpdate('completed')}
-                        disabled={updateStatusMutation.isLoading}
+                        style={[styles.actionButton, { backgroundColor: '#10B981' }]}
+                        onPress={() => confirmStatusChange('accepted')}
+                        disabled={updateStatusMutation.isPending}
                       >
                         <CheckCircle size={20} color="#FFFFFF" />
-                        <Text style={styles.actionButtonText}>Mark Complete</Text>
+                        <Text style={styles.actionButtonText}>Accept</Text>
                       </TouchableOpacity>
-                    )}
-                  </View>
+                      <TouchableOpacity
+                        style={[styles.actionButton, { backgroundColor: '#EF4444' }]}
+                        onPress={() => confirmStatusChange('cancelled')}
+                        disabled={updateStatusMutation.isPending}
+                      >
+                        <XCircle size={20} color="#FFFFFF" />
+                        <Text style={styles.actionButtonText}>Decline</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+
+                  {selectedRequest.status === 'accepted' && (
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: '#8B5CF6' }]}
+                      onPress={() => confirmStatusChange('in_progress')}
+                      disabled={updateStatusMutation.isPending}
+                    >
+                      <Briefcase size={20} color="#FFFFFF" />
+                      <Text style={styles.actionButtonText}>Start Work</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {selectedRequest.status === 'in_progress' && (
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: '#10B981' }]}
+                      onPress={() => confirmStatusChange('completed')}
+                      disabled={updateStatusMutation.isPending}
+                    >
+                      <CheckCircle size={20} color="#FFFFFF" />
+                      <Text style={styles.actionButtonText}>Mark Complete</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {selectedRequest.requester?.phone && (
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
+                      onPress={() => {
+                        Alert.alert('Contact', `Call ${selectedRequest.requester.phone}?`);
+                      }}
+                    >
+                      <Phone size={20} color="#FFFFFF" />
+                      <Text style={styles.actionButtonText}>Call Client</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
-              </ScrollView>
+
+                <TextInput
+                  style={[
+                    styles.notesInput,
+                    {
+                      backgroundColor: theme.colors.background,
+                      color: theme.colors.text,
+                      borderColor: theme.colors.border,
+                    },
+                  ]}
+                  placeholder="Add notes (optional)"
+                  placeholderTextColor={theme.colors.mutedText}
+                  value={actionNotes}
+                  onChangeText={setActionNotes}
+                  multiline
+                  numberOfLines={3}
+                />
+
+                <TouchableOpacity
+                  style={[styles.closeButton, { backgroundColor: theme.colors.border }]}
+                  onPress={() => {
+                    setShowActionModal(false);
+                    setSelectedRequest(null);
+                    setActionNotes('');
+                  }}
+                >
+                  <Text style={[styles.closeButtonText, { color: theme.colors.text }]}>
+                    Close
+                  </Text>
+                </TouchableOpacity>
+              </>
             )}
           </View>
         </View>
@@ -391,297 +374,188 @@ export default function ServiceRequestsManagementScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
   },
-  searchContainer: {
-    padding: 16,
-    backgroundColor: '#FFFFFF',
+  filterContainer: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
-  searchBar: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#1C1C1E',
-  },
-  statusFilters: {
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  statusFiltersContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  statusFilter: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
+  filterButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#F8F9FA',
-    gap: 8,
+    marginRight: 8,
+    borderWidth: 1,
   },
-  statusFilterActive: {
-    backgroundColor: '#007AFF',
-  },
-  statusFilterText: {
+  filterText: {
     fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
-    textTransform: 'capitalize' as const,
+    fontWeight: '600',
   },
-  statusFilterTextActive: {
-    color: '#FFFFFF',
+  scrollView: {
+    flex: 1,
   },
-  countBadge: {
-    backgroundColor: '#E5E7EB',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-    minWidth: 24,
-    alignItems: 'center' as const,
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
   },
-  countBadgeActive: {
-    backgroundColor: '#FFFFFF30',
+  loadingText: {
+    fontSize: 16,
+    marginTop: 16,
   },
-  countText: {
-    fontSize: 12,
-    fontWeight: '700' as const,
-    color: '#1C1C1E',
-  },
-  countTextActive: {
-    color: '#FFFFFF',
+  emptyText: {
+    fontSize: 16,
+    marginTop: 16,
+    textAlign: 'center',
   },
   requestsList: {
-    flex: 1,
-  },
-  requestsListContent: {
     padding: 16,
-    gap: 12,
   },
   requestCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   requestHeader: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'flex-start' as const,
-    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  requestTitleRow: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
+  requestHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
-    flex: 1,
-    marginRight: 12,
   },
-  requestTitle: {
-    fontSize: 17,
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
-    flex: 1,
+  requestCategory: {
+    fontSize: 16,
+    fontWeight: '700',
   },
   statusBadge: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
     borderRadius: 12,
-    gap: 4,
   },
   statusText: {
     fontSize: 12,
-    fontWeight: '600' as const,
-    textTransform: 'capitalize' as const,
+    fontWeight: '600',
+    textTransform: 'capitalize',
   },
   requestDescription: {
-    fontSize: 15,
-    color: '#3C3C43',
-    lineHeight: 22,
-    marginBottom: 12,
-  },
-  requestDetails: {
-    gap: 8,
-    marginBottom: 12,
-  },
-  detailRow: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 8,
-  },
-  detailText: {
     fontSize: 14,
-    color: '#8E8E93',
-  },
-  requestFooter: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    marginBottom: 12,
+    lineHeight: 20,
   },
   requesterInfo: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
   },
   requesterName: {
     fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
+    fontWeight: '500',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    padding: 40,
+  locationInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#8E8E93',
+  locationText: {
+    fontSize: 13,
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    padding: 40,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700' as const,
-    color: '#1C1C1E',
-    marginTop: 16,
+  feeInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     marginBottom: 8,
   },
-  emptySubtitle: {
-    fontSize: 15,
-    color: '#8E8E93',
-    textAlign: 'center' as const,
+  feeText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  requestFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  dateInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  dateText: {
+    fontSize: 12,
   },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end' as const,
+    justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '90%',
-  },
-  modalHeader: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    minHeight: 300,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700' as const,
-    color: '#1C1C1E',
-  },
-  modalBody: {
-    padding: 20,
-  },
-  modalSection: {
-    marginBottom: 24,
-  },
-  modalSectionTitle: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#8E8E93',
+    fontWeight: '700',
     marginBottom: 8,
-    textTransform: 'uppercase' as const,
   },
-  modalSectionText: {
-    fontSize: 16,
-    color: '#1C1C1E',
-    lineHeight: 24,
-  },
-  modalSectionSubtext: {
+  modalSubtitle: {
     fontSize: 14,
-    color: '#8E8E93',
-    marginTop: 4,
+    marginBottom: 20,
   },
-  requesterCard: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 16,
+  actionButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
-  },
-  requesterDetails: {
-    flex: 1,
-  },
-  requesterCardName: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
-    marginBottom: 4,
-  },
-  requesterCardPhone: {
-    fontSize: 14,
-    color: '#8E8E93',
-  },
-  requesterActions: {
-    flexDirection: 'row' as const,
-    gap: 8,
-  },
-  iconAction: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-  },
-  statusActions: {
-    gap: 12,
+    marginBottom: 16,
   },
   actionButton: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    paddingVertical: 16,
-    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
-  },
-  acceptButton: {
-    backgroundColor: '#34C759',
-  },
-  rejectButton: {
-    backgroundColor: '#FF3B30',
-  },
-  startButton: {
-    backgroundColor: '#5856D6',
-  },
-  completeButton: {
-    backgroundColor: '#34C759',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    flex: 1,
+    minWidth: '45%',
+    justifyContent: 'center',
   },
   actionButtonText: {
-    fontSize: 16,
-    fontWeight: '600' as const,
     color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  notesInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  closeButton: {
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

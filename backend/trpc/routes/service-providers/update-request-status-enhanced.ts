@@ -1,97 +1,114 @@
-import { z } from "zod";
-import { protectedProcedure } from "../../create-context";
-import { TRPCError } from "@trpc/server";
+import { z } from 'zod';
+import { protectedProcedure } from '../../create-context';
 
 export const updateRequestStatusEnhancedProcedure = protectedProcedure
   .input(
     z.object({
       requestId: z.string().uuid(),
-      status: z.enum(["accepted", "in_progress", "completed", "cancelled"]),
+      status: z.enum(['accepted', 'in_progress', 'completed', 'cancelled']),
       notes: z.string().optional(),
+      completionDetails: z.object({
+        workDone: z.string().optional(),
+        materialsUsed: z.string().optional(),
+        recommendations: z.string().optional(),
+      }).optional(),
     })
   )
-  .mutation(async ({ input, ctx }) => {
-    const { requestId, status, notes } = input;
-    const userId = ctx.user.id;
+  .mutation(async ({ ctx, input }) => {
+    try {
+      console.log('[ServiceProviders] Updating request status', { requestId: input.requestId, status: input.status });
 
-    console.log("[updateRequestStatusEnhanced] Updating status", {
-      requestId,
-      status,
-      userId,
-    });
+      const { data: provider, error: providerError } = await ctx.supabase
+        .from('service_providers')
+        .select('id')
+        .eq('user_id', ctx.user.id)
+        .single();
 
-    const { data: provider, error: providerError } = await ctx.supabase
-      .from("service_providers")
-      .select("id")
-      .eq("user_id", userId)
-      .single();
+      if (providerError || !provider) {
+        throw new Error('Service provider not found');
+      }
 
-    if (providerError || !provider) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Service provider profile not found",
-      });
+      const { data: request, error: requestError } = await ctx.supabase
+        .from('service_requests')
+        .select('*')
+        .eq('id', input.requestId)
+        .eq('provider_id', provider.id)
+        .single();
+
+      if (requestError || !request) {
+        throw new Error('Service request not found or unauthorized');
+      }
+
+      const updateData: any = {
+        status: input.status,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (input.status === 'accepted') {
+        updateData.accepted_at = new Date().toISOString();
+      } else if (input.status === 'in_progress') {
+        updateData.started_at = new Date().toISOString();
+      } else if (input.status === 'completed') {
+        updateData.completed_at = new Date().toISOString();
+        if (input.completionDetails) {
+          updateData.completion_notes = JSON.stringify(input.completionDetails);
+        }
+      } else if (input.status === 'cancelled') {
+        updateData.cancelled_at = new Date().toISOString();
+        if (input.notes) {
+          updateData.cancellation_reason = input.notes;
+        }
+      }
+
+      const { error: updateError } = await ctx.supabase
+        .from('service_requests')
+        .update(updateData)
+        .eq('id', input.requestId);
+
+      if (updateError) {
+        console.error('[ServiceProviders] Error updating request', updateError);
+        throw new Error('Failed to update request status');
+      }
+
+      if (input.status === 'completed' && request.service_fee) {
+        const platformFee = Number(request.service_fee) * 0.05;
+        const netAmount = Number(request.service_fee) - platformFee;
+
+        const { error: earningsError } = await ctx.supabase
+          .from('service_provider_earnings')
+          .insert({
+            provider_id: provider.id,
+            request_id: input.requestId,
+            gross_amount: request.service_fee,
+            platform_fee: platformFee,
+            net_amount: netAmount,
+            payment_status: 'pending',
+          });
+
+        if (earningsError) {
+          console.error('[ServiceProviders] Error creating earnings record', earningsError);
+        }
+      }
+
+      const { error: notificationError } = await ctx.supabase
+        .from('notifications')
+        .insert({
+          user_id: request.requester_id,
+          title: `Service Request ${input.status}`,
+          message: `Your service request has been ${input.status}`,
+          type: 'service_update',
+          data: { requestId: input.requestId, status: input.status },
+        });
+
+      if (notificationError) {
+        console.error('[ServiceProviders] Error creating notification', notificationError);
+      }
+
+      console.log('[ServiceProviders] Request status updated successfully');
+
+      return { success: true };
+    } catch (error) {
+      console.error('[ServiceProviders] Error in updateRequestStatus', error);
+      throw error;
     }
-
-    const { data: request, error: fetchError } = await ctx.supabase
-      .from("service_requests")
-      .select("*, users!service_requests_customer_id_fkey(id)")
-      .eq("id", requestId)
-      .eq("provider_id", provider.id)
-      .single();
-
-    if (fetchError || !request) {
-      console.error("[updateRequestStatusEnhanced] Request not found", fetchError);
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Service request not found",
-      });
-    }
-
-    const updateData: Record<string, unknown> = {
-      status,
-    };
-
-    if (status === "completed") {
-      updateData.completed_at = new Date().toISOString();
-    }
-
-    const { data: updatedRequest, error: updateError } = await ctx.supabase
-      .from("service_requests")
-      .update(updateData)
-      .eq("id", requestId)
-      .select()
-      .single();
-
-    if (updateError) {
-      console.error("[updateRequestStatusEnhanced] Failed to update status", updateError);
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to update service request status",
-      });
-    }
-
-    const statusMessages: Record<string, string> = {
-      accepted: "Your service request has been accepted",
-      in_progress: "Your service is now in progress",
-      completed: "Your service has been completed",
-      cancelled: "Your service request has been cancelled",
-    };
-
-    await ctx.supabase.from("push_notifications").insert({
-      user_id: request.users.id,
-      title: "Service Request Update",
-      message: statusMessages[status] || "Your service request status has been updated",
-      data: { requestId, status, notes },
-    });
-
-    console.log("[updateRequestStatusEnhanced] Status updated successfully", {
-      requestId,
-      status,
-    });
-
-    return {
-      success: true,
-      request: updatedRequest,
-    };
   });
