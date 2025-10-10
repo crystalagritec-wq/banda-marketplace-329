@@ -556,58 +556,11 @@ export default function MarketplaceScreen() {
           </View>
         </View>
 
-        {/* Flash Sale Section */}
-        <View style={styles.flashSaleSection}>
-          <View style={styles.flashSaleHeader}>
-            <View style={styles.flashSaleTitle}>
-              <Flame size={20} color={ORANGE} />
-              <Text style={styles.sectionTitle}>🔥 {i18n.flashSale}</Text>
-              <TouchableOpacity onPress={() => router.push('/flash-sale')}>
-                <Text style={styles.seeAllText}>{i18n.seeAll} →</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.flashSaleTimer}>
-              <Clock size={16} color={ORANGE} />
-              <Text style={styles.timerText}>⏰ {i18n.endsIn} {timeStr}</Text>
-            </View>
-          </View>
-          
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false} 
-            contentContainerStyle={styles.flashSaleList}
-          >
-            {flashProducts.map((product: Product) => (
-              <TouchableOpacity 
-                key={`flash-${product.id}`} 
-                style={styles.flashSaleCard}
-                onPress={() => openDetails(product.id)}
-              >
-                <Image source={{ uri: product.image }} style={styles.flashSaleImage} />
-                <View style={styles.flashSaleDiscount}>
-                  <Text style={styles.flashSaleDiscountText}>-{product.discount}%</Text>
-                </View>
-                <View style={styles.flashSaleInfo}>
-                  <Text numberOfLines={1} style={styles.flashSaleName}>{product.name}</Text>
-                  <View style={styles.flashSalePriceRow}>
-                    <Text style={styles.flashSaleOldPrice}>KES {Math.round(product.price * 1.3)}</Text>
-                    <Text style={styles.flashSaleNewPrice}>{formatPrice(product.price)}</Text>
-                  </View>
-                  <TouchableOpacity 
-                    style={styles.flashSaleAddButton}
-                    onPress={() => handleAddToCart(product)}
-                  >
-                    <Text style={styles.flashSaleAddText}>{i18n.add}</Text>
-                  </TouchableOpacity>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
         {/* Categories Section */}
         <View style={styles.categoriesSection}>
-          <Text style={styles.sectionTitle}>{i18n.categories}</Text>
+          <View style={styles.flashSaleHeader}>
+            <Text style={styles.sectionTitle}>{i18n.categories}</Text>
+          </View>
           <ScrollView 
             horizontal 
             showsHorizontalScrollIndicator={false}
@@ -632,6 +585,7 @@ export default function MarketplaceScreen() {
           </ScrollView>
         </View>
 
+        {/* Flash Sale Section */}
         <View style={styles.flashHeader} testID="flash-header">
           <LinearGradient colors={['#FFE8D6', '#FFD6A5']} style={styles.flashHeaderGradient}>
             <View style={styles.flashLeft}> 
