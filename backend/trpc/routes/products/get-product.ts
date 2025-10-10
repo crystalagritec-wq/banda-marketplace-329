@@ -12,16 +12,21 @@ export const getProductProcedure = publicProcedure
 
     try {
       const { data, error } = await ctx.supabase
-        .from('products')
+        .from('marketplace_products')
         .select(`
           *,
-          vendor:vendor_id (
+          vendor:user_id (
             id,
-            name,
+            full_name,
+            vendor_display_name,
+            business_name,
             phone,
-            location,
-            is_verified,
-            reputation_score
+            location_city,
+            location_county,
+            location_lat,
+            location_lng,
+            verified,
+            avatar_url
           )
         `)
         .eq('id', productId)
@@ -32,7 +37,19 @@ export const getProductProcedure = publicProcedure
         return null;
       }
 
-      return data;
+      const formattedData = {
+        ...data,
+        vendor_name: data.vendor?.vendor_display_name || data.vendor?.business_name || data.vendor?.full_name || 'Unknown Vendor',
+        vendor_id: data.user_id,
+        vendor_verified: data.vendor?.verified || false,
+        vendor_phone: data.vendor?.phone,
+        vendor_location: data.vendor?.location_city && data.vendor?.location_county
+          ? `${data.vendor.location_city}, ${data.vendor.location_county}`
+          : data.location_county || 'Kenya',
+        vendor_avatar: data.vendor?.avatar_url,
+      };
+
+      return formattedData;
     } catch (e: any) {
       console.error('[Products] getProduct error:', e);
       return null;

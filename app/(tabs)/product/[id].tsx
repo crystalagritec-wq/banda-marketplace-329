@@ -27,6 +27,7 @@ import {
   Check,
   ChevronUp,
   ChevronDown,
+  Store,
 } from 'lucide-react-native';
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import {
@@ -668,13 +669,15 @@ export default function ProductDetailsScreen() {
                       router.push(`/vendor/${vendorId}` as any);
                     } else {
                       console.warn('No vendor ID found for product:', current.id);
+                      Alert.alert('Shop Unavailable', 'Unable to open shop front at this time.');
                     }
                   }}
                   activeOpacity={0.7}
+                  testID="vendor-shop-link"
                 >
                   <View style={styles.vendorHeader}>
                     <View style={styles.vendorAvatar}>
-                      <User size={20} color="#2D5016" />
+                      <Store size={20} color="#2D5016" />
                     </View>
                     <View style={styles.vendorInfo}>
                       <View style={styles.vendorNameRow}>
@@ -695,7 +698,8 @@ export default function ProductDetailsScreen() {
                         )}
                       </View>
                       <View style={styles.viewShopRow}>
-                        <Text style={styles.viewShopText}>View Shop</Text>
+                        <Store size={12} color="#2D5016" />
+                        <Text style={styles.viewShopText}>Visit Shop</Text>
                         <ChevronRight size={14} color="#2D5016" />
                       </View>
                     </View>
