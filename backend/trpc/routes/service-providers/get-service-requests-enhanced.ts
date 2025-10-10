@@ -40,7 +40,7 @@ export const getServiceRequestsEnhancedProcedure = protectedProcedure
             location
           )
         `, { count: 'exact' })
-        .eq('provider_id', provider.id as string)
+        .eq('provider_id', provider.id)
         .order('created_at', { ascending: false })
         .range(input.offset, input.offset + input.limit - 1);
 
