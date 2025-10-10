@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Package, Plus, Edit, Trash2, AlertCircle, Search } from 'lucide-react-native';
+import { trpc } from '@/lib/trpc';
 
 interface Product {
   id: string;
@@ -10,20 +11,56 @@ interface Product {
   category: string;
   price: number;
   stock: number;
-  status: 'active' | 'low_stock' | 'out_of_stock';
+  status: 'active' | 'low_stock' | 'out_of_stock' | 'draft';
 }
 
 export default function ShopProductsScreen() {
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   
-  const [products, setProducts] = useState<Product[]>([
-    { id: '1', name: 'Fresh Tomatoes', category: 'Vegetables', price: 150, stock: 45, status: 'active' },
-    { id: '2', name: 'Organic Carrots', category: 'Vegetables', price: 120, stock: 8, status: 'low_stock' },
-    { id: '3', name: 'Sweet Potatoes', category: 'Vegetables', price: 100, stock: 0, status: 'out_of_stock' },
-    { id: '4', name: 'Fresh Milk', category: 'Dairy', price: 80, stock: 30, status: 'active' },
-    { id: '5', name: 'Farm Eggs', category: 'Poultry', price: 200, stock: 15, status: 'active' },
-  ]);
+  const { data: shopData, isLoading: shopLoading } = trpc.shop.getMyShop.useQuery();
+  const shop = shopData?.shop;
+  const { data: productsData, isLoading: productsLoading, refetch } = trpc.shop.getVendorProducts.useQuery(
+    { vendorId: shop?.id || '' },
+    { enabled: !!shop?.id }
+  );
+  
+  const updateStockMutation = trpc.shop.updateProductStock.useMutation({
+    onSuccess: () => {
+      refetch();
+      Alert.alert('Success', 'Stock updated successfully');
+    },
+    onError: (error) => {
+      Alert.alert('Error', error.message || 'Failed to update stock');
+    },
+  });
+  
+  const deleteProductMutation = trpc.shop.deleteProduct.useMutation({
+    onSuccess: () => {
+      refetch();
+      Alert.alert('Success', 'Product deleted successfully');
+    },
+    onError: (error) => {
+      Alert.alert('Error', error.message || 'Failed to delete product');
+    },
+  });
+  
+  const [refreshing, setRefreshing] = useState(false);
+  
+  const products: Product[] = productsData?.products?.map((p: any) => ({
+    id: p.id,
+    name: p.name,
+    category: p.category,
+    price: p.price,
+    stock: p.stock_quantity || 0,
+    status: p.stock_quantity === 0 ? 'out_of_stock' : p.stock_quantity < 10 ? 'low_stock' : 'active',
+  })) || [];
+  
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
 
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -31,7 +68,7 @@ export default function ShopProductsScreen() {
   );
 
   const handleEditProduct = (productId: string) => {
-    Alert.alert('Edit Product', `Edit product ${productId}`);
+    router.push(`/post-product?productId=${productId}` as any);
   };
 
   const handleDeleteProduct = (productId: string) => {
@@ -44,7 +81,7 @@ export default function ShopProductsScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            setProducts(products.filter(p => p.id !== productId));
+            deleteProductMutation.mutate({ productId });
           },
         },
       ]
@@ -61,16 +98,11 @@ export default function ShopProductsScreen() {
           text: 'Update',
           onPress: (value) => {
             const newStock = parseInt(value || '0', 10);
-            setProducts(products.map(p => {
-              if (p.id === productId) {
-                return {
-                  ...p,
-                  stock: newStock,
-                  status: newStock === 0 ? 'out_of_stock' : newStock < 10 ? 'low_stock' : 'active',
-                };
-              }
-              return p;
-            }));
+            if (isNaN(newStock) || newStock < 0) {
+              Alert.alert('Error', 'Please enter a valid number');
+              return;
+            }
+            updateStockMutation.mutate({ productId, stock: newStock });
           },
         },
       ],
@@ -108,28 +140,52 @@ export default function ShopProductsScreen() {
         }} 
       />
       <View style={[styles.container, { paddingBottom: insets.bottom }]}>
-        <View style={styles.header}>
-          <View style={styles.searchContainer}>
-            <Search size={20} color="#6B7280" />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search products..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholderTextColor="#9CA3AF"
-            />
+        {(shopLoading || productsLoading) && !refreshing ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#2D5016" />
+            <Text style={styles.loadingText}>Loading products...</Text>
           </View>
+        ) : !shop ? (
+          <View style={styles.emptyContainer}>
+            <Package size={48} color="#9CA3AF" />
+            <Text style={styles.emptyTitle}>No Shop Found</Text>
+            <Text style={styles.emptyText}>Please complete your shop setup first</Text>
+            <TouchableOpacity 
+              style={styles.setupButton}
+              onPress={() => router.push('/shop-activation' as any)}
+            >
+              <Text style={styles.setupButtonText}>Setup Shop</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            <View style={styles.header}>
+              <View style={styles.searchContainer}>
+                <Search size={20} color="#6B7280" />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
 
-          <TouchableOpacity 
-            style={styles.addButton}
-            onPress={() => router.push('/post-product' as any)}
-          >
-            <Plus size={20} color="white" />
-            <Text style={styles.addButtonText}>Add Product</Text>
-          </TouchableOpacity>
-        </View>
+              <TouchableOpacity 
+                style={styles.addButton}
+                onPress={() => router.push('/post-product' as any)}
+              >
+                <Plus size={20} color="white" />
+                <Text style={styles.addButtonText}>Add Product</Text>
+              </TouchableOpacity>
+            </View>
 
-        <ScrollView style={styles.scrollView}>
+            <ScrollView 
+              style={styles.scrollView}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }
+            >
           <View style={styles.stats}>
             <View style={styles.statCard}>
               <Text style={styles.statNumber}>{products.length}</Text>
@@ -207,7 +263,9 @@ export default function ShopProductsScreen() {
               </View>
             ))}
           </View>
-        </ScrollView>
+            </ScrollView>
+          </>
+        )}
       </View>
     </>
   );
@@ -370,5 +428,46 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#1F2937',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  setupButton: {
+    backgroundColor: '#2D5016',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  setupButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
   },
 });

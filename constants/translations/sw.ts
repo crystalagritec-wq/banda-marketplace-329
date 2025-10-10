@@ -35,7 +35,7 @@ export const sw: TranslationKeys = {
     copy: 'Nakili',
     copied: 'Imenakiliwa!',
     download: 'Pakua',
-    upload: 'Pakia',
+    upload: 'Palia',
     select: 'Chagua',
     selected: 'Imechaguliwa',
     all: 'Zote',
@@ -76,6 +76,9 @@ export const sw: TranslationKeys = {
     inStock: 'Zinapatikana',
     outOfStock: 'Hazipatikani',
     lowStock: 'Zimepungua',
+    join: 'Jiunge',
+    learnMore: 'Jifunze Zaidi',
+    remindMe: 'Nikumbushe',
   },
   
   auth: {
@@ -149,6 +152,7 @@ export const sw: TranslationKeys = {
   
   marketplace: {
     title: 'Soko',
+    searchPlaceholder: 'Tafuta bidhaa...',
     searchProducts: 'Tafuta bidhaa...',
     filters: 'Vichujio',
     sortBy: 'Panga Kwa',
@@ -168,7 +172,7 @@ export const sw: TranslationKeys = {
     tryDifferentFilters: 'Jaribu kubadilisha vichujio',
     loadingProducts: 'Inapakia bidhaa...',
     viewProduct: 'Tazama Bidhaa',
-    addToCart: 'Weka Kikkapuni',
+    addToCart: 'Weka',
     addedToCart: 'Imewekwa kikkapuni',
     buyNow: 'Nunua Sasa',
     contactSeller: 'Wasiliana na Muuzaji',
@@ -184,6 +188,17 @@ export const sw: TranslationKeys = {
     returnPolicy: 'Sera ya Kurudisha',
     relatedProducts: 'Bidhaa Zinazofanana',
     frequentlyBoughtTogether: 'Zinazofaa Kununuliwa Pamoja',
+    flashSale: 'Mauzo ya Haraka',
+    trending: 'Zinazovuma',
+    upcomingEvents: 'Matukio Yanayokuja',
+    offers: 'Ofa na Promosheni',
+    shopNow: 'Nunua Sasa',
+    claim: 'Dai',
+    featuredByVendor: 'Zilizoangaziwa',
+    allProducts: 'Bidhaa Zote',
+    items: 'bidhaa',
+    endsIn: 'Inaisha',
+    categories: 'Aina',
   },
   
   wallet: {
@@ -391,11 +406,16 @@ export const sw: TranslationKeys = {
     
     appearanceSettings: {
       title: 'Muonekano',
+      description: 'Badilisha mwonekano na urahisi wa matumizi kulingana na upendeleo wako',
       theme: 'Mandhari',
+      selectTheme: 'Chagua mwonekano wa programu',
       lightMode: 'Mandhari ya Mwanga',
       darkMode: 'Mandhari ya Giza',
       systemDefault: 'Chaguo-msingi la Mfumo',
+      accessibility: 'Ufikikaji',
+      accessibilityDescription: 'Boreshwa uonekano na punguza matumizi ya data',
       highContrast: 'Tofauti Kubwa',
+      highContrastDescription: 'Ongeza tofauti ili kusomeka vyema',
       fontSize: 'Ukubwa wa Herufi',
       small: 'Ndogo',
       medium: 'Wastani',
@@ -404,6 +424,7 @@ export const sw: TranslationKeys = {
       compact: 'Iliyosongwa',
       comfortable: 'Starehe',
       lowDataMode: 'Hali ya Data Kidogo',
+      lowDataModeDescription: 'Punguza ubora wa picha na masasisho ya nyuma ili kuokoa data',
     },
     
     languageSettings: {

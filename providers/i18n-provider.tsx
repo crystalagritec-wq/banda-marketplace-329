@@ -60,24 +60,41 @@ export const [I18nProvider, useI18n] = createContextHook<I18nContextValue>(() =>
 
   const t = useCallback(
     (key: string): string => {
-      const keys = key.split('.');
-      let value: any = translations[language];
+      try {
+        const keys = key.split('.');
+        let value: any = translations[language];
 
-      for (const k of keys) {
-        if (value && typeof value === 'object' && k in value) {
-          value = value[k];
-        } else {
-          console.warn(`[I18n] Translation key not found: ${key}`);
-          return key;
+        for (const k of keys) {
+          if (value && typeof value === 'object' && k in value) {
+            value = value[k];
+          } else {
+            console.warn(`[I18n] Translation key not found: ${key}, falling back to English`);
+            let fallbackValue: any = translations['en'];
+            for (const fk of keys) {
+              if (fallbackValue && typeof fallbackValue === 'object' && fk in fallbackValue) {
+                fallbackValue = fallbackValue[fk];
+              } else {
+                console.error(`[I18n] Translation key not found in fallback: ${key}`);
+                return key.split('.').pop() || key;
+              }
+            }
+            if (typeof fallbackValue === 'string') {
+              return fallbackValue;
+            }
+            return key.split('.').pop() || key;
+          }
         }
-      }
 
-      if (typeof value === 'string') {
-        return value;
-      }
+        if (typeof value === 'string') {
+          return value;
+        }
 
-      console.warn(`[I18n] Translation value is not a string: ${key}`);
-      return key;
+        console.warn(`[I18n] Translation value is not a string: ${key}`);
+        return key.split('.').pop() || key;
+      } catch (error) {
+        console.error(`[I18n] Error translating key: ${key}`, error);
+        return key.split('.').pop() || key;
+      }
     },
     [language]
   );

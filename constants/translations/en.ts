@@ -74,6 +74,9 @@ export const en = {
     inStock: 'In Stock',
     outOfStock: 'Out of Stock',
     lowStock: 'Low Stock',
+    join: 'Join',
+    learnMore: 'Learn More',
+    remindMe: 'Remind Me',
   },
   
   auth: {
@@ -147,6 +150,7 @@ export const en = {
   
   marketplace: {
     title: 'Marketplace',
+    searchPlaceholder: 'Search products...',
     searchProducts: 'Search products...',
     filters: 'Filters',
     sortBy: 'Sort By',
@@ -166,7 +170,7 @@ export const en = {
     tryDifferentFilters: 'Try adjusting your filters',
     loadingProducts: 'Loading products...',
     viewProduct: 'View Product',
-    addToCart: 'Add to Cart',
+    addToCart: 'Add',
     addedToCart: 'Added to cart',
     buyNow: 'Buy Now',
     contactSeller: 'Contact Seller',
@@ -182,6 +186,17 @@ export const en = {
     returnPolicy: 'Return Policy',
     relatedProducts: 'Related Products',
     frequentlyBoughtTogether: 'Frequently Bought Together',
+    flashSale: 'Flash Sale',
+    trending: 'Trending',
+    upcomingEvents: 'Upcoming Events',
+    offers: 'Offers & Promos',
+    shopNow: 'Shop Now',
+    claim: 'Claim',
+    featuredByVendor: 'Featured',
+    allProducts: 'All Products',
+    items: 'items',
+    endsIn: 'Ends in',
+    categories: 'Categories',
   },
   
   wallet: {
@@ -389,11 +404,16 @@ export const en = {
     
     appearanceSettings: {
       title: 'Appearance',
+      description: 'Personalize the app look and accessibility to your preference',
       theme: 'Theme',
+      selectTheme: 'Choose how the app looks',
       lightMode: 'Light Mode',
       darkMode: 'Dark Mode',
       systemDefault: 'System Default',
+      accessibility: 'Accessibility',
+      accessibilityDescription: 'Improve visibility and reduce data usage',
       highContrast: 'High Contrast',
+      highContrastDescription: 'Increase contrast for better readability',
       fontSize: 'Font Size',
       small: 'Small',
       medium: 'Medium',
@@ -402,6 +422,7 @@ export const en = {
       compact: 'Compact',
       comfortable: 'Comfortable',
       lowDataMode: 'Low Data Mode',
+      lowDataModeDescription: 'Reduce image quality and background updates to save data',
     },
     
     languageSettings: {

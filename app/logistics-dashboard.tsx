@@ -1,17 +1,20 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Truck, User, Package, DollarSign, TrendingUp, Settings, CheckCircle, AlertCircle } from 'lucide-react-native';
 import { useLogisticsInboarding } from '@/providers/logistics-inboarding-provider';
+import { useLogisticsDashboard } from '@/hooks/useLogisticsDashboard';
 
 export default function LogisticsDashboardScreen() {
   const router = useRouter();
   const { role, ownerDetails, driverDetails, fullVerificationComplete, progress } = useLogisticsInboarding();
+  const { stats, recentDeliveries, isLoading, refetch } = useLogisticsDashboard(role || 'driver');
   const [refreshing, setRefreshing] = useState(false);
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    await refetch();
+    setRefreshing(false);
   };
 
   const isOwner = role === 'owner';
@@ -80,25 +83,32 @@ export default function LogisticsDashboardScreen() {
           </View>
         )}
 
-        <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <Package size={24} color="#007AFF" />
-            <Text style={styles.statValue}>0</Text>
-            <Text style={styles.statLabel}>Active Deliveries</Text>
+        {isLoading && !refreshing ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#007AFF" />
+            <Text style={styles.loadingText}>Loading dashboard...</Text>
           </View>
+        ) : (
+          <View style={styles.statsGrid}>
+            <View style={styles.statCard}>
+              <Package size={24} color="#007AFF" />
+              <Text style={styles.statValue}>{stats.activeDeliveries}</Text>
+              <Text style={styles.statLabel}>Active Deliveries</Text>
+            </View>
 
-          <View style={styles.statCard}>
-            <DollarSign size={24} color="#34C759" />
-            <Text style={styles.statValue}>KSh 0</Text>
-            <Text style={styles.statLabel}>Today's Earnings</Text>
-          </View>
+            <View style={styles.statCard}>
+              <DollarSign size={24} color="#34C759" />
+              <Text style={styles.statValue}>KSh {stats.todayEarnings.toLocaleString()}</Text>
+              <Text style={styles.statLabel}>Today's Earnings</Text>
+            </View>
 
-          <View style={styles.statCard}>
-            <TrendingUp size={24} color="#FF9500" />
-            <Text style={styles.statValue}>0</Text>
-            <Text style={styles.statLabel}>Completed</Text>
+            <View style={styles.statCard}>
+              <TrendingUp size={24} color="#FF9500" />
+              <Text style={styles.statValue}>{stats.completedDeliveries}</Text>
+              <Text style={styles.statLabel}>Completed</Text>
+            </View>
           </View>
-        </View>
+        )}
 
         {isOwner && ownerDetails && (
           <View style={styles.section}>
@@ -290,6 +300,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#8E8E93',
     textAlign: 'center' as const,
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#8E8E93',
   },
   section: {
     marginBottom: 24,
