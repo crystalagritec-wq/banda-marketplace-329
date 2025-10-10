@@ -50,10 +50,6 @@ import { convertToCartProduct } from '@/utils/vendor-helpers';
 import { useTheme } from '@/providers/theme-provider';
 import { useTranslation } from '@/hooks/useTranslation';
 
-const WHITE = '#FFFFFF' as const;
-const GREEN = '#2D5016' as const;
-const ORANGE = '#F59E0B' as const;
-
 
 
 interface Product {
@@ -262,26 +258,8 @@ export default function MarketplaceScreen() {
   const { isLoading, withLoading } = useLoading();
   const [initialLoading] = useState<boolean>(false);
   const network = useNetworkStatus();
-  const { t, language, setLanguage, translations } = useTranslation();
-  const i18n = useMemo(() => ({
-    searchPh: t('marketplace.searchPlaceholder') || 'Search products...',
-    flashSale: t('marketplace.flashSale') || 'Flash Sale',
-    seeAll: t('common.viewAll') || 'See All',
-    endsIn: t('marketplace.endsIn') || 'Ends in',
-    add: t('marketplace.addToCart') || 'Add',
-    categories: t('marketplace.categories') || 'Categories',
-    trending: t('marketplace.trending') || 'Trending',
-    upcoming: t('marketplace.upcomingEvents') || 'Upcoming Events',
-    join: t('common.join') || 'Join',
-    learn: t('common.learnMore') || 'Learn More',
-    remind: t('common.remindMe') || 'Remind Me',
-    offers: t('marketplace.offers') || 'Offers & Promos',
-    shopNow: t('marketplace.shopNow') || 'Shop Now',
-    claim: t('marketplace.claim') || 'Claim',
-    featuredByVendor: t('marketplace.featuredByVendor') || 'Featured',
-    allProducts: t('marketplace.allProducts') || 'All Products',
-    items: t('marketplace.items') || 'items',
-  }), [t]);
+  const [lang, setLang] = useState<'en' | 'sw'>('en');
+  const i18n = useMemo(() => t(lang), [lang]);
   const [feedbackVisible, setFeedbackVisible] = useState<boolean>(false);
   const [feedbackMessage, setFeedbackMessage] = useState<string>('');
   const [feedbackType, setFeedbackType] = useState<'add' | 'update' | 'remove' | 'success'>('add');
@@ -483,11 +461,11 @@ export default function MarketplaceScreen() {
         <View style={styles.languageBar}>
           <TouchableOpacity 
             style={styles.languageToggle}
-            onPress={() => setLanguage(language === 'en' ? 'sw' : 'en')}
+            onPress={() => setLang(lang === 'en' ? 'sw' : 'en')}
           >
             <Globe size={16} color={GREEN} />
             <Text style={styles.languageText}>
-              {language === 'en' ? 'Kiswahili | English' : 'English | Kiswahili'}
+              {lang === 'en' ? 'Kiswahili | English' : 'English | Kiswahili'}
             </Text>
             <View style={[styles.onlineIndicator, { backgroundColor: network.isConnected ? '#10B981' : '#F59E0B' }]} />
           </TouchableOpacity>
