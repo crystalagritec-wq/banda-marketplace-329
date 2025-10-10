@@ -27,11 +27,12 @@ import {
   Modal,
   Animated,
   Dimensions,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCart } from '@/providers/cart-provider';
-import { useTheme } from '@/providers/theme-provider';
+import Colors from '@/constants/colors';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -52,7 +53,6 @@ interface CartModalProps {
 export default function CartModal({ visible, onClose }: CartModalProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const theme = useTheme();
   const { cartItems, cartSummary, updateQuantity, removeFromCart } = useCart();
   const [promoCode, setPromoCode] = useState<string>('');
   const [promoApplied, setPromoApplied] = useState<boolean>(false);
@@ -132,19 +132,19 @@ export default function CartModal({ visible, onClose }: CartModalProps) {
               }
             ]}
           >
-            <LinearGradient colors={['#F5F5DC', '#FFFFFF']} style={styles.gradient}>
+            <LinearGradient colors={[Colors.primary.cream, '#FFFFFF']} style={styles.gradient}>
               <View style={styles.header}>
                 <Text style={styles.headerTitle}>Your Cart</Text>
                 <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                  <X size={24} color={theme.colors.primary} />
+                  <X size={24} color={Colors.primary.green} />
                 </TouchableOpacity>
               </View>
               
               <View style={styles.emptyCart}>
                 <View style={styles.emptyCartIcon}>
-                  <ShoppingCart size={64} color={theme.colors.primary} />
+                  <ShoppingCart size={64} color={Colors.primary.green} />
                   <View style={styles.emptyCartIconOverlay}>
-                    <Heart size={24} color={'#EF4444'} />
+                    <Heart size={24} color={Colors.status.error} />
                   </View>
                 </View>
                 <Text style={styles.emptyCartTitle}>Your cart is empty</Text>
@@ -152,7 +152,7 @@ export default function CartModal({ visible, onClose }: CartModalProps) {
                   Discover fresh produce and quality agricultural products
                 </Text>
                 <TouchableOpacity
-                  style={[styles.shopNowButton, { backgroundColor: theme.colors.primary }]}
+                  style={styles.shopNowButton}
                   onPress={() => {
                     handleClose();
                     router.push('/(tabs)/marketplace');
@@ -187,17 +187,17 @@ export default function CartModal({ visible, onClose }: CartModalProps) {
             }
           ]}
         >
-          <LinearGradient colors={['#F5F5DC', '#FFFFFF']} style={styles.gradient}>
+          <LinearGradient colors={[Colors.primary.cream, '#FFFFFF']} style={styles.gradient}>
             <View style={styles.header}>
               <View style={styles.headerLeft}>
                 <Text style={styles.headerTitle}>Your Cart</Text>
                 <View style={styles.headerSubtitle}>
                   <Text style={styles.itemCount}>{cartSummary.itemCount} items</Text>
-                  <Text style={[styles.totalPreview, { color: theme.colors.primary }]}>{formatPrice(cartSummary.total)}</Text>
+                  <Text style={styles.totalPreview}>{formatPrice(cartSummary.total)}</Text>
                 </View>
               </View>
               <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                <X size={24} color={theme.colors.primary} />
+                <X size={24} color={Colors.primary.green} />
               </TouchableOpacity>
             </View>
 
@@ -231,26 +231,26 @@ export default function CartModal({ visible, onClose }: CartModalProps) {
                           {item.product.name}
                         </Text>
                         <View style={styles.itemRating}>
-                          <Star size={12} color={'#FFD700'} fill={'#FFD700'} />
+                          <Star size={12} color={Colors.primary.yellow} fill={Colors.primary.yellow} />
                           <Text style={styles.ratingText}>4.8</Text>
                         </View>
                       </View>
                       
                       <View style={styles.vendorRow}>
-                        <Text style={[styles.vendorName, { color: theme.colors.primary }]}>{item.product.vendor}</Text>
+                        <Text style={styles.vendorName}>{item.product.vendor}</Text>
                         {item.product.vendorVerified && (
-                          <ShieldCheck size={12} color={'#10B981'} />
+                          <ShieldCheck size={12} color={Colors.status.success} />
                         )}
                       </View>
                       
                       <View style={styles.locationRow}>
-                        <MapPin size={10} color={theme.colors.primary} />
+                        <MapPin size={10} color={Colors.primary.green} />
                         <Text style={styles.locationText}>{item.product.location}</Text>
                       </View>
                       
                       <View style={styles.itemFooter}>
                         <View style={styles.priceContainer}>
-                          <Text style={[styles.itemPrice, { color: theme.colors.primary }]}>
+                          <Text style={styles.itemPrice}>
                             {formatPrice(item.product.price)}
                           </Text>
                           <Text style={styles.itemUnit}>/{item.product.unit}</Text>
@@ -267,7 +267,7 @@ export default function CartModal({ visible, onClose }: CartModalProps) {
                         style={styles.removeButton}
                         onPress={() => handleRemoveItem(item.product.id, item.product.name)}
                       >
-                        <Trash2 size={16} color={'#EF4444'} />
+                        <Trash2 size={16} color={Colors.status.error} />
                       </TouchableOpacity>
                       
                       <View style={styles.quantityControls}>
@@ -275,7 +275,7 @@ export default function CartModal({ visible, onClose }: CartModalProps) {
                           style={[styles.quantityButton, styles.quantityButtonMinus]}
                           onPress={() => handleQuantityChange(item.product.id, item.quantity - 1)}
                         >
-                          <Minus size={14} color={theme.colors.primary} />
+                          <Minus size={14} color={Colors.primary.green} />
                         </TouchableOpacity>
                         
                         <View style={styles.quantityDisplay}>
@@ -283,7 +283,7 @@ export default function CartModal({ visible, onClose }: CartModalProps) {
                         </View>
                         
                         <TouchableOpacity
-                          style={[styles.quantityButton, styles.quantityButtonPlus, { backgroundColor: theme.colors.primary }]}
+                          style={[styles.quantityButton, styles.quantityButtonPlus]}
                           onPress={() => handleQuantityChange(item.product.id, item.quantity + 1)}
                         >
                           <Plus size={14} color="white" />
@@ -304,12 +304,12 @@ export default function CartModal({ visible, onClose }: CartModalProps) {
               {/* Promo Code */}
               <View style={styles.promoSection}>
                 <View style={styles.promoHeader}>
-                  <Gift size={20} color={theme.colors.primary} />
+                  <Gift size={20} color={Colors.primary.green} />
                   <Text style={styles.promoTitle}>Have a promo code?</Text>
                 </View>
                 <View style={styles.promoInputContainer}>
                   <View style={styles.promoInputWrapper}>
-                    <Tag size={16} color={theme.colors.primary} />
+                    <Tag size={16} color={Colors.primary.green} />
                     <TextInput
                       style={styles.promoInput}
                       placeholder="Enter promo code"
@@ -320,7 +320,7 @@ export default function CartModal({ visible, onClose }: CartModalProps) {
                     />
                   </View>
                   <TouchableOpacity
-                    style={[styles.applyButton, { backgroundColor: theme.colors.primary }, promoApplied && styles.applyButtonApplied]}
+                    style={[styles.applyButton, promoApplied && styles.applyButtonApplied]}
                     onPress={handleApplyPromo}
                     disabled={promoApplied}
                   >
@@ -331,7 +331,7 @@ export default function CartModal({ visible, onClose }: CartModalProps) {
                 </View>
                 {promoApplied && (
                   <View style={styles.promoSuccess}>
-                    <ShieldCheck size={16} color={'#10B981'} />
+                    <ShieldCheck size={16} color={Colors.status.success} />
                     <Text style={styles.promoSuccessText}>BANDA100 applied - KSh 100 off</Text>
                   </View>
                 )}
@@ -342,7 +342,7 @@ export default function CartModal({ visible, onClose }: CartModalProps) {
             <View style={styles.orderSummary}>
               <View style={styles.summaryHeader}>
                 <Text style={styles.summaryHeaderTitle}>Order Summary</Text>
-                <View style={[styles.summaryHeaderBadge, { backgroundColor: theme.colors.primary }]}>
+                <View style={styles.summaryHeaderBadge}>
                   <Text style={styles.summaryHeaderBadgeText}>{cartSummary.itemCount}</Text>
                 </View>
               </View>
@@ -368,7 +368,7 @@ export default function CartModal({ visible, onClose }: CartModalProps) {
               
               <View style={styles.summaryRow}>
                 <Text style={styles.totalLabel}>Total Amount</Text>
-                <Text style={[styles.totalValue, { color: theme.colors.primary }]}>
+                <Text style={styles.totalValue}>
                   {formatPrice(cartSummary.total - (promoApplied ? 100 : 0))}
                 </Text>
               </View>
@@ -382,11 +382,11 @@ export default function CartModal({ visible, onClose }: CartModalProps) {
               
               <View style={styles.trustBadges}>
                 <View style={styles.trustBadge}>
-                  <ShieldCheck size={14} color={'#10B981'} />
+                  <ShieldCheck size={14} color={Colors.status.success} />
                   <Text style={styles.trustBadgeText}>TradeGuard Protection</Text>
                 </View>
                 <View style={styles.trustBadge}>
-                  <Truck size={14} color={'#3B82F6'} />
+                  <Truck size={14} color={Colors.status.info} />
                   <Text style={styles.trustBadgeText}>Fast Delivery</Text>
                 </View>
               </View>
@@ -443,6 +443,7 @@ const styles = StyleSheet.create({
   totalPreview: {
     fontSize: 14,
     fontWeight: '700',
+    color: Colors.primary.green,
   },
   closeButton: {
     padding: 4,
@@ -479,7 +480,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 4,
     right: 4,
-    backgroundColor: '#10B981',
+    backgroundColor: Colors.status.success,
     borderRadius: 8,
     padding: 4,
   },
@@ -521,6 +522,7 @@ const styles = StyleSheet.create({
   },
   vendorName: {
     fontSize: 14,
+    color: Colors.primary.green,
     fontWeight: '600',
   },
   locationRow: {
@@ -545,6 +547,7 @@ const styles = StyleSheet.create({
   itemPrice: {
     fontSize: 16,
     fontWeight: '700',
+    color: Colors.primary.green,
   },
   itemUnit: {
     fontSize: 12,
@@ -560,7 +563,7 @@ const styles = StyleSheet.create({
   savingsText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#EF4444',
+    color: Colors.status.error,
   },
   itemActions: {
     alignItems: 'flex-end',
@@ -590,6 +593,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   quantityButtonPlus: {
+    backgroundColor: Colors.primary.green,
     borderRadius: 6,
   },
   quantity: {
@@ -656,6 +660,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
   applyButton: {
+    backgroundColor: Colors.primary.green,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
@@ -663,7 +668,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   applyButtonApplied: {
-    backgroundColor: '#10B981',
+    backgroundColor: Colors.status.success,
   },
   applyButtonText: {
     color: 'white',
@@ -684,7 +689,7 @@ const styles = StyleSheet.create({
   },
   promoSuccessText: {
     fontSize: 14,
-    color: '#10B981',
+    color: Colors.status.success,
     fontWeight: '600',
   },
   orderSummary: {
@@ -710,6 +715,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
   summaryHeaderBadge: {
+    backgroundColor: Colors.primary.green,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -735,13 +741,13 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
   freeDelivery: {
-    color: '#10B981',
+    color: Colors.status.success,
     fontWeight: '700',
   },
   discountValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#10B981',
+    color: Colors.status.success,
   },
   summaryDivider: {
     height: 1,
@@ -756,6 +762,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 20,
     fontWeight: '800',
+    color: Colors.primary.green,
   },
   checkoutButton: {
     backgroundColor: '#F57C00',
@@ -836,6 +843,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   shopNowButton: {
+    backgroundColor: Colors.primary.green,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

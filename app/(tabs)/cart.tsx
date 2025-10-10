@@ -29,7 +29,7 @@ import {
 import { useRouter } from 'expo-router';
 
 import { useCart } from '@/providers/cart-provider';
-import { useTheme } from '@/providers/theme-provider';
+import Colors from '@/constants/colors';
 import { trpc } from '@/lib/trpc';
 import CartFeedback from '@/components/CartFeedback';
 import * as Haptics from 'expo-haptics';
@@ -45,7 +45,6 @@ function formatPrice(amount: number) {
 
 export default function CartScreen() {
   const router = useRouter();
-  const theme = useTheme();
 
   const { cartItems, cartSummary, groupedBySeller, updateQuantity, removeFromCart } = useCart();
   const [promoCode, setPromoCode] = useState<string>('');
@@ -169,19 +168,19 @@ export default function CartScreen() {
   if (cartItems.length === 0) {
     return (
       <View style={styles.container}>
-        <LinearGradient colors={['#F5F5DC', '#FFFFFF']} style={styles.gradient}>
+        <LinearGradient colors={[Colors.primary.cream, '#FFFFFF']} style={styles.gradient}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Your Cart</Text>
-            <View style={[styles.headerBadge, { borderColor: theme.colors.primary }]}>
-              <ShoppingCart size={20} color={theme.colors.primary} />
+            <View style={styles.headerBadge}>
+              <ShoppingCart size={20} color={Colors.primary.green} />
             </View>
           </View>
           
           <View style={styles.emptyCart}>
             <View style={styles.emptyCartIcon}>
-              <ShoppingCart size={64} color={theme.colors.primary} />
+              <ShoppingCart size={64} color={Colors.primary.green} />
               <View style={styles.emptyCartIconOverlay}>
-                <Heart size={24} color="#EF4444" />
+                <Heart size={24} color={Colors.status.error} />
               </View>
             </View>
             <Text style={styles.emptyCartTitle}>Your cart is empty</Text>
@@ -189,7 +188,7 @@ export default function CartScreen() {
               Discover fresh produce and quality agricultural products
             </Text>
             <TouchableOpacity
-              style={[styles.shopNowButton, { backgroundColor: theme.colors.primary }]}
+              style={styles.shopNowButton}
               onPress={() => router.push('/(tabs)/marketplace')}
             >
               <Text style={styles.shopNowButtonText}>Explore Marketplace</Text>
@@ -203,23 +202,24 @@ export default function CartScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#F5F5DC', '#FFFFFF']} style={styles.gradient}>
+      <LinearGradient colors={[Colors.primary.cream, '#FFFFFF']} style={styles.gradient}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={styles.headerTitle}>Your Cart</Text>
             <View style={styles.headerSubtitle}>
               <Text style={styles.itemCount}>{cartSummary.itemCount} items</Text>
-              <Text style={[styles.totalPreview, { color: theme.colors.primary }]}>{formatPrice(cartSummary.total)}</Text>
+              <Text style={styles.totalPreview}>{formatPrice(cartSummary.total)}</Text>
             </View>
           </View>
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.wishlistButton}>
-              <Heart size={20} color="#EF4444" />
+              <Heart size={20} color={Colors.status.error} />
             </TouchableOpacity>
           </View>
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {/* Multi-Seller Notice */}
           {cartSummary.isSplitOrder && (
             <View style={styles.splitOrderNotice}>
               <View style={styles.splitOrderHeader}>
@@ -232,9 +232,11 @@ export default function CartScreen() {
             </View>
           )}
 
+          {/* Cart Items Grouped by Seller */}
           <View style={styles.cartItems}>
             {groupedBySeller.map((sellerGroup, groupIndex) => (
               <View key={sellerGroup.sellerId} style={styles.sellerGroup}>
+                {/* Seller Header */}
                 <View style={styles.sellerHeader}>
                   <View style={styles.sellerInfo}>
                     <Text style={styles.sellerName}>{sellerGroup.sellerName}</Text>
@@ -249,6 +251,7 @@ export default function CartScreen() {
                   </View>
                 </View>
 
+                {/* Seller Items */}
                 {sellerGroup.items.map((item, index) => (
                 <Animated.View 
                   key={item.product.id} 
@@ -276,7 +279,7 @@ export default function CartScreen() {
                         {item.product.name}
                       </Text>
                       <View style={styles.itemRating}>
-                        <Star size={12} color="#FFD700" fill="#FFD700" />
+                        <Star size={12} color={Colors.primary.yellow} fill={Colors.primary.yellow} />
                         <Text style={styles.ratingText}>4.8</Text>
                       </View>
                     </View>
@@ -302,7 +305,7 @@ export default function CartScreen() {
                       style={styles.removeButton}
                       onPress={() => handleRemoveItem(item.product.id, item.product.name)}
                     >
-                      <Trash2 size={16} color="#EF4444" />
+                      <Trash2 size={16} color={Colors.status.error} />
                     </TouchableOpacity>
                     
                     <View style={styles.quantityControls}>
@@ -311,12 +314,12 @@ export default function CartScreen() {
                         onPress={() => handleQuantityChange(item.product.id, item.quantity - 1)}
                         disabled={item.quantity <= 1}
                       >
-                        <Minus size={14} color={item.quantity <= 1 ? '#D1D5DB' : theme.colors.primary} />
+                        <Minus size={14} color={item.quantity <= 1 ? '#D1D5DB' : Colors.primary.green} />
                       </TouchableOpacity>
                       
                       {editingQuantity === item.product.id ? (
                         <TextInput
-                          style={[styles.quantityInput, { borderColor: theme.colors.primary }]}
+                          style={styles.quantityInput}
                           value={quantityInput}
                           onChangeText={(value) => handleQuantityInputChange(item.product.id, value)}
                           onBlur={() => handleQuantityInputSubmit(item.product.id)}
@@ -337,7 +340,7 @@ export default function CartScreen() {
                       )}
                       
                       <TouchableOpacity
-                        style={[styles.quantityButton, styles.quantityButtonPlus, { backgroundColor: theme.colors.primary }]}
+                        style={[styles.quantityButton, styles.quantityButtonPlus]}
                         onPress={() => handleQuantityChange(item.product.id, item.quantity + 1)}
                       >
                         <Plus size={14} color="white" />
@@ -357,14 +360,15 @@ export default function CartScreen() {
             ))}
           </View>
 
+          {/* Promo Code */}
           <View style={styles.promoSection}>
             <View style={styles.promoHeader}>
-              <Gift size={20} color={theme.colors.primary} />
+              <Gift size={20} color={Colors.primary.green} />
               <Text style={styles.promoTitle}>Have a promo code?</Text>
             </View>
             <View style={styles.promoInputContainer}>
               <View style={styles.promoInputWrapper}>
-                <Tag size={16} color={theme.colors.primary} />
+                <Tag size={16} color={Colors.primary.green} />
                 <TextInput
                   style={styles.promoInput}
                   placeholder="Enter promo code"
@@ -386,7 +390,7 @@ export default function CartScreen() {
             </View>
             {promoApplied && promoDiscount > 0 && (
               <View style={styles.promoSuccess}>
-                <ShieldCheck size={16} color="#10B981" />
+                <ShieldCheck size={16} color={Colors.status.success} />
                 <Text style={styles.promoSuccessText}>
                   {promoCode.toUpperCase()} applied - {formatPrice(promoDiscount)} off
                 </Text>
@@ -402,10 +406,11 @@ export default function CartScreen() {
 
         </ScrollView>
 
+        {/* Order Summary */}
         <View style={styles.orderSummary}>
           <View style={styles.summaryHeader}>
             <Text style={styles.summaryHeaderTitle}>Order Summary</Text>
-            <View style={[styles.summaryHeaderBadge, { backgroundColor: theme.colors.primary }]}>
+            <View style={styles.summaryHeaderBadge}>
               <Text style={styles.summaryHeaderBadgeText}>{cartSummary.itemCount}</Text>
             </View>
           </View>
@@ -442,11 +447,11 @@ export default function CartScreen() {
           
           <View style={styles.trustBadges}>
             <View style={styles.trustBadge}>
-              <ShieldCheck size={14} color="#10B981" />
+              <ShieldCheck size={14} color={Colors.status.success} />
               <Text style={styles.trustBadgeText}>TradeGuard Protection</Text>
             </View>
             <View style={styles.trustBadge}>
-              <Truck size={14} color="#3B82F6" />
+              <Truck size={14} color={Colors.status.info} />
               <Text style={styles.trustBadgeText}>Fast Delivery</Text>
             </View>
           </View>
@@ -611,6 +616,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderWidth: 1,
+    borderColor: Colors.primary.green,
   },
   itemTotal: {
     fontSize: 10.84,
@@ -821,6 +827,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   shopNowButton: {
+    backgroundColor: Colors.primary.green,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -839,11 +846,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+  // New styles for redesigned cart
   headerBadge: {
-    backgroundColor: '#F5F5DC',
+    backgroundColor: Colors.primary.cream,
     padding: 8,
     borderRadius: 12,
     borderWidth: 1,
+    borderColor: Colors.primary.green,
   },
   emptyCartIcon: {
     position: 'relative',
@@ -875,6 +884,7 @@ const styles = StyleSheet.create({
   totalPreview: {
     fontSize: 14,
     fontWeight: '700',
+    color: Colors.primary.green,
   },
   headerRight: {
     flexDirection: 'row',
@@ -883,7 +893,7 @@ const styles = StyleSheet.create({
   },
   wishlistButton: {
     padding: 8,
-    backgroundColor: '#F5F5DC',
+    backgroundColor: Colors.primary.cream,
     borderRadius: 12,
   },
   itemImageContainer: {
@@ -894,7 +904,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 4,
     right: 4,
-    backgroundColor: '#10B981',
+    backgroundColor: Colors.status.success,
     borderRadius: 8,
     padding: 4,
   },
@@ -927,7 +937,7 @@ const styles = StyleSheet.create({
   savingsText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#EF4444',
+    color: Colors.status.error,
   },
   quantityButtonMinus: {
     backgroundColor: '#F3F4F6',
@@ -938,6 +948,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   quantityButtonPlus: {
+    backgroundColor: Colors.primary.green,
     borderRadius: 6,
   },
   itemTotalContainer: {
@@ -966,6 +977,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
   summaryHeaderBadge: {
+    backgroundColor: Colors.primary.green,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
