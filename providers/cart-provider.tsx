@@ -2,6 +2,7 @@ import createContextHook from '@nkzw/create-context-hook';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useStorage } from '@/providers/storage-provider';
 import { Product, GeoCoordinates } from '@/constants/products';
+import { trpcClient } from '@/lib/trpc';
 
 export interface CartItem {
   product: Product;
@@ -267,33 +268,70 @@ export const [CartProvider, useCart] = createContextHook(() => {
     paymentMethod: PaymentMethod,
     promoCode?: string
   ): Promise<Order> => {
+    console.log('[CartProvider] Creating order with backend');
     const summary = cartSummary;
-    const order: Order = {
-      id: `ORD-${Date.now()}`,
-      items: [...cartItems],
-      subtotal: summary.subtotal,
-      deliveryFee: summary.deliveryFee,
-      discount: summary.discount,
-      total: summary.total,
-      address,
-      paymentMethod,
-      status: 'pending',
-      createdAt: new Date(),
-      estimatedDelivery: new Date(Date.now() + 2 * 60 * 60 * 1000),
-      trackingId: `TRK-${Date.now()}`,
-    };
-
-    const newOrders = [order, ...orders];
-    setOrders(newOrders);
     
     try {
-      await storage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(newOrders));
-    } catch (error) {
-      console.error('Error saving order:', error);
-    }
+      const result = await trpcClient.orders.createOrder.mutate({
+        items: cartItems.map(item => ({
+          product_id: item.product.id,
+          quantity: item.quantity,
+          price: item.product.price,
+          seller_id: item.sellerId || `seller-${item.product.vendor.toLowerCase().replace(/\\s+/g, '-')}`,
+        })),
+        delivery_address: {
+          street: address.street || address.label || '',
+          city: address.city || address.county || '',
+          county: address.county,
+          coordinates: {
+            lat: address.coordinates?.lat || address.lat || 0,
+            lng: address.coordinates?.lng || address.lng || 0,
+          },
+        },
+        payment_method: paymentMethod.type,
+        subtotal: summary.subtotal,
+        delivery_fee: summary.deliveryFee,
+        discount: summary.discount,
+        total: summary.total,
+        promo_code: promoCode,
+      });
 
-    clearCart();
-    return order;
+      if (!result.success) {
+        throw new Error('Failed to create order');
+      }
+
+      console.log('[CartProvider] Order created successfully:', result.order.tracking_id);
+
+      const order: Order = {
+        id: result.order.id,
+        items: [...cartItems],
+        subtotal: summary.subtotal,
+        deliveryFee: summary.deliveryFee,
+        discount: summary.discount,
+        total: summary.total,
+        address,
+        paymentMethod,
+        status: result.order.status as Order['status'],
+        createdAt: new Date(result.order.created_at),
+        estimatedDelivery: result.order.estimated_delivery ? new Date(result.order.estimated_delivery) : undefined,
+        trackingId: result.order.tracking_id,
+      };
+
+      const newOrders = [order, ...orders];
+      setOrders(newOrders);
+      
+      try {
+        await storage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(newOrders));
+      } catch (error) {
+        console.error('[CartProvider] Error saving order to storage:', error);
+      }
+
+      clearCart();
+      return order;
+    } catch (error) {
+      console.error('[CartProvider] Error creating order:', error);
+      throw error;
+    }
   }, [cartItems, cartSummary, orders, clearCart, storage]);
 
   const updateOrderStatus = useCallback((orderId: string, status: Order['status']) => {

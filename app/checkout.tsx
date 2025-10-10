@@ -371,9 +371,13 @@ export default function CheckoutScreen() {
           const sellerCoords = sellerProduct?.product.coordinates;
           const buyerCoords = selectedAddress.coordinates || userLocation?.coordinates;
           
+          if (!sellerCoords?.lat || !sellerCoords?.lng || !buyerCoords?.lat || !buyerCoords?.lng) {
+            console.warn(`[Checkout] ⚠️ Missing coordinates for ${group.sellerName}. Seller:`, sellerCoords, 'Buyer:', buyerCoords);
+          }
+          
           const defaultCoordinates = { lat: -1.2921, lng: 36.8219 };
-          const finalSellerCoords = sellerCoords || defaultCoordinates;
-          const finalBuyerCoords = buyerCoords || defaultCoordinates;
+          const finalSellerCoords = (sellerCoords?.lat && sellerCoords?.lng) ? sellerCoords : defaultCoordinates;
+          const finalBuyerCoords = (buyerCoords?.lat && buyerCoords?.lng) ? buyerCoords : defaultCoordinates;
           
           console.log(`[Checkout] Calculating delivery for ${group.sellerName}:`, {
             sellerCoords: finalSellerCoords,
