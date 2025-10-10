@@ -104,18 +104,14 @@ export default function SearchPage() {
   });
   const saveSearchMutation = trpc.search.save.useMutation();
 
-  const searchResults = trpc.search.advanced.useQuery(
+  const searchResults = trpc.search.search.useQuery(
     {
       query: debouncedQuery,
       type: searchType,
-      sortBy,
-      location: filters.location,
-      priceRange: filters.priceRange,
-      category: filters.category,
-      vendorType: filters.vendorType,
-      rating: filters.rating,
-      availability: filters.availability,
-      deliveryOptions: filters.deliveryOptions,
+      location: filters.location.county || filters.location.town || undefined,
+      category: filters.category || undefined,
+      limit: 50,
+      offset: 0,
     },
     {
       enabled: debouncedQuery.length > 0,
@@ -535,7 +531,7 @@ export default function SearchPage() {
         <>
           <View style={styles.toolbar}>
             <Text style={styles.resultsCount}>
-              {searchResults.data?.total || 0} results found
+              {searchResults.data?.data?.length || 0} results found
             </Text>
             <View style={styles.toolbarRight}>
               <TouchableOpacity
@@ -621,7 +617,7 @@ export default function SearchPage() {
               <ActivityIndicator size="large" color="#10B981" />
               <Text style={styles.loadingText}>Searching...</Text>
             </View>
-          ) : searchResults.data && searchResults.data.results.length > 0 ? (
+          ) : searchResults.data && searchResults.data.data.length > 0 ? (
             <ScrollView
               style={styles.resultsContainer}
               contentContainerStyle={
@@ -629,11 +625,13 @@ export default function SearchPage() {
               }
               showsVerticalScrollIndicator={false}
             >
-              {searchResults.data.results.map((item) => {
+              {searchResults.data.data.map((item) => {
                 if (item.type === "product") {
                   return renderProductCard(item);
-                } else {
+                } else if (item.type === "service") {
                   return renderServiceCard(item);
+                } else {
+                  return renderProductCard(item);
                 }
               })}
             </ScrollView>
