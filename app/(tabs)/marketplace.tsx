@@ -40,40 +40,17 @@ import SideMenu from '@/components/SideMenu';
 import CartModal from '@/components/CartModal';
 import LoadingAnimation from '@/components/LoadingAnimation';
 import CartFeedback from '@/components/CartFeedback';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 import { useLoading } from '@/hooks/useLoading';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useLocation } from '@/providers/location-provider';
 import { calculateDistance } from '@/utils/geo-distance';
 import { convertToCartProduct } from '@/utils/vendor-helpers';
-
-const GREEN = '#2E7D32' as const;
-const ORANGE = '#F57C00' as const;
-const WHITE = '#FFFFFF' as const;
+import { useTheme } from '@/providers/theme-provider';
+import { useTranslation } from '@/hooks/useTranslation';
 
 
-function t(lang: 'en' | 'sw') {
-  return {
-    searchPh: lang === 'en' ? 'Search products, services, or requests' : 'Tafuta bidhaa, huduma, au maombi',
-    flashSale: lang === 'en' ? 'Flash Sale' : 'Orodha ya Punguzo',
-    endsIn: lang === 'en' ? 'Ends in' : 'Inaisha baada ya',
-    seeAll: lang === 'en' ? 'See All' : 'Tazama Zote',
-    categories: lang === 'en' ? 'Categories' : 'Makundi',
-    trending: lang === 'en' ? 'Trending Deals' : 'Nafuu Zinazotamba',
-    upcoming: lang === 'en' ? 'Upcoming Events' : 'Matukio Yanayokuja',
-    offers: lang === 'en' ? 'Offers & Promos' : 'Ofa na Promosheni',
-    allProducts: lang === 'en' ? 'All Products' : 'Bidhaa Zote',
-    items: lang === 'en' ? 'items' : 'vitu',
-    add: lang === 'en' ? '+ Add' : '+ Ongeza',
-    join: lang === 'en' ? 'Join' : 'Jiunge',
-    learn: lang === 'en' ? 'Learn More' : 'Jifunze Zaidi',
-    remind: lang === 'en' ? 'Remind Me' : 'Nikumbushe',
-    shopNow: lang === 'en' ? 'Shop Now' : 'Nunua Sasa',
-    claim: lang === 'en' ? 'Claim Offer' : 'Dai Ofa',
-    featuredByVendor: lang === 'en' ? 'Featured by Vendor' : 'Imefadhiliwa na Muuzaji',
-    defaultLocation: lang === 'en' ? 'Default location' : 'Eneo chaguo-msingi',
-  };
-}
 
 interface Product {
   id: string;

@@ -5,6 +5,7 @@ import { Stack } from 'expo-router';
 import { ArrowLeft, Sun, Moon, Monitor, Type, Wifi } from 'lucide-react-native';
 import { useStorage } from '@/providers/storage-provider';
 import { useTheme } from '@/providers/theme-provider';
+import { useTranslation } from '@/hooks/useTranslation';
 import { trpc } from '@/lib/trpc';
 
 interface ThemeOption {
@@ -45,58 +46,36 @@ const LAYOUT_DENSITY_OPTIONS: LayoutDensityOption[] = [
   { id: 'comfortable', name: 'Comfortable', description: 'More breathing room' },
 ];
 
-function ThemeCard({ theme, isSelected, onSelect }: { 
+function ThemeCard({ theme, isSelected, onSelect, colors }: { 
   theme: ThemeOption; 
   isSelected: boolean; 
-  onSelect: () => void; 
+  onSelect: () => void;
+  colors: any;
 }) {
   const IconComp = theme.icon;
   
   return (
     <TouchableOpacity 
-      style={[styles.themeCard, isSelected && styles.themeCardSelected]} 
+      style={[styles.themeCard, { backgroundColor: colors.card, borderColor: colors.border }, isSelected && { borderColor: colors.primary, backgroundColor: colors.primary }]} 
       onPress={onSelect}
     >
       <View style={styles.themeIconContainer}>
-        <IconComp size={24} color={isSelected ? '#fff' : '#16A34A'} />
+        <IconComp size={24} color={isSelected ? '#fff' : colors.primary} />
       </View>
-      <Text style={[styles.themeName, isSelected && styles.themeNameSelected]}>
+      <Text style={[styles.themeName, { color: colors.text }, isSelected && { color: '#fff' }]}>
         {theme.name}
       </Text>
     </TouchableOpacity>
   );
 }
 
-function OptionRow({ title, options, selectedValue, onSelect }: {
-  title: string;
-  options: Array<{ id: string; name: string; description?: string }>;
-  selectedValue: string;
-  onSelect: (value: string) => void;
-}) {
-  return (
-    <View style={styles.optionSection}>
-      <Text style={styles.optionTitle}>{title}</Text>
-      <View style={styles.optionGrid}>
-        {options.map((option) => (
-          <TouchableOpacity
-            key={option.id}
-            style={[styles.optionButton, selectedValue === option.id && styles.optionButtonSelected]}
-            onPress={() => onSelect(option.id)}
-          >
-            <Text style={[styles.optionButtonText, selectedValue === option.id && styles.optionButtonTextSelected]}>
-              {option.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
-}
+
 
 export default function AppearanceScreen() {
   const router = useRouter();
   const { getItem, setItem } = useStorage();
   const theme = useTheme();
+  const { t } = useTranslation();
 
   const getPrefs = trpc.settings.getPreferences.useQuery(undefined, { staleTime: 60_000 });
   const updatePrefs = trpc.settings.updatePreferences.useMutation();
@@ -184,102 +163,121 @@ export default function AppearanceScreen() {
   }, [setItem, theme, updatePrefs]);
   
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <Stack.Screen 
         options={{
-          title: 'Appearance',
+          title: t('settings.appearance'),
+          headerStyle: { backgroundColor: theme.colors.card },
+          headerTintColor: theme.colors.text,
           headerLeft: () => (
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <ArrowLeft size={24} color="#111827" />
+              <ArrowLeft size={24} color={theme.colors.text} />
             </TouchableOpacity>
           ),
         }}
       />
       
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.header}>Appearance</Text>
-        <Text style={styles.subheader}>Customize the look and feel of the app to your preference.</Text>
+        <Text style={[styles.header, { color: theme.colors.text }]}>{t('settings.appearance')}</Text>
+        <Text style={[styles.subheader, { color: theme.colors.mutedText }]}>{t('settings.appearanceSettings.description')}</Text>
         {getPrefs.isLoading && (
           <View style={{ paddingVertical: 12, alignItems: 'center' }}>
-            <ActivityIndicator color="#16A34A" />
+            <ActivityIndicator color={theme.colors.primary} />
           </View>
         )}
         
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Theme</Text>
-          <Text style={styles.sectionSubtitle}>Select the theme for the application.</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('settings.appearanceSettings.theme')}</Text>
+          <Text style={[styles.sectionSubtitle, { color: theme.colors.mutedText }]}>{t('settings.appearanceSettings.selectTheme')}</Text>
           
           <View style={styles.themeGrid}>
-            {THEME_OPTIONS.map((theme) => (
+            {THEME_OPTIONS.map((themeOption) => (
               <ThemeCard
-                key={theme.id}
-                theme={theme}
-                isSelected={selectedTheme === theme.id}
-                onSelect={() => handleThemeSelect(theme.id)}
+                key={themeOption.id}
+                theme={themeOption}
+                isSelected={selectedTheme === themeOption.id}
+                onSelect={() => handleThemeSelect(themeOption.id)}
+                colors={theme.colors}
               />
             ))}
           </View>
         </View>
         
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Accessibility</Text>
-          <Text style={styles.sectionSubtitle}>Adjust settings to improve your viewing experience.</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('settings.appearanceSettings.accessibility')}</Text>
+          <Text style={[styles.sectionSubtitle, { color: theme.colors.mutedText }]}>{t('settings.appearanceSettings.accessibilityDescription')}</Text>
           
-          <View style={styles.accessibilityCard}>
+          <View style={[styles.accessibilityCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             <View style={styles.accessibilityRow}>
               <View style={styles.accessibilityInfo}>
                 <View style={styles.accessibilityIconContainer}>
-                  <Type size={20} color="#16A34A" />
+                  <Type size={20} color={theme.colors.primary} />
                 </View>
                 <View style={styles.accessibilityTextContainer}>
-                  <Text style={styles.accessibilityTitle}>High Contrast Mode</Text>
-                  <Text style={styles.accessibilitySubtitle}>Increase color contrast for better readability.</Text>
+                  <Text style={[styles.accessibilityTitle, { color: theme.colors.text }]}>{t('settings.appearanceSettings.highContrast')}</Text>
+                  <Text style={[styles.accessibilitySubtitle, { color: theme.colors.mutedText }]}>{t('settings.appearanceSettings.highContrastDescription')}</Text>
                 </View>
               </View>
               <Switch
                 value={highContrastMode}
                 onValueChange={handleHighContrastToggle}
-                trackColor={{ false: '#E5E7EB', true: '#16A34A' }}
-                thumbColor={highContrastMode ? '#fff' : '#fff'}
+                trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                thumbColor="#fff"
               />
             </View>
             
-            <View style={[styles.accessibilityRow, { marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#F3F4F6' }]}>
+            <View style={[styles.accessibilityRow, { marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: theme.colors.border }]}>
               <View style={styles.accessibilityInfo}>
                 <View style={styles.accessibilityIconContainer}>
-                  <Wifi size={20} color="#16A34A" />
+                  <Wifi size={20} color={theme.colors.primary} />
                 </View>
                 <View style={styles.accessibilityTextContainer}>
-                  <Text style={styles.accessibilityTitle}>Low Data Mode</Text>
-                  <Text style={styles.accessibilitySubtitle}>Reduce data usage by limiting auto-loading content.</Text>
+                  <Text style={[styles.accessibilityTitle, { color: theme.colors.text }]}>{t('settings.appearanceSettings.lowDataMode')}</Text>
+                  <Text style={[styles.accessibilitySubtitle, { color: theme.colors.mutedText }]}>{t('settings.appearanceSettings.lowDataModeDescription')}</Text>
                 </View>
               </View>
               <Switch
                 value={lowDataMode}
                 onValueChange={handleLowDataModeToggle}
-                trackColor={{ false: '#E5E7EB', true: '#16A34A' }}
-                thumbColor={lowDataMode ? '#fff' : '#fff'}
+                trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                thumbColor="#fff"
               />
             </View>
           </View>
         </View>
         
         <View style={styles.section}>
-          <OptionRow
-            title="Font Size"
-            options={FONT_SIZE_OPTIONS}
-            selectedValue={fontSize}
-            onSelect={handleFontSizeSelect}
-          />
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('settings.appearanceSettings.fontSize')}</Text>
+          <View style={styles.optionGrid}>
+            {FONT_SIZE_OPTIONS.map((option) => (
+              <TouchableOpacity
+                key={option.id}
+                style={[styles.optionButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }, fontSize === option.id && { borderColor: theme.colors.primary, backgroundColor: `${theme.colors.primary}10` }]}
+                onPress={() => handleFontSizeSelect(option.id)}
+              >
+                <Text style={[styles.optionButtonText, { color: theme.colors.mutedText }, fontSize === option.id && { color: theme.colors.primary }]}>
+                  {option.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
         
         <View style={styles.section}>
-          <OptionRow
-            title="Layout Density"
-            options={LAYOUT_DENSITY_OPTIONS}
-            selectedValue={layoutDensity}
-            onSelect={handleLayoutDensitySelect}
-          />
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('settings.appearanceSettings.layoutDensity')}</Text>
+          <View style={styles.optionGrid}>
+            {LAYOUT_DENSITY_OPTIONS.map((option) => (
+              <TouchableOpacity
+                key={option.id}
+                style={[styles.optionButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }, layoutDensity === option.id && { borderColor: theme.colors.primary, backgroundColor: `${theme.colors.primary}10` }]}
+                onPress={() => handleLayoutDensitySelect(option.id)}
+              >
+                <Text style={[styles.optionButtonText, { color: theme.colors.mutedText }, layoutDensity === option.id && { color: theme.colors.primary }]}>
+                  {option.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -289,7 +287,6 @@ export default function AppearanceScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9F9F9',
   },
   backButton: {
     padding: 8,
@@ -302,12 +299,10 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#111827',
     marginBottom: 6,
   },
   subheader: {
     fontSize: 14,
-    color: '#6B7280',
     marginBottom: 24,
   },
   section: {
@@ -316,12 +311,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#111827',
     marginBottom: 8,
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
     lineHeight: 20,
     marginBottom: 16,
   },
@@ -331,16 +324,10 @@ const styles = StyleSheet.create({
   },
   themeCard: {
     flex: 1,
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#E5E7EB',
-  },
-  themeCardSelected: {
-    borderColor: '#16A34A',
-    backgroundColor: '#16A34A',
   },
   themeIconContainer: {
     width: 48,
@@ -354,17 +341,11 @@ const styles = StyleSheet.create({
   themeName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#111827',
-  },
-  themeNameSelected: {
-    color: '#fff',
   },
   accessibilityCard: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   accessibilityRow: {
     flexDirection: 'row',
@@ -391,22 +372,12 @@ const styles = StyleSheet.create({
   accessibilityTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
   },
   accessibilitySubtitle: {
     fontSize: 13,
-    color: '#6B7280',
     marginTop: 2,
   },
-  optionSection: {
-    marginBottom: 16,
-  },
-  optionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 12,
-  },
+
   optionGrid: {
     flexDirection: 'row',
     gap: 12,
@@ -415,22 +386,12 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#fff',
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#E5E7EB',
     alignItems: 'center',
-  },
-  optionButtonSelected: {
-    borderColor: '#16A34A',
-    backgroundColor: 'rgba(16,185,129,0.05)',
   },
   optionButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
-  },
-  optionButtonTextSelected: {
-    color: '#16A34A',
   },
 });
