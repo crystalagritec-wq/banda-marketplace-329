@@ -357,12 +357,15 @@ export default function CheckoutScreen() {
       const newQuotes = new Map<string, DeliveryQuote>();
       let hasChanges = false;
       
+      console.log('[Checkout] 🔄 Recalculating multi-seller delivery fees for', groupedBySeller.length, 'sellers');
+      
       groupedBySeller.forEach((group, index) => {
         const existingQuote = sellerDeliveryQuotes.get(group.sellerId);
         const shouldRecalculate = !existingQuote || existingQuote.totalFee === 0;
         
         if (existingQuote && existingQuote.totalFee > 0 && !shouldRecalculate) {
           newQuotes.set(group.sellerId, existingQuote);
+          console.log(`[Checkout] ♻️ Reusing existing quote for ${group.sellerName}: ${existingQuote.totalFee} KES`);
         } else {
           const sellerProduct = cartItems.find(item => item.sellerId === group.sellerId);
           const sellerCoords = sellerProduct?.product.coordinates;
@@ -463,9 +466,16 @@ export default function CheckoutScreen() {
       });
       
       if (hasChanges || newQuotes.size !== sellerDeliveryQuotes.size) {
+        const totalFee = Array.from(newQuotes.values()).reduce((sum, q) => sum + q.totalFee, 0);
         console.log('[Checkout] 📦 Updating seller delivery quotes. Total sellers:', newQuotes.size);
-        console.log('[Checkout] 💰 Total delivery fee:', Array.from(newQuotes.values()).reduce((sum, q) => sum + q.totalFee, 0));
+        console.log('[Checkout] 💰 Total delivery fee:', totalFee, 'KES');
         setSellerDeliveryQuotes(newQuotes);
+        
+        if (totalFee > 0) {
+          showToast(`✅ Delivery fees calculated: ${totalFee} KES`);
+        }
+      } else {
+        console.log('[Checkout] ✓ No changes needed for seller delivery quotes');
       }
     }
   }, [cartSummary.isSplitOrder, groupedBySeller, deliveryQuotes, selectedAddress, cartItems, userLocation, sellerDeliveryQuotes]);

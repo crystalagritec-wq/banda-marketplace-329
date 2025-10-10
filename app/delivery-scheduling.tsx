@@ -20,6 +20,11 @@ interface HourSlots {
   slots: TimeSlot[];
 }
 
+const BUSINESS_HOURS = {
+  start: 6,
+  end: 22,
+};
+
 function buildHourlySlots(): HourSlots[] {
   const out: HourSlots[] = [];
   const now = new Date();
@@ -32,12 +37,21 @@ function buildHourlySlots(): HourSlots[] {
     const slotHour = (startHour + hour) % 24;
     const daysToAdd = Math.floor((startHour + hour) / 24);
     
+    if (slotHour < BUSINESS_HOURS.start || slotHour >= BUSINESS_HOURS.end) {
+      continue;
+    }
+    
     const slotDate = new Date(now);
     slotDate.setDate(slotDate.getDate() + daysToAdd);
     slotDate.setHours(slotHour, 0, 0, 0);
     
     const endDate = new Date(slotDate);
     endDate.setHours(slotHour + 1, 0, 0, 0);
+    
+    const isPastTime = slotDate.getTime() < now.getTime();
+    if (isPastTime) {
+      continue;
+    }
     
     const dateKey = slotDate.toISOString().slice(0, 10);
     const isToday = daysToAdd === 0;
