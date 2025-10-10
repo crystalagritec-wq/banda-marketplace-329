@@ -219,6 +219,8 @@ import { getDriverDeliveriesProcedure } from "@/backend/trpc/routes/logistics/ge
 import { getDriverEarningsProcedure } from "@/backend/trpc/routes/logistics/get-driver-earnings";
 import { requestDriverPayoutProcedure } from "@/backend/trpc/routes/logistics/request-driver-payout";
 import { updateDeliveryStatusDriverProcedure } from "@/backend/trpc/routes/logistics/update-delivery-status-driver";
+import { createOrderProcedure } from "@/backend/trpc/routes/orders/create-order";
+import { multiSellerCheckoutRealProcedure } from "@/backend/trpc/routes/checkout/multi-seller-checkout-real";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -259,6 +261,7 @@ export const appRouter = createTRPCRouter({
     fetchByLocation: fetchCategoriesByLocationProcedure,
   }),
   orders: createTRPCRouter({
+    createOrder: createOrderProcedure,
     logPaymentSuccess: logPaymentSuccessProcedure,
     generateQR: generateOrderQRProcedure,
     notifySellerDriver: notifySellerDriverProcedure,
@@ -277,6 +280,7 @@ export const appRouter = createTRPCRouter({
     updateCart: updateCartProcedure,
     checkoutOrder: checkoutOrderProcedure,
     multiSellerCheckout: multiSellerCheckoutProcedure,
+    multiSellerCheckoutReal: multiSellerCheckoutRealProcedure,
     getSellerDeliveryQuotes: getSellerDeliveryQuotesProcedure,
     optimizeSellerSelection: optimizeSellerSelectionProcedure,
     suggestDeliveryPooling: suggestDeliveryPoolingProcedure,
