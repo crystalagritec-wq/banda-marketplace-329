@@ -21,6 +21,7 @@ import { AgriPayProvider } from "@/providers/agripay-provider";
 import { OrderProvider } from "@/providers/order-provider";
 import { I18nProvider } from "@/providers/i18n-provider";
 import { AppLockProvider } from "@/providers/app-lock-provider";
+import { FarmProvider } from "@/providers/farm-provider";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { useDeepLinking } from "@/hooks/useDeepLinking";
@@ -97,6 +98,11 @@ function RootLayoutNav() {
       <Stack.Screen name="app-lock-setup" />
       <Stack.Screen name="wallet-create-pin" />
       <Stack.Screen name="wallet-onboarding" />
+      <Stack.Screen name="farm-dashboard" />
+      <Stack.Screen name="onboarding/farm/profile" />
+      <Stack.Screen name="onboarding/farm/crops" />
+      <Stack.Screen name="onboarding/farm/workers" />
+      <Stack.Screen name="onboarding/farm/analytics" />
     </Stack>
   );
 }
@@ -139,7 +145,9 @@ export default function RootLayout() {
                                 <LoyaltyProvider>
                                   <TrustProvider>
                                     <OrderProvider>
-                                      <RootLayoutNav />
+                                      <FarmProvider>
+                                        <RootLayoutNav />
+                                      </FarmProvider>
                                     </OrderProvider>
                                   </TrustProvider>
                                 </LoyaltyProvider>

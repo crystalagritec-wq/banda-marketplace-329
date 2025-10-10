@@ -181,6 +181,13 @@ import { createBoostProcedure } from "@/backend/trpc/routes/boost/create-boost";
 import { getActiveBoostsProcedure } from "@/backend/trpc/routes/boost/get-active-boosts";
 import { getBoostPackagesProcedure } from "@/backend/trpc/routes/boost/get-boost-packages";
 import { cancelBoostProcedure } from "@/backend/trpc/routes/boost/cancel-boost";
+import { createFarmProcedure } from "@/backend/trpc/routes/farm/create-farm";
+import { getFarmsProcedure } from "@/backend/trpc/routes/farm/get-farms";
+import { getFarmDashboardProcedure } from "@/backend/trpc/routes/farm/get-farm-dashboard";
+import { addFarmRecordProcedure } from "@/backend/trpc/routes/farm/add-record";
+import { addFarmTaskProcedure } from "@/backend/trpc/routes/farm/add-task";
+import { updateFarmTaskProcedure } from "@/backend/trpc/routes/farm/update-task";
+import { getFarmAnalyticsProcedure } from "@/backend/trpc/routes/farm/get-analytics";
 import { getShopProductsFullProcedure } from "@/backend/trpc/routes/shop/get-shop-products-full";
 import { bulkUpdateProductsProcedure } from "@/backend/trpc/routes/shop/bulk-update-products";
 import { getInventoryAlertsProcedure } from "@/backend/trpc/routes/shop/get-inventory-alerts";
@@ -492,6 +499,15 @@ export const appRouter = createTRPCRouter({
     getActiveBoosts: getActiveBoostsProcedure,
     getPackages: getBoostPackagesProcedure,
     cancelBoost: cancelBoostProcedure,
+  }),
+  farm: createTRPCRouter({
+    createFarm: createFarmProcedure,
+    getFarms: getFarmsProcedure,
+    getDashboard: getFarmDashboardProcedure,
+    addRecord: addFarmRecordProcedure,
+    addTask: addFarmTaskProcedure,
+    updateTask: updateFarmTaskProcedure,
+    getAnalytics: getFarmAnalyticsProcedure,
   }),
 });
 
