@@ -117,12 +117,12 @@ export default function SettingsScreen() {
   }, []);
 
   const accountItems: ListItem[] = [
-    { id: 'edit', title: 'Edit Profile', subtitle: 'Change your photo, name and bio', icon: User, onPress: () => router.push('/(tabs)/profile' as any) },
+    { id: 'edit', title: 'Edit Profile', subtitle: 'Change your photo, name and bio', icon: User, onPress: () => router.push('/edit-profile' as any) },
     { id: 'security', title: 'Security', subtitle: 'Password and 2‑factor authentication', icon: Lock, onPress: () => router.push('/settings/security' as any) },
     { id: 'privacy', title: 'Privacy', subtitle: 'Control your data visibility', icon: Shield, onPress: () => router.push('/settings/privacy' as any) },
     { id: 'shipping', title: 'Delivery Addresses', subtitle: 'Manage your delivery locations', icon: MapPin, onPress: () => router.push('/address' as any) },
-    { id: 'phone', title: 'Change Phone Number', subtitle: 'Update your phone number', icon: Phone, onPress: () => router.push('/settings/security' as any) },
-    { id: 'email', title: 'Change Email', subtitle: 'Update your email address', icon: Mail, onPress: () => router.push('/settings/security' as any) },
+    { id: 'phone', title: 'Change Phone Number', subtitle: 'Update your phone number', icon: Phone, onPress: () => router.push('/settings/change-phone' as any) },
+    { id: 'email', title: 'Change Email', subtitle: 'Update your email address', icon: Mail, onPress: () => router.push('/settings/change-email' as any) },
   ];
 
   const appItems: ListItem[] = [

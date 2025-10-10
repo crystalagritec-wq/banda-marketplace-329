@@ -34,8 +34,9 @@ const THEME_OPTIONS: ThemeOption[] = [
 
 const FONT_SIZE_OPTIONS: FontSizeOption[] = [
   { id: 'small', name: 'Small', description: 'Compact text size' },
-  { id: 'default', name: 'Default', description: 'Standard text size' },
+  { id: 'medium', name: 'Medium', description: 'Standard text size' },
   { id: 'large', name: 'Large', description: 'Easier to read' },
+  { id: 'extra-large', name: 'Extra Large', description: 'Maximum readability' },
 ];
 
 const LAYOUT_DENSITY_OPTIONS: LayoutDensityOption[] = [
