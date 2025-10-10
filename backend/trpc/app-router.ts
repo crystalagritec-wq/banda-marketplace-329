@@ -215,6 +215,10 @@ import { submitShopVerificationProcedure } from "@/backend/trpc/routes/shop/subm
 import { completeShopOnboardingProcedure } from "@/backend/trpc/routes/shop/complete-onboarding";
 import { completeServiceOnboardingProcedure } from "@/backend/trpc/routes/service-providers/complete-onboarding";
 import { completeLogisticsOnboardingProcedure } from "@/backend/trpc/routes/logistics-inboarding/complete-onboarding";
+import { getDriverDeliveriesProcedure } from "@/backend/trpc/routes/logistics/get-driver-deliveries";
+import { getDriverEarningsProcedure } from "@/backend/trpc/routes/logistics/get-driver-earnings";
+import { requestDriverPayoutProcedure } from "@/backend/trpc/routes/logistics/request-driver-payout";
+import { updateDeliveryStatusDriverProcedure } from "@/backend/trpc/routes/logistics/update-delivery-status-driver";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -300,6 +304,10 @@ export const appRouter = createTRPCRouter({
     getDriverDeliveriesEnhanced: getDriverDeliveriesEnhancedProcedure,
     requestPayoutEnhanced: requestPayoutEnhancedProcedure,
     updateDeliveryStatusEnhanced: updateDeliveryStatusEnhancedProcedure,
+    getDriverDeliveries: getDriverDeliveriesProcedure,
+    getDriverEarnings: getDriverEarningsProcedure,
+    requestDriverPayout: requestDriverPayoutProcedure,
+    updateDeliveryStatusDriver: updateDeliveryStatusDriverProcedure,
   }),
   qr: createTRPCRouter({
     generate: generateQRProcedure,
