@@ -201,6 +201,8 @@ import { uploadServiceProofEnhancedProcedure } from "@/backend/trpc/routes/servi
 import { rateServiceProviderEnhancedProcedure } from "@/backend/trpc/routes/service-providers/rate-service-provider-enhanced";
 import { getServiceRequestsEnhancedProcedure } from "@/backend/trpc/routes/service-providers/get-service-requests-enhanced";
 import { updateRequestStatusEnhancedProcedure } from "@/backend/trpc/routes/service-providers/update-request-status-enhanced";
+import { getServiceEarningsEnhancedProcedure } from "@/backend/trpc/routes/service-providers/get-earnings-enhanced";
+import { requestPayoutProcedure as serviceRequestPayoutProcedure } from "@/backend/trpc/routes/service-providers/request-payout";
 import { uploadDeliveryProofEnhancedProcedure } from "@/backend/trpc/routes/logistics/upload-delivery-proof-enhanced";
 import { rateDriverEnhancedProcedure } from "@/backend/trpc/routes/logistics/rate-driver-enhanced";
 import { getDriverDeliveriesEnhancedProcedure } from "@/backend/trpc/routes/logistics/get-driver-deliveries-enhanced";
@@ -450,6 +452,8 @@ export const appRouter = createTRPCRouter({
     rateServiceProviderEnhanced: rateServiceProviderEnhancedProcedure,
     getServiceRequestsEnhanced: getServiceRequestsEnhancedProcedure,
     updateRequestStatusEnhanced: updateRequestStatusEnhancedProcedure,
+    getServiceEarningsEnhanced: getServiceEarningsEnhancedProcedure,
+    requestPayout: serviceRequestPayoutProcedure,
     completeOnboarding: completeServiceOnboardingProcedure,
   }),
   agripay: createTRPCRouter({
