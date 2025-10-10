@@ -50,6 +50,12 @@ export default function ProfileScreen() {
   const [errorText, setErrorText] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  const sessionQuery = trpc.profile.fetchSession.useQuery(undefined, {
+    enabled: !!user,
+    refetchOnMount: true,
+    retry: 1,
+  });
+
   const dashboardQuery = trpc.dashboard.getUserDashboard.useQuery({}, {
     enabled: !!user,
     refetchOnMount: true,
@@ -68,6 +74,7 @@ export default function ProfileScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     await Promise.all([
+      sessionQuery.refetch(),
       dashboardQuery.refetch(),
       shopQuery.refetch(),
       serviceProviderQuery.refetch(),
@@ -156,7 +163,7 @@ export default function ProfileScreen() {
             <View style={styles.avatarContainer}>
               <View style={styles.avatarWrap}>
                 <Image
-                  source={{ uri: (user as any)?.avatar ?? 'https://images.unsplash.com/photo-1607746882042-944635dfe10e?q=80&w=800&auto=format&fit=crop' }}
+                  source={{ uri: sessionQuery.data?.data?.user?.profilePictureUrl || (user as any)?.avatar || 'https://images.unsplash.com/photo-1607746882042-944635dfe10e?q=80&w=800&auto=format&fit=crop' }}
                   style={styles.avatar}
                   contentFit="cover"
                   transition={300}
@@ -168,25 +175,31 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.profileInfo}>
               <Text style={styles.greeting}>{greeting}</Text>
-              <Text style={styles.name} numberOfLines={1}>{dashboardQuery.data?.data?.user?.full_name || user?.name || 'Banda User'}</Text>
+              <Text style={styles.name} numberOfLines={1}>
+                {sessionQuery.data?.data?.user?.fullName || dashboardQuery.data?.data?.user?.full_name || user?.name || 'Banda User'}
+              </Text>
               <View style={styles.metaRow}>
-                {!!(dashboardQuery.data?.data?.user?.email || user?.email) && (
+                {!!(sessionQuery.data?.data?.user?.email || dashboardQuery.data?.data?.user?.email || user?.email) && (
                   <View style={styles.metaItem}>
                     <Mail size={12} color="#6B7280" />
-                    <Text style={styles.metaText} numberOfLines={1}>{dashboardQuery.data?.data?.user?.email || user?.email}</Text>
+                    <Text style={styles.metaText} numberOfLines={1}>
+                      {sessionQuery.data?.data?.user?.email || dashboardQuery.data?.data?.user?.email || user?.email}
+                    </Text>
                   </View>
                 )}
-                {!!(dashboardQuery.data?.data?.user?.phone || user?.phone) && (
+                {!!(sessionQuery.data?.data?.user?.phone || dashboardQuery.data?.data?.user?.phone || user?.phone) && (
                   <View style={styles.metaItem}>
                     <Phone size={12} color="#6B7280" />
-                    <Text style={styles.metaText}>{dashboardQuery.data?.data?.user?.phone || user?.phone}</Text>
+                    <Text style={styles.metaText}>
+                      {sessionQuery.data?.data?.user?.phone || dashboardQuery.data?.data?.user?.phone || user?.phone}
+                    </Text>
                   </View>
                 )}
               </View>
-              {!!user?.location && (
+              {!!(sessionQuery.data?.data?.user?.location || user?.location) && (
                 <View style={[styles.metaItem, { marginTop: 4 }]}>
                   <MapPin size={12} color="#6B7280" />
-                  <Text style={styles.metaText}>{user.location}</Text>
+                  <Text style={styles.metaText}>{sessionQuery.data?.data?.user?.location || user?.location}</Text>
                 </View>
               )}
             </View>

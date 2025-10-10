@@ -470,14 +470,15 @@ export default function WalletOnboardingModal({
   };
 
   const renderTermsStep = () => (
-    <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
+    <View style={styles.stepContent}>
       <Text style={styles.stepNumber}>Step 3 of 4</Text>
       <Text style={styles.title}>Terms & Conditions</Text>
       <Text style={styles.subtitle}>
         Please review and accept our terms
       </Text>
 
-      <View style={styles.termsContainer}>
+      <ScrollView style={styles.termsScrollView} showsVerticalScrollIndicator={true}>
+        <View style={styles.termsContainer}>
         <Text style={styles.termsTitle}>AgriPay Wallet Terms & Conditions</Text>
 
         <Text style={styles.termsSection}>1. Account Security & PIN Protection</Text>
@@ -527,7 +528,8 @@ export default function WalletOnboardingModal({
           {"\n"}• Maximum liability is limited to your wallet balance
           {"\n"}• Force majeure events exempt AgriPay from liability
         </Text>
-      </View>
+        </View>
+      </ScrollView>
 
       <Pressable
         style={styles.checkboxContainer}
@@ -570,7 +572,7 @@ export default function WalletOnboardingModal({
           </LinearGradient>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+    </View>
   );
 
   const renderSuccessStep = () => (
@@ -938,14 +940,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-  termsContainer: {
+  termsScrollView: {
+    maxHeight: 200,
     backgroundColor: '#F9FAFB',
     borderRadius: 12,
-    padding: 16,
-    marginTop: 8,
-    maxHeight: 250,
     borderWidth: 2,
     borderColor: '#E5E7EB',
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  termsContainer: {
+    padding: 16,
   },
   termsTitle: {
     fontSize: 16,
