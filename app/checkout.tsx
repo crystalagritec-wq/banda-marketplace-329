@@ -118,7 +118,7 @@ export default function CheckoutScreen() {
   const loyalty = useLoyalty();
   const trust = useTrust();
   const awardPointsMutation = trpc.loyalty.awardPoints.useMutation();
-  const multiSellerCheckoutMutation = trpc.checkout.multiSellerCheckout.useMutation();
+  const multiSellerCheckoutMutation = trpc.checkout.multiSellerCheckoutReal.useMutation();
   const checkoutOrderMutation = trpc.checkout.checkoutOrder.useMutation();
   
   useEffect(() => {
@@ -640,25 +640,37 @@ export default function CheckoutScreen() {
         });
 
         const multiSellerResult = await multiSellerCheckoutMutation.mutateAsync({
-          userId: user?.id || 'user-123',
-          sellerGroups,
+          sellerGroups: sellerGroups.map(group => ({
+            sellerId: group.sellerId,
+            sellerName: group.sellerName,
+            items: group.items.map(item => ({
+              product: {
+                id: item.productId,
+                name: item.productName,
+                price: item.price,
+              },
+              quantity: item.quantity,
+            })),
+            subtotal: group.subtotal,
+            deliveryProvider: {
+              providerId: group.deliveryProvider.providerId,
+              providerName: group.deliveryProvider.providerName,
+              deliveryFee: group.deliveryProvider.deliveryFee,
+              vehicleType: group.deliveryProvider.vehicleType,
+              estimatedTime: group.deliveryProvider.estimatedTime,
+            },
+          })),
           deliveryAddress: {
-            name: selectedAddress!.name,
-            address: selectedAddress!.address,
+            street: selectedAddress!.address,
             city: selectedAddress!.city,
-            phone: selectedAddress!.phone,
+            county: selectedAddress!.county || '',
+            coordinates: {
+              lat: selectedAddress!.coordinates?.lat || userLocation?.coordinates?.lat || 0,
+              lng: selectedAddress!.coordinates?.lng || userLocation?.coordinates?.lng || 0,
+            },
           },
-          paymentMethod: {
-            type: selectedPaymentMethod!.type,
-            details: selectedPaymentMethod!.details || '',
-          },
-          orderSummary: {
-            subtotal: cartSummary.subtotal,
-            totalDeliveryFee: totalDeliveryFee,
-            discount: 0,
-            total: finalTotal,
-          },
-          specialInstructions: deliveryInstructions,
+          paymentMethod: selectedPaymentMethod!.type,
+          totalAmount: finalTotal,
         });
 
         if (selectedPaymentMethod!.type === 'mpesa') {
