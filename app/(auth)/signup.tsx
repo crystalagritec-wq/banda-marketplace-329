@@ -212,35 +212,25 @@ export default function SignUpScreen() {
     try {
       setIsLoading(true);
       
-      // Send OTP for signup using Supabase
-      const signupResult = await authService.signUpWithOTP(
+      // Create user account directly using auth service
+      const createResult = await authService.createUser({
+        fullName,
         email,
-        'email',
-        {
-          fullName,
-          phone: normalizePhoneNumber(phone, selectedCountry.phoneCode),
-          countryCode: selectedCountry.code
-        }
-      );
+        phone: normalizePhoneNumber(phone, selectedCountry.phoneCode),
+        countryCode: selectedCountry.code,
+        termsAccepted: true,
+        providerType: 'email'
+      });
       
-      if (!signupResult.success) {
+      if (!createResult.success) {
         const errorAlert = getAlert(ALERT_CODES.EMAIL_INVALID, language);
         showAlert(errorAlert, 'email');
         return;
       }
       
-      // Navigate to OTP verification
-      router.push({
-        pathname: '/(auth)/otp-verification',
-        params: {
-          identifier: email,
-          method: 'email',
-          mode: 'signup',
-          fullName,
-          whatsapp: normalizePhoneNumber(phone, selectedCountry.phoneCode),
-          country: selectedCountry.code
-        }
-      });
+      // Navigate directly to marketplace after successful signup
+      router.replace('/(tabs)/marketplace' as any);
+      
     } catch (error) {
       console.error('❌ Signup error:', error);
       const errorAlert = getAlert(ALERT_CODES.EMAIL_INVALID, language);

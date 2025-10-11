@@ -137,9 +137,8 @@ export default function SignInScreen() {
       setIsLoading(true);
       await emailPasswordLogin(email, password, rememberMe);
       
-      // Show success alert
-      const successAlert = getAlert(ALERT_CODES.LOGIN_SUCCESS, language, { name: email.split('@')[0] });
-      showAlert(successAlert);
+      // Navigate directly to marketplace after successful login
+      router.replace('/(tabs)/marketplace' as any);
       
     } catch (error: any) {
       console.error('Password sign-in failed:', error);
