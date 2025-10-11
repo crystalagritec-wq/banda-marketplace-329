@@ -137,8 +137,18 @@ export default function SignInScreen() {
       setIsLoading(true);
       await emailPasswordLogin(email, password, rememberMe);
       
-      // Navigate directly to marketplace after successful login
-      router.replace('/(tabs)/marketplace' as any);
+      // Show success message
+      const successAlert = {
+        code: 'LOGIN_SUCCESS',
+        message: language === 'en' ? '✅ Login successful! Welcome back.' : '✅ Umeingia kikamilifu! Karibu tena.',
+        type: 'success'
+      };
+      showAlert(successAlert);
+      
+      // Navigate to marketplace after short delay to show success message
+      setTimeout(() => {
+        router.replace('/(tabs)/marketplace' as any);
+      }, 1500);
       
     } catch (error: any) {
       console.error('Password sign-in failed:', error);
@@ -175,13 +185,17 @@ export default function SignInScreen() {
       }
 
       if (Platform.OS !== 'web' && result.url) {
-        // For mobile, open the OAuth URL
+        console.log(`📱 Opening OAuth URL in browser...`);
+        // For mobile, open the OAuth URL in browser
         const supported = await Linking.canOpenURL(result.url);
         if (supported) {
           await Linking.openURL(result.url);
+          console.log(`✅ OAuth URL opened successfully`);
           // The callback will be handled by deep link listener
+          // Don't set loading to false here, let the callback handle it
+          return;
         } else {
-          throw new Error(`Cannot open ${provider} authentication`);
+          throw new Error(`Cannot open ${provider} authentication. Please check your browser settings.`);
         }
       }
       // For web, the redirect happens automatically in socialSignIn
@@ -198,7 +212,6 @@ export default function SignInScreen() {
       
       const errorAlert = getAlert(alertCode, language, { provider });
       showAlert(errorAlert);
-    } finally {
       setIsLoading(false);
     }
   };

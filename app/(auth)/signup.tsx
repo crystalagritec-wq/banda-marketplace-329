@@ -219,7 +219,7 @@ export default function SignUpScreen() {
         phone: normalizePhoneNumber(phone, selectedCountry.phoneCode),
         countryCode: selectedCountry.code,
         termsAccepted: true,
-        providerType: 'phone' as 'phone'
+        providerType: 'phone'
       });
       
       if (!createResult.success) {
@@ -228,8 +228,18 @@ export default function SignUpScreen() {
         return;
       }
       
-      // Navigate directly to marketplace after successful signup
-      router.replace('/(tabs)/marketplace' as any);
+      // Show success message
+      const successAlert = {
+        code: 'SIGNUP_SUCCESS',
+        message: language === 'en' ? '🎉 Account created successfully! Welcome to BANDA.' : '🎉 Akaunti imeundwa kikamilifu! Karibu BANDA.',
+        type: 'success'
+      };
+      showAlert(successAlert);
+      
+      // Navigate to marketplace after short delay to show success message
+      setTimeout(() => {
+        router.replace('/(tabs)/marketplace' as any);
+      }, 2000);
       
     } catch (error) {
       console.error('❌ Signup error:', error);

@@ -624,14 +624,25 @@ class AuthService {
     try {
       console.log(`🔐 Starting ${provider} social sign in...`);
       
-      const redirectTo = Platform.OS === 'web' 
-        ? `${window.location.origin}/auth/callback`
-        : 'banda://auth/callback';
+      // Determine redirect URL based on platform
+      let redirectTo: string;
+      if (Platform.OS === 'web') {
+        // For web, use the current origin + /auth/callback
+        redirectTo = typeof window !== 'undefined' 
+          ? `${window.location.origin}/auth/callback`
+          : 'https://rork.com/auth/callback';
+      } else {
+        // For mobile, use deep link
+        redirectTo = 'banda://auth/callback';
+      }
+      
+      console.log(`📍 OAuth redirect URL: ${redirectTo}`);
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: provider,
         options: {
           redirectTo,
+          skipBrowserRedirect: Platform.OS !== 'web', // Skip redirect on mobile, we'll handle it manually
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -644,18 +655,21 @@ class AuthService {
         return { success: false, error: error.message };
       }
 
-      if (Platform.OS === 'web') {
-        // For web, redirect to the OAuth URL
-        if (data.url) {
-          window.location.href = data.url;
-          return { success: true };
-        }
-      } else {
-        // For mobile, return the URL to open
-        return { success: true, url: data.url };
+      if (!data.url) {
+        console.error('❌ No OAuth URL received from Supabase');
+        return { success: false, error: 'No OAuth URL received' };
       }
 
-      return { success: false, error: 'No OAuth URL received' };
+      console.log(`✅ OAuth URL generated: ${data.url.substring(0, 50)}...`);
+
+      if (Platform.OS === 'web') {
+        // For web, redirect to the OAuth URL
+        window.location.href = data.url;
+        return { success: true };
+      } else {
+        // For mobile, return the URL to open in browser
+        return { success: true, url: data.url };
+      }
     } catch (error: any) {
       console.error(`❌ ${provider} social sign in error:`, error);
       return { success: false, error: error?.message || 'Social sign in failed' };
