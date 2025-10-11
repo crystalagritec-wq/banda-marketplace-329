@@ -23,6 +23,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { useAuth } from '@/providers/auth-provider';
 import { trpc } from '@/lib/trpc';
+import { profileService } from '@/services/profile';
 
 interface EditProfileForm {
   fullName: string;
@@ -109,11 +110,55 @@ export default function EditProfileScreen() {
       'Change Profile Photo',
       'Choose an option',
       [
-        { text: 'Take Photo', onPress: () => console.log('[EditProfile] Camera selected') },
-        { text: 'Choose from Gallery', onPress: () => console.log('[EditProfile] Gallery selected') },
+        { text: 'Take Photo', onPress: handleTakePhoto },
+        { text: 'Choose from Gallery', onPress: handlePickImage },
         { text: 'Cancel', style: 'cancel' },
       ]
     );
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      const imageAsset = await profileService.takePicture();
+      if (!imageAsset) return;
+
+      setIsSaving(true);
+      const result = await profileService.uploadAvatar(user?.id || '', imageAsset);
+      
+      if (result.success && result.url) {
+        await sessionQuery.refetch();
+        Alert.alert('Success', 'Profile photo updated successfully');
+      } else {
+        Alert.alert('Error', result.error || 'Failed to upload photo');
+      }
+    } catch (error) {
+      console.error('[EditProfile] Take photo error:', error);
+      Alert.alert('Error', 'Failed to take photo');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handlePickImage = async () => {
+    try {
+      const imageAsset = await profileService.pickImage();
+      if (!imageAsset) return;
+
+      setIsSaving(true);
+      const result = await profileService.uploadAvatar(user?.id || '', imageAsset);
+      
+      if (result.success && result.url) {
+        await sessionQuery.refetch();
+        Alert.alert('Success', 'Profile photo updated successfully');
+      } else {
+        Alert.alert('Error', result.error || 'Failed to upload photo');
+      }
+    } catch (error) {
+      console.error('[EditProfile] Pick image error:', error);
+      Alert.alert('Error', 'Failed to pick image');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
