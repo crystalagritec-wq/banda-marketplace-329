@@ -392,7 +392,7 @@ export default function SignInScreen() {
               <View style={styles.socialButtons}>
                 <TouchableOpacity
                   style={[styles.socialButton, styles.facebookButton]}
-                  onPress={() => handleSocialAuth('facebook')}
+                  onPress={() => handleSocialAuth('Facebook')}
                   testID="facebook-auth-button"
                 >
                   <Image 
