@@ -219,7 +219,7 @@ export default function SignUpScreen() {
         phone: normalizePhoneNumber(phone, selectedCountry.phoneCode),
         countryCode: selectedCountry.code,
         termsAccepted: true,
-        providerType: 'email'
+        providerType: 'phone'
       });
       
       if (!createResult.success) {
