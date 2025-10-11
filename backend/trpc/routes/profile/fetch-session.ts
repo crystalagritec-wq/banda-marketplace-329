@@ -26,7 +26,8 @@ export const fetchUserSessionProcedure = protectedProcedure
       console.log('✅ User data fetched from database:', {
         name: userData.full_name,
         email: userData.email,
-        phone: userData.phone
+        phone: userData.phone,
+        avatar: userData.photo_url
       });
 
       const sessionData = {
@@ -37,6 +38,7 @@ export const fetchUserSessionProcedure = protectedProcedure
           phone: userData.phone || '',
           location: userData.location || 'Nairobi, Kenya',
           profilePictureUrl: userData.photo_url || null,
+          avatarUrl: userData.photo_url || null,
           isVerified: userData.kyc_status === 'verified',
           reputationScore: userData.reputation_score || 0,
           membershipTier: userData.tier === 'none' ? 'basic' : 

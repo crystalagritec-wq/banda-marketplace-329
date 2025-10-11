@@ -26,10 +26,12 @@ import {
   LayoutDashboard,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/providers/auth-provider';
 import { useWishlist } from '@/providers/wishlist-provider';
 import { useCart } from '@/providers/cart-provider';
+import { trpc } from '@/lib/trpc';
 
 import { useWalletCheck } from '@/hooks/useWalletCheck';
 import WalletOnboardingModal from '@/components/WalletOnboardingModal';
@@ -60,6 +62,12 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
   const [showWalletOnboarding, setShowWalletOnboarding] = React.useState(false);
   const slideAnim = React.useRef(new Animated.Value(-MENU_WIDTH)).current;
   const opacityAnim = React.useRef(new Animated.Value(0)).current;
+
+  const sessionQuery = trpc.profile.fetchSession.useQuery(undefined, {
+    enabled: !!user,
+    retry: 1,
+    staleTime: 60_000,
+  });
 
   React.useEffect(() => {
     if (visible) {
@@ -329,11 +337,25 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
           <LinearGradient colors={['#2D5016', '#4A7C59']} style={styles.header}>
             <View style={styles.headerContent}>
               <View style={styles.userInfo}>
-                <View style={styles.avatar}>
-                  <User size={32} color="white" />
-                </View>
+                {sessionQuery.data?.data?.user?.avatarUrl ? (
+                  <Image
+                    source={{ uri: sessionQuery.data.data.user.avatarUrl }}
+                    style={styles.avatarImage}
+                  />
+                ) : (
+                  <View style={styles.avatar}>
+                    <User size={32} color="white" />
+                  </View>
+                )}
                 <View style={styles.userDetails}>
-                  <Text style={styles.userName}>{user?.name || 'Guest'}</Text>
+                  <Text style={styles.userName}>
+                    {sessionQuery.data?.data?.user?.fullName || user?.name || 'Guest'}
+                  </Text>
+                  {sessionQuery.data?.data?.user?.email && (
+                    <Text style={styles.userEmail} numberOfLines={1}>
+                      {sessionQuery.data.data.user.email}
+                    </Text>
+                  )}
                 </View>
               </View>
               <TouchableOpacity
@@ -431,7 +453,16 @@ const styles = StyleSheet.create({
     color: 'white',
     marginBottom: 2,
   },
-
+  userEmail: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  avatarImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    marginRight: 12,
+  },
   closeButton: {
     padding: 4,
   },

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { protectedProcedure } from '@/backend/trpc/create-context';
+import { supabase } from '@/lib/supabase';
 
 export const updateProfileProcedure = protectedProcedure
   .input(
@@ -9,7 +10,7 @@ export const updateProfileProcedure = protectedProcedure
       phone: z.string().min(10, 'Phone number must be at least 10 digits').optional(),
       location: z.string().optional(),
       bio: z.string().max(500, 'Bio must be less than 500 characters').optional(),
-      profilePictureUrl: z.string().url('Invalid URL format').optional(),
+      profilePictureUrl: z.string().optional(),
     })
   )
   .mutation(async ({ input, ctx }: { input: any; ctx: any }) => {
@@ -22,32 +23,48 @@ export const updateProfileProcedure = protectedProcedure
     });
 
     try {
-      // In production, update user profile in Supabase
-      // const { data, error } = await supabase
-      //   .from('users')
-      //   .update({
-      //     full_name: updateData.fullName,
-      //     email: updateData.email,
-      //     phone: updateData.phone,
-      //     location: updateData.location,
-      //     bio: updateData.bio,
-      //     photo_url: updateData.profilePictureUrl,
-      //     updated_at: new Date().toISOString(),
-      //   })
-      //   .eq('user_id', userId)
-      //   .select()
-      //   .single();
+      const updatePayload: any = {
+        updated_at: new Date().toISOString(),
+      };
 
-      // For now, simulate successful update
+      if (updateData.fullName !== undefined) {
+        updatePayload.full_name = updateData.fullName;
+      }
+      if (updateData.email !== undefined) {
+        updatePayload.email = updateData.email;
+      }
+      if (updateData.phone !== undefined) {
+        updatePayload.phone = updateData.phone;
+      }
+      if (updateData.location !== undefined) {
+        updatePayload.location = updateData.location;
+      }
+      if (updateData.profilePictureUrl !== undefined) {
+        updatePayload.photo_url = updateData.profilePictureUrl;
+      }
+
+      const { data, error } = await supabase
+        .from('users')
+        .update(updatePayload)
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error updating user profile:', error);
+        throw new Error('Failed to update profile in database');
+      }
+
       const updatedProfile = {
-        id: userId,
-        fullName: updateData.fullName || 'John Farmer',
-        email: updateData.email || 'john@example.com',
-        phone: updateData.phone || '+254705256259',
-        location: updateData.location || 'Nairobi, Kenya',
-        bio: updateData.bio || 'Passionate farmer committed to sustainable agriculture',
-        profilePictureUrl: updateData.profilePictureUrl || null,
-        updatedAt: new Date().toISOString(),
+        id: data.user_id,
+        fullName: data.full_name || 'User',
+        email: data.email || '',
+        phone: data.phone || '',
+        location: data.location || '',
+        bio: updateData.bio || '',
+        profilePictureUrl: data.photo_url || null,
+        avatarUrl: data.photo_url || null,
+        updatedAt: data.updated_at,
       };
 
       console.log('✅ Profile updated successfully:', updatedProfile);
