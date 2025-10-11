@@ -1,15 +1,61 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { CheckCircle, Truck, User } from 'lucide-react-native';
 import { useLogisticsInboarding } from '@/providers/logistics-inboarding-provider';
+import { trpc } from '@/lib/trpc';
 
 export default function LogisticsCompleteScreen() {
   const router = useRouter();
-  const { role, fullVerificationComplete } = useLogisticsInboarding();
+  const { role, fullVerificationComplete, ownerDetails, driverDetails } = useLogisticsInboarding();
+  const completeMutation = trpc.logisticsInboarding.completeOnboarding.useMutation();
 
-  const handleGoToDashboard = () => {
-    console.log('[LogisticsComplete] Navigating to dashboard');
-    router.replace('/logistics-dashboard');
+  const handleGoToDashboard = async () => {
+    try {
+      console.log('[LogisticsComplete] Finalizing onboarding...');
+      if (!role) {
+        router.replace('/logistics-dashboard' as any);
+        return;
+      }
+      if (role === 'owner' && ownerDetails) {
+        const payload: any = {
+          role: 'owner' as const,
+          ownerDetails: {
+            fullName: ownerDetails.fullName,
+            phone: ownerDetails.phone,
+            kraPin: ownerDetails.kraPin,
+            areaOfOperation: ownerDetails.areaOfOperation,
+            vehicles: (ownerDetails.vehicles || []).map(v => ({
+              type: v.type,
+              registrationNumber: v.registrationNumber,
+              color: v.color,
+              capacity: v.capacity,
+              photos: v.photos || [],
+              ownershipType: v.ownershipType,
+            })),
+          },
+        };
+        await completeMutation.mutateAsync(payload);
+      } else if (role === 'driver' && driverDetails) {
+        const payload: any = {
+          role: 'driver' as const,
+          driverDetails: {
+            fullName: driverDetails.fullName,
+            phone: driverDetails.phone,
+            idNumber: driverDetails.nationalIdUri || '',
+            license: driverDetails.driverLicenseUri,
+            selfie: driverDetails.selfieUri,
+            discoverable: driverDetails.allowDiscovery,
+          },
+        };
+        await completeMutation.mutateAsync(payload);
+      }
+    } catch (e: any) {
+      console.error('[LogisticsComplete] Finalization error', e);
+      Alert.alert('Error', e?.message ?? 'Failed to finalize logistics onboarding');
+    } finally {
+      console.log('[LogisticsComplete] Navigating to dashboard');
+      router.replace('/logistics-dashboard' as any);
+    }
   };
 
   return (

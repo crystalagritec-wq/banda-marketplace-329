@@ -1,14 +1,17 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Alert } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CheckCircle, Clock, AlertCircle, Award, Sparkles } from 'lucide-react-native';
 import { useServiceInboarding } from '@/providers/service-inboarding-provider';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { trpc } from '@/lib/trpc';
 
 export default function ServiceSummaryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { state, completeInboarding } = useServiceInboarding();
+  const completeMutation = trpc.serviceProviders.completeOnboarding.useMutation();
+  const [submitting, setSubmitting] = useState<boolean>(false);
   
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -30,8 +33,53 @@ export default function ServiceSummaryScreen() {
   }, [scaleAnim, fadeAnim]);
 
   const handleComplete = async () => {
-    await completeInboarding();
-    router.replace('/service-provider-dashboard' as any);
+    if (!state.providerType) {
+      Alert.alert('Incomplete', 'Select provider type first');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      const payload: any = {
+        providerType: state.providerType,
+        serviceTypes: state.serviceTypes,
+        serviceAreas: state.availability.serviceAreas,
+        discoverable: state.availability.discoverable,
+        instantRequests: state.availability.instantRequests,
+        paymentMethod: (state.payment.method ?? 'agripay') as 'agripay' | 'mpesa' | 'bank',
+        accountDetails: state.payment.accountDetails || undefined,
+      };
+      if (state.providerType === 'individual') {
+        payload.personalDetails = {
+          fullName: state.personalDetails.fullName,
+          idNumber: state.personalDetails.idNumber,
+          phone: state.personalDetails.phone,
+          email: state.personalDetails.email,
+          address: state.personalDetails.address,
+          profilePhoto: state.personalDetails.profilePhoto,
+        };
+      } else {
+        payload.organizationDetails = {
+          businessName: state.organizationDetails.businessName,
+          registrationNumber: state.organizationDetails.registrationNumber,
+          taxId: state.organizationDetails.taxId,
+          contactPerson: state.organizationDetails.contactPerson,
+          email: state.organizationDetails.email,
+          logo: state.organizationDetails.logo,
+        };
+      }
+      console.log('[ServiceSummary] Completing onboarding with', payload);
+      const res = await completeMutation.mutateAsync(payload);
+      if (!res?.success) {
+        throw new Error(res?.message || 'Failed to complete onboarding');
+      }
+      await completeInboarding();
+      router.replace('/service-provider-dashboard' as any);
+    } catch (e: any) {
+      console.error('[ServiceSummary] Complete error', e);
+      Alert.alert('Error', e?.message ?? 'Failed to complete onboarding');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const verificationProgress = () => {
@@ -169,8 +217,8 @@ export default function ServiceSummaryScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.button} onPress={handleComplete}>
-          <Text style={styles.buttonText}>Go to Dashboard 🚀</Text>
+        <TouchableOpacity style={[styles.button, submitting && { opacity: 0.6 }]} onPress={handleComplete} disabled={submitting}>
+          <Text style={styles.buttonText}>{submitting ? 'Finalizing...' : 'Go to Dashboard 🚀'}</Text>
         </TouchableOpacity>
       </View>
     </View>

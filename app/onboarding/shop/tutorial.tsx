@@ -10,12 +10,12 @@ import { TrendingUp, Users, Package, DollarSign, CheckCircle } from 'lucide-reac
 export default function ShopTutorialScreen() {
   const insets = useSafeAreaInsets();
   const { completeRole, markOnboardingComplete, state } = useOnboarding();
+  const completeOnboardingMutation = trpc.shop.completeOnboarding.useMutation();
   const { userLocation } = useLocation();
   const [readCards, setReadCards] = useState<Set<number>>(new Set());
   const [isActivating, setIsActivating] = useState(false);
   
   const createProductMutation = trpc.shop.createProduct.useMutation();
-  const completeOnboardingMutation = trpc.shop.completeOnboarding.useMutation();
 
   const progress = useMemo(() => {
     const baseProgress = 75;
