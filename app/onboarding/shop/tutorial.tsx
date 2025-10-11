@@ -15,6 +15,7 @@ export default function ShopTutorialScreen() {
   const [isActivating, setIsActivating] = useState(false);
   
   const createProductMutation = trpc.shop.createProduct.useMutation();
+  const completeOnboardingMutation = trpc.shop.completeOnboarding.useMutation();
 
   const progress = useMemo(() => {
     const baseProgress = 75;
@@ -39,6 +40,21 @@ export default function ShopTutorialScreen() {
         setIsActivating(false);
         return;
       }
+      
+      console.log('[Onboarding] Completing shop onboarding...');
+      const onboardingResult = await completeOnboardingMutation.mutateAsync({
+        shopName: state.shopData.name,
+        category: state.shopData.category,
+        contact: state.shopData.contact,
+        productsCount: state.shopData.products,
+        location: userLocation,
+      });
+      
+      if (!onboardingResult.success) {
+        throw new Error(onboardingResult.message || 'Failed to complete onboarding');
+      }
+      
+      console.log('[Onboarding] Shop profile created successfully');
       
       if (state.shopData.products > 0) {
         console.log(`[Onboarding] Creating ${state.shopData.products} sample products...`);
@@ -82,10 +98,10 @@ export default function ShopTutorialScreen() {
       markOnboardingComplete();
       
       console.log('[Onboarding] Shop activation complete');
-      router.replace('/shop-activation' as any);
-    } catch (error) {
+      router.replace('/shop-dashboard' as any);
+    } catch (error: any) {
       console.error('[Onboarding] Activation error:', error);
-      Alert.alert('Error', 'Failed to activate shop. Please try again.');
+      Alert.alert('Error', error.message || 'Failed to activate shop. Please try again.');
     } finally {
       setIsActivating(false);
     }
