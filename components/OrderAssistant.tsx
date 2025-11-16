@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Bot, Send, X, Sparkles, AlertCircle, CheckCircle2, Clock } from 'lucide-react-native';
-import { generateText } from '@rork/toolkit-sdk';
+import { generateText } from '@rork-ai/toolkit-sdk';
 import type { Order } from '@/providers/cart-provider';
 
 type Message = {

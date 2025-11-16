@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure } from "@/backend/trpc/create-context";
 import { supabase } from "@/lib/supabase";
-import { generateObject } from "@rork/toolkit-sdk";
+import { generateObject } from "@rork-ai/toolkit-sdk";
 
 interface DeliveryLocation {
   lat: number;

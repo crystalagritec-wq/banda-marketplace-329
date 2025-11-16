@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { publicProcedure } from '@/backend/trpc/create-context';
-import { generateObject } from '@rork/toolkit-sdk';
+import { generateObject } from '@rork-ai/toolkit-sdk';
 
 export const getAIRecommendationsProcedure = publicProcedure
   .input(
