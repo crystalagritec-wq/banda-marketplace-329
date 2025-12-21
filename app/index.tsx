@@ -55,7 +55,7 @@ export default function Index() {
     if (!state.hasSeenOnboarding) {
       return <Redirect href="/onboarding/welcome" />;
     }
-    return <Redirect href="/dashboard" />;
+    return <Redirect href="/(tabs)/marketplace" />;
   }
   
   return <Redirect href="/(auth)/welcome" />;

@@ -1,17 +1,20 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Home, ShoppingBag, Plus, User, ShoppingCart, Users } from 'lucide-react-native';
-import { useCart } from '@/providers/cart-provider';
+import { ShoppingBag, Plus, Users, FileText, Menu as MenuIcon, LogIn } from 'lucide-react-native';
+import { useAuth } from '@/providers/auth-provider';
 import PostModal from '@/components/PostModal';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import SideMenu from '@/components/SideMenu';
+import { TouchableOpacity, StyleSheet } from 'react-native';
 
 const GREEN = '#2E7D32';
 const ORANGE = '#F57C00';
 const WHITE = '#FFFFFF';
 
 export default function TabLayout() {
-  const { cartSummary } = useCart();
+  const { user } = useAuth();
+  const router = useRouter();
   const [postModalVisible, setPostModalVisible] = useState<boolean>(false);
+  const [sideMenuVisible, setSideMenuVisible] = useState<boolean>(false);
   
   return (
     <>
@@ -41,43 +44,68 @@ export default function TabLayout() {
         }}
       >
         <Tabs.Screen
-          name="home"
-          options={{
-            title: 'Home',
-            tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
-          }}
-        />
-        <Tabs.Screen
           name="marketplace"
           options={{
             title: 'Marketplace',
             tabBarIcon: ({ color, size }) => <ShoppingBag size={size} color={color} />,
           }}
         />
-
-        <Tabs.Screen
-          name="cart"
-          options={{
-            title: 'Cart',
-            tabBarIcon: ({ color, size }) => (
-              <View style={styles.cartContainer}>
-                <ShoppingCart size={size} color={color} />
-                {cartSummary.itemCount > 0 && (
-                  <View style={styles.cartBadge}>
-                    <Text style={styles.cartBadgeText}>
-                      {cartSummary.itemCount}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            ),
-          }}
-        />
         <Tabs.Screen
           name="community"
           options={{
-            title: 'Community',
+            title: 'Connect',
             tabBarIcon: ({ color, size }) => <Users size={size} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="requests"
+          options={{
+            title: 'Request',
+            tabBarIcon: ({ color, size }) => <FileText size={size} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="sell"
+          listeners={{
+            tabPress: (e) => {
+              e.preventDefault();
+              if (user) {
+                setPostModalVisible(true);
+              } else {
+                router.push('/(auth)/signin');
+              }
+            },
+          }}
+          options={{
+            title: user ? 'Sell' : 'Login',
+            tabBarIcon: ({ color, size }) => user ? <Plus size={size} color={color} /> : <LogIn size={size} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="more"
+          listeners={{
+            tabPress: (e) => {
+              e.preventDefault();
+              setSideMenuVisible(true);
+            },
+          }}
+          options={{
+            title: 'More',
+            tabBarIcon: ({ color, size }) => <MenuIcon size={size} color={color} />,
+          }}
+        />
+        
+        {/* Hidden tabs */}
+        <Tabs.Screen
+          name="home"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="cart"
+          options={{
+            href: null,
           }}
         />
         <Tabs.Screen
@@ -106,12 +134,7 @@ export default function TabLayout() {
             href: null,
           }}
         />
-        <Tabs.Screen
-          name="requests"
-          options={{
-            href: null,
-          }}
-        />
+
         <Tabs.Screen
           name="orders"
           options={{
@@ -127,24 +150,30 @@ export default function TabLayout() {
         <Tabs.Screen
           name="profile"
           options={{
-            title: 'Account',
-            tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
+            href: null,
           }}
         />
       </Tabs>
       
-      {/* Floating Action Button */}
-      <TouchableOpacity
-        style={styles.floatingButton}
-        onPress={() => setPostModalVisible(true)}
-        testID="post-fab-button"
-      >
-        <Plus size={24} color={WHITE} />
-      </TouchableOpacity>
+      {/* Floating Action Button - Visible only for logged-in users */}
+      {user && (
+        <TouchableOpacity
+          style={styles.floatingButton}
+          onPress={() => setPostModalVisible(true)}
+          testID="post-fab-button"
+        >
+          <Plus size={24} color={WHITE} />
+        </TouchableOpacity>
+      )}
       
       <PostModal
         visible={postModalVisible}
         onClose={() => setPostModalVisible(false)}
+      />
+      
+      <SideMenu
+        visible={sideMenuVisible}
+        onClose={() => setSideMenuVisible(false)}
       />
     </>
   );
@@ -168,48 +197,5 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     zIndex: 1000,
   },
-  cartContainer: {
-    position: 'relative',
-  },
-  cartIconWrapper: {
-    backgroundColor: ORANGE,
-    borderRadius: 24,
-    width: 48,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  cartGlow: {
-    position: 'absolute',
-    top: -2,
-    left: -2,
-    right: -2,
-    bottom: -2,
-    borderRadius: 26,
-    borderWidth: 2,
-    borderColor: GREEN,
-    opacity: 0.6,
-  },
-  cartBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: '#DC2626',
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cartBadgeText: {
-    color: WHITE,
-    fontSize: 10,
-    fontWeight: '700',
-  },
+
 });

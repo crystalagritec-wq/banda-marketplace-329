@@ -6,7 +6,6 @@ import {
   Heart,
   ShoppingCart,
   Menu,
-  Bell,
   ShieldCheck,
   BadgePercent,
   CheckCircle2,
@@ -16,7 +15,6 @@ import {
   MessageCircle,
   TrendingUp,
   Globe,
-  Flame,
 } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import {
@@ -24,13 +22,11 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TextInput,
   TouchableOpacity,
   Image,
   useWindowDimensions,
   Pressable,
   Alert,
-  FlatList,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
@@ -40,14 +36,12 @@ import SideMenu from '@/components/SideMenu';
 import CartModal from '@/components/CartModal';
 import LoadingAnimation from '@/components/LoadingAnimation';
 import CartFeedback from '@/components/CartFeedback';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 import { useLoading } from '@/hooks/useLoading';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useLocation } from '@/providers/location-provider';
 import { calculateDistance } from '@/utils/geo-distance';
 import { convertToCartProduct } from '@/utils/vendor-helpers';
-import { useTheme } from '@/providers/theme-provider';
 import { useTranslation } from '@/hooks/useTranslation';
 
 const WHITE = '#FFFFFF' as const;
@@ -244,14 +238,14 @@ const ProductCard = React.memo<ProductCardProps>(({ product, onToggleFavorite, i
     </View>
   );
 });
-(ProductCard as any).displayName = 'ProductCard';
+ProductCard.displayName = 'ProductCard';
 
 export default function MarketplaceScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const { addToCart } = useCart();
+  const { addToCart, cartSummary } = useCart();
   const { userLocation } = useLocation();
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [favorites, setFavorites] = useState<string[]>([]);
   const [activeBanner, setActiveBanner] = useState<number>(0);
@@ -262,7 +256,7 @@ export default function MarketplaceScreen() {
   const { isLoading, withLoading } = useLoading();
   const [initialLoading] = useState<boolean>(false);
   const network = useNetworkStatus();
-  const { t, language, setLanguage, translations } = useTranslation();
+  const { t, language, setLanguage } = useTranslation();
   const i18n = useMemo(() => ({
     searchPh: t('marketplace.searchPlaceholder') || 'Search products...',
     flashSale: t('marketplace.flashSale') || 'Flash Sale',
@@ -338,7 +332,7 @@ export default function MarketplaceScreen() {
     });
   }, [router, withLoading]);
 
-  const { data: marketplaceData, isLoading: isLoadingProducts } = trpc.marketplace.getItems.useQuery({
+  const { data: marketplaceData } = trpc.marketplace.getItems.useQuery({
     category: selectedCategory || undefined,
     location: selectedLocation || undefined,
     search: searchQuery || undefined,
@@ -396,7 +390,7 @@ export default function MarketplaceScreen() {
     }
     
     return productsWithDistance;
-  }, [marketplaceData, searchQuery, selectedCategory, selectedLocation, sortBy, userLocation]);
+  }, [marketplaceData, sortBy, userLocation]);
 
   const handleScrollBanner = useCallback((e: any) => {
     try {
@@ -469,14 +463,29 @@ export default function MarketplaceScreen() {
             <Text style={styles.searchPlaceholder}>{i18n.searchPh}</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity 
-            style={styles.notificationButton} 
-            onPress={() => console.log('Open notifications')}
-            testID="bell-btn"
-          >
-            <Bell size={24} color={GREEN} />
-            <View style={styles.notificationDot} />
-          </TouchableOpacity>
+          <View style={styles.headerRightIcons}>
+            <TouchableOpacity 
+              style={styles.iconButton} 
+              onPress={() => router.push('/chat')}
+              testID="messages-btn"
+            >
+              <MessageCircle size={24} color={GREEN} />
+              <View style={styles.notificationDot} />
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.iconButton} 
+              onPress={() => setCartModalVisible(true)}
+              testID="cart-btn"
+            >
+              <ShoppingCart size={24} color={GREEN} />
+              {cartSummary.itemCount > 0 && (
+                <View style={styles.cartBadge}>
+                  <Text style={styles.cartBadgeText}>{cartSummary.itemCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
         
         {/* Language Toggle */}
@@ -1260,6 +1269,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#F9FAFB',
     position: 'relative',
+  },
+  headerRightIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   languageBar: {
     paddingHorizontal: 16,

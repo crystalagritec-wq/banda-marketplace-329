@@ -138,7 +138,7 @@ const product = productQuery.data;
 
 **Required Implementation:**
 ```typescript
-import { generateText } from "@rork/toolkit-sdk";
+import { generateText } from "@rork-ai/toolkit-sdk";
 
 export const voiceSearchProcedure = protectedProcedure
   .input(z.object({
@@ -181,7 +181,7 @@ export const voiceSearchProcedure = protectedProcedure
 
 **Required Implementation:**
 ```typescript
-import { generateText } from "@rork/toolkit-sdk";
+import { generateText } from "@rork-ai/toolkit-sdk";
 
 export const imageSearchProcedure = protectedProcedure
   .input(z.object({
