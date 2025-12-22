@@ -9,7 +9,7 @@ const createBoostSchema = z.object({
   amount: z.number().positive(),
   paymentMethod: z.object({
     type: z.enum(["wallet", "mpesa", "card"]),
-    details: z.record(z.any()).optional(),
+    details: z.record(z.string(), z.any()).optional(),
   }),
 });
 
@@ -86,7 +86,7 @@ export const createBoostProcedure = protectedProcedure
       if (input.paymentMethod.type === "wallet") {
         const { data: wallet } = await supabase
           .from("agripay_wallets")
-          .select("balance")
+          .select("id, balance")
           .eq("user_id", userId)
           .single();
 

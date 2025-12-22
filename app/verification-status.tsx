@@ -11,7 +11,6 @@ export default function VerificationStatusScreen() {
   const { user } = useAuth();
   const [verificationRequests, setVerificationRequests] = useState<VerificationRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadVerificationRequests = React.useCallback(async () => {
     if (!user) return;
@@ -30,14 +29,6 @@ export default function VerificationStatusScreen() {
   useEffect(() => {
     loadVerificationRequests();
   }, [loadVerificationRequests]);
-
-
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await loadVerificationRequests();
-    setIsRefreshing(false);
-  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -252,7 +243,7 @@ export default function VerificationStatusScreen() {
                           params: {
                             roleType: request.role_type,
                             verificationMethod: request.verification_method,
-                            userId: user.id
+                            userId: user?.id || ''
                           }
                         })}
                         testID={`retry-${request.id}`}

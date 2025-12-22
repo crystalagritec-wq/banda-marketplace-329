@@ -30,7 +30,7 @@ export default function HomeScreen() {
 
         <TouchableOpacity 
           style={styles.card}
-          onPress={() => router.push('/(tabs)/account')}
+          onPress={() => router.push('/(tabs)/profile')}
         >
           <User size={32} color={GREEN} />
           <Text style={styles.cardTitle}>My Account</Text>

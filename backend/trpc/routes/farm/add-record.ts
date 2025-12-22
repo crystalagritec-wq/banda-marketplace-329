@@ -13,7 +13,7 @@ export const addFarmRecordProcedure = protectedProcedure
       cost: z.number().optional(),
       income: z.number().optional(),
       notes: z.string().optional(),
-      metadata: z.record(z.any()).optional(),
+      metadata: z.record(z.string(), z.any()).optional(),
     })
   )
   .mutation(async ({ input, ctx }) => {

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Stack } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 import { ArrowLeft, Database, Package, Briefcase, Trash2, CheckCircle, AlertCircle } from 'lucide-react-native';
 import { useAuth } from '@/providers/auth-provider';
 import { populateProducts, populateServices, populateAll, clearAllData, checkDataExists } from '@/utils/populate-database';
@@ -14,26 +13,26 @@ export default function PopulateDataScreen() {
   const [existingData, setExistingData] = useState<{ products: number; services: number }>({ products: 0, services: 0 });
   const [lastResult, setLastResult] = useState<string>('');
 
-  useEffect(() => {
-    checkExistingData();
-  }, []);
-
-  const checkExistingData = async () => {
-    if (!user?.user_id) return;
+  const checkExistingData = React.useCallback(async () => {
+    if (!user?.id) return;
     
     setChecking(true);
     try {
-      const data = await checkDataExists(user.user_id);
+      const data = await checkDataExists(user.id);
       setExistingData(data);
     } catch (error) {
       console.error('Error checking data:', error);
     } finally {
       setChecking(false);
     }
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    checkExistingData();
+  }, [checkExistingData]);
 
   const handlePopulateProducts = async () => {
-    if (!user?.user_id) {
+    if (!user?.id) {
       Alert.alert('Error', 'You must be logged in to populate data');
       return;
     }
@@ -41,7 +40,7 @@ export default function PopulateDataScreen() {
     setLoading(true);
     setLastResult('');
     try {
-      const result = await populateProducts(user.user_id);
+      const result = await populateProducts(user.id);
       setLastResult(result.message);
       
       if (result.success) {
@@ -59,7 +58,7 @@ export default function PopulateDataScreen() {
   };
 
   const handlePopulateServices = async () => {
-    if (!user?.user_id) {
+    if (!user?.id) {
       Alert.alert('Error', 'You must be logged in to populate data');
       return;
     }
@@ -67,7 +66,7 @@ export default function PopulateDataScreen() {
     setLoading(true);
     setLastResult('');
     try {
-      const result = await populateServices(user.user_id);
+      const result = await populateServices(user.id);
       setLastResult(result.message);
       
       if (result.success) {
@@ -85,7 +84,7 @@ export default function PopulateDataScreen() {
   };
 
   const handlePopulateAll = async () => {
-    if (!user?.user_id) {
+    if (!user?.id) {
       Alert.alert('Error', 'You must be logged in to populate data');
       return;
     }
@@ -101,7 +100,7 @@ export default function PopulateDataScreen() {
             setLoading(true);
             setLastResult('');
             try {
-              const result = await populateAll(user.user_id);
+              const result = await populateAll(user.id);
               setLastResult(result.message);
               
               if (result.success) {
@@ -123,7 +122,7 @@ export default function PopulateDataScreen() {
   };
 
   const handleClearAll = async () => {
-    if (!user?.user_id) {
+    if (!user?.id) {
       Alert.alert('Error', 'You must be logged in to clear data');
       return;
     }
@@ -140,7 +139,7 @@ export default function PopulateDataScreen() {
             setLoading(true);
             setLastResult('');
             try {
-              const result = await clearAllData(user.user_id);
+              const result = await clearAllData(user.id);
               setLastResult(result.message);
               
               if (result.success) {

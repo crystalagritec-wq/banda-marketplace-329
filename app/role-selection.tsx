@@ -105,12 +105,6 @@ export default function RoleSelectionScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpgrading, setIsUpgrading] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      loadUserStatus();
-    }
-  }, [user, loadUserStatus]);
-
   const loadUserStatus = React.useCallback(async () => {
     if (!user) return;
     
@@ -156,6 +150,12 @@ export default function RoleSelectionScreen() {
       setIsLoading(false);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      loadUserStatus();
+    }
+  }, [user, loadUserStatus]);
 
   const handleUpgradeRequest = async (role: UserRole, targetTier: UserTier, requiresVerification: boolean, requiresSubscription: boolean) => {
     if (!user) return;

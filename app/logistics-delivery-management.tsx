@@ -1,18 +1,17 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, RefreshControl, Platform } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, RefreshControl } from 'react-native';
+import { Stack } from 'expo-router';
 import { useState, useMemo } from 'react';
 import { 
-  Truck, MapPin, Clock, CheckCircle, XCircle, AlertCircle,
-  Search, Filter, Package, DollarSign, Navigation,
+  Truck, MapPin, Clock, CheckCircle, XCircle,
+  Search, Filter, Package, Navigation,
   Phone, MessageCircle, User, ChevronRight, Map
 } from 'lucide-react-native';
 import { trpc } from '@/lib/trpc';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type DeliveryStatus = 'all' | 'pending' | 'assigned' | 'in_progress' | 'delivered' | 'cancelled';
+type DeliveryStatus = 'all' | 'pending' | 'in_progress' | 'delivered' | 'cancelled';
 
 export default function LogisticsDeliveryManagementScreen() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<DeliveryStatus>('all');
@@ -21,9 +20,13 @@ export default function LogisticsDeliveryManagementScreen() {
   const [showActionModal, setShowActionModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data: deliveries, isLoading, refetch } = trpc.logistics.getDeliveries.useQuery({
+  const { data: deliveriesData, isLoading, refetch } = trpc.logistics.getDeliveries.useQuery({
+    userId: 'current-user-id',
+    role: 'provider' as const,
     status: selectedStatus === 'all' ? undefined : selectedStatus,
   });
+
+  const deliveries = useMemo(() => deliveriesData?.deliveries || [], [deliveriesData]);
 
   const updateStatusMutation = trpc.logistics.updateDeliveryStatus.useMutation({
     onSuccess: () => {
@@ -47,7 +50,7 @@ export default function LogisticsDeliveryManagementScreen() {
   };
 
   const filteredDeliveries = useMemo(() => {
-    if (!deliveries) return [];
+    if (!deliveries || deliveries.length === 0) return [];
     
     return deliveries.filter((delivery: any) => {
       const matchesSearch = 
@@ -90,7 +93,7 @@ export default function LogisticsDeliveryManagementScreen() {
     }
   };
 
-  const handleStatusUpdate = (newStatus: string) => {
+  const handleStatusUpdate = (newStatus: 'pending' | 'in_progress' | 'delivered' | 'cancelled') => {
     if (!selectedDelivery) return;
     
     updateStatusMutation.mutate({
@@ -103,7 +106,6 @@ export default function LogisticsDeliveryManagementScreen() {
     if (!selectedDelivery) return;
     
     optimizeRouteMutation.mutate({
-      providerId: selectedDelivery.provider_id,
       orderIds: [selectedDelivery.order_id],
     });
   };
@@ -225,7 +227,7 @@ export default function LogisticsDeliveryManagementScreen() {
         style={styles.statusFilters}
         contentContainerStyle={styles.statusFiltersContent}
       >
-        {(['all', 'pending', 'assigned', 'in_progress', 'delivered', 'cancelled'] as DeliveryStatus[]).map((status) => (
+        {(['all', 'pending', 'in_progress', 'delivered', 'cancelled'] as DeliveryStatus[]).map((status) => (
           <TouchableOpacity
             key={status}
             style={[
@@ -395,20 +397,9 @@ export default function LogisticsDeliveryManagementScreen() {
                   <View style={styles.statusActions}>
                     {selectedDelivery.status === 'pending' && (
                       <TouchableOpacity
-                        style={[styles.actionButton, styles.assignButton]}
-                        onPress={() => handleStatusUpdate('assigned')}
-                        disabled={updateStatusMutation.isLoading}
-                      >
-                        <Truck size={20} color="#FFFFFF" />
-                        <Text style={styles.actionButtonText}>Assign Driver</Text>
-                      </TouchableOpacity>
-                    )}
-
-                    {selectedDelivery.status === 'assigned' && (
-                      <TouchableOpacity
                         style={[styles.actionButton, styles.startButton]}
                         onPress={() => handleStatusUpdate('in_progress')}
-                        disabled={updateStatusMutation.isLoading}
+                        disabled={updateStatusMutation.isPending}
                       >
                         <Navigation size={20} color="#FFFFFF" />
                         <Text style={styles.actionButtonText}>Start Delivery</Text>
@@ -419,7 +410,7 @@ export default function LogisticsDeliveryManagementScreen() {
                       <TouchableOpacity
                         style={[styles.actionButton, styles.completeButton]}
                         onPress={() => handleStatusUpdate('delivered')}
-                        disabled={updateStatusMutation.isLoading}
+                        disabled={updateStatusMutation.isPending}
                       >
                         <CheckCircle size={20} color="#FFFFFF" />
                         <Text style={styles.actionButtonText}>Mark Delivered</Text>
@@ -429,7 +420,7 @@ export default function LogisticsDeliveryManagementScreen() {
                     <TouchableOpacity
                       style={[styles.actionButton, styles.optimizeButton]}
                       onPress={handleOptimizeRoute}
-                      disabled={optimizeRouteMutation.isLoading}
+                      disabled={optimizeRouteMutation.isPending}
                     >
                       <Map size={20} color="#007AFF" />
                       <Text style={[styles.actionButtonText, { color: '#007AFF' }]}>
@@ -441,7 +432,7 @@ export default function LogisticsDeliveryManagementScreen() {
                       <TouchableOpacity
                         style={[styles.actionButton, styles.cancelButton]}
                         onPress={() => handleStatusUpdate('cancelled')}
-                        disabled={updateStatusMutation.isLoading}
+                        disabled={updateStatusMutation.isPending}
                       >
                         <XCircle size={20} color="#FFFFFF" />
                         <Text style={styles.actionButtonText}>Cancel Delivery</Text>

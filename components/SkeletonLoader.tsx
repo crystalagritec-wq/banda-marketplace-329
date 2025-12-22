@@ -42,13 +42,14 @@ export function SkeletonLoader({
     <Animated.View
       style={[
         styles.skeleton,
+        style,
         {
-          width,
           height,
           borderRadius,
           opacity,
         },
-        style,
+        typeof width === 'number' ? { width } : undefined,
+        typeof width === 'string' ? ({ width } as any) : undefined,
       ]}
     />
   );
