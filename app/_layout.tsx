@@ -109,18 +109,15 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   useEffect(() => {
-    const hideSplash = async () => {
-      try {
-        if (Platform.OS !== 'web') {
-          await SplashScreen.hideAsync();
-        }
-      } catch (error) {
-        console.warn('Error hiding splash screen:', error);
-      }
-    };
+    if (Platform.OS === 'web') return;
 
-    const timer = setTimeout(hideSplash, Platform.OS === 'web' ? 50 : 100);
-    return () => clearTimeout(timer);
+    const fallbackTimer = setTimeout(() => {
+      SplashScreen.hideAsync().catch((error) => {
+        console.warn('Error hiding splash screen (fallback):', error);
+      });
+    }, 6000);
+
+    return () => clearTimeout(fallbackTimer);
   }, []);
 
   return (
