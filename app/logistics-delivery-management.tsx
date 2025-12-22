@@ -9,7 +9,7 @@ import {
 import { trpc } from '@/lib/trpc';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type DeliveryStatus = 'all' | 'pending' | 'in_progress' | 'delivered' | 'cancelled';
+type DeliveryStatus = 'all' | 'pending' | 'assigned' | 'in_progress' | 'delivered' | 'cancelled';
 
 export default function LogisticsDeliveryManagementScreen() {
   const insets = useSafeAreaInsets();
@@ -23,7 +23,7 @@ export default function LogisticsDeliveryManagementScreen() {
   const { data: deliveriesData, isLoading, refetch } = trpc.logistics.getDeliveries.useQuery({
     userId: 'current-user-id',
     role: 'provider' as const,
-    status: selectedStatus === 'all' ? undefined : selectedStatus,
+    status: selectedStatus === 'all' ? undefined : (selectedStatus === 'assigned' ? 'pending' : selectedStatus),
   });
 
   const deliveries = useMemo(() => deliveriesData?.deliveries || [], [deliveriesData]);

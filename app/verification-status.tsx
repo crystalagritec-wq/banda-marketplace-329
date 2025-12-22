@@ -243,7 +243,7 @@ export default function VerificationStatusScreen() {
                           params: {
                             roleType: request.role_type,
                             verificationMethod: request.verification_method,
-                            userId: user?.id || ''
+                            userId: user?.id ?? ''
                           }
                         })}
                         testID={`retry-${request.id}`}

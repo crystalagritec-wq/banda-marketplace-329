@@ -89,6 +89,7 @@ export default function PopulateDataScreen() {
       return;
     }
 
+    const userId = user.id;
     Alert.alert(
       'Populate All Data',
       'This will add sample products and services to your account. Continue?',
@@ -100,7 +101,7 @@ export default function PopulateDataScreen() {
             setLoading(true);
             setLastResult('');
             try {
-              const result = await populateAll(user.id);
+              const result = await populateAll(userId);
               setLastResult(result.message);
               
               if (result.success) {
@@ -127,6 +128,7 @@ export default function PopulateDataScreen() {
       return;
     }
 
+    const userId = user.id;
     Alert.alert(
       'Clear All Data',
       'This will permanently delete all your products and services. This action cannot be undone. Continue?',
@@ -139,7 +141,7 @@ export default function PopulateDataScreen() {
             setLoading(true);
             setLastResult('');
             try {
-              const result = await clearAllData(user.id);
+              const result = await clearAllData(userId);
               setLastResult(result.message);
               
               if (result.success) {

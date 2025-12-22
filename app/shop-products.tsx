@@ -96,7 +96,7 @@ export default function ShopProductsScreen() {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Update',
-          onPress: (value?: string) => {
+          onPress: (value: string | undefined) => {
             const newStock = parseInt(value || '0', 10);
             if (isNaN(newStock) || newStock < 0) {
               Alert.alert('Error', 'Please enter a valid number');
