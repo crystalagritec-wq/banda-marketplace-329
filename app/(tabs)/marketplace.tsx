@@ -28,6 +28,7 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { useCart } from '@/providers/cart-provider';
@@ -754,27 +755,34 @@ export default function MarketplaceScreen() {
           </ScrollView>
         </View>
 
-        <View style={styles.productsGrid}>
-          {filteredProducts.map((product: Product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onToggleFavorite={(id) => onToggleFavorite(id)}
-              isFavorite={favorites.includes(product.id)}
-              onOpen={openDetails}
-              onAddToCart={handleAddToCart}
-              addLabel={i18n.add}
-              distanceKm={product.distanceKm}
-            />
-          ))}
+        <View style={styles.flashListContainer}>
+          <FlashList
+            data={filteredProducts}
+            renderItem={({ item: product }) => (
+              <ProductCard
+                product={product}
+                onToggleFavorite={(id) => onToggleFavorite(id)}
+                isFavorite={favorites.includes(product.id)}
+                onOpen={openDetails}
+                onAddToCart={handleAddToCart}
+                addLabel={i18n.add}
+                distanceKm={product.distanceKm}
+              />
+            )}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.flashListContent}
+            ListEmptyComponent={
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>No products found</Text>
+                <Text style={styles.emptyStateSubtext}>Try adjusting your search or filters</Text>
+              </View>
+            }
+          />
         </View>
 
-        {filteredProducts.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>No products found</Text>
-            <Text style={styles.emptyStateSubtext}>Try adjusting your search or filters</Text>
-          </View>
-        ) : null}
+
         </ScrollView>
       </LinearGradient>
 
@@ -1054,6 +1062,8 @@ const styles = StyleSheet.create({
   featuredTagText: { color: ORANGE, fontSize: 10, fontWeight: '700' },
 
   productsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 20 },
+  flashListContainer: { height: 800, paddingHorizontal: 8 },
+  flashListContent: { paddingBottom: 20, paddingHorizontal: 8 },
   productCard: {
     width: '48%',
     backgroundColor: WHITE,
