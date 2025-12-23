@@ -23,6 +23,8 @@ import {
   Shield,
   LogOut,
   LayoutDashboard,
+  Briefcase,
+  Wrench,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
@@ -145,7 +147,9 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
       '/insights',
       '/settings',
       '/settings/help',
-      '/settings/legal'
+      '/settings/legal',
+      '/services',
+      '/equipment'
     ];
     
     if (validRoutes.includes(trimmed)) {
@@ -191,6 +195,18 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
       title: 'My Orders',
       icon: Package,
       route: '/(tabs)/orders',
+    },
+    {
+      id: 'services',
+      title: 'Services Hub',
+      icon: Briefcase,
+      route: '/services',
+    },
+    {
+      id: 'equipment',
+      title: 'Equipment Rentals',
+      icon: Wrench,
+      route: '/equipment',
     },
     {
       id: 'divider1',

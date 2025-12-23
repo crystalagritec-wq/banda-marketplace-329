@@ -1,172 +1,214 @@
-import React, { useCallback, useMemo, forwardRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
-import { X, CheckCircle2, Circle, SlidersHorizontal, TrendingUp, DollarSign, MapPin } from 'lucide-react-native';
-import type { BottomSheetDefaultBackdropProps } from '@gorhom/bottom-sheet/lib/typescript/components/bottomSheetBackdrop/types';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from 'react-native';
+import BottomSheet from '@gorhom/bottom-sheet';
+import { X, Sliders } from 'lucide-react-native';
+import Slider from '@react-native-community/slider';
 
-const GREEN = '#2D5016' as const;
-const WHITE = '#FFFFFF' as const;
-const ORANGE = '#F59E0B' as const;
-
-export type SortBy = 'popularity' | 'price' | 'location';
+const COLORS = {
+  primary: '#2E7D32',
+  orange: '#FF6B35',
+  surface: '#FFFFFF',
+  background: '#F8FAFC',
+  text: '#1F2937',
+  textSecondary: '#6B7280',
+  textLight: '#9CA3AF',
+  border: '#E5E7EB',
+  success: '#10B981',
+} as const;
 
 interface FilterBottomSheetProps {
-  bottomSheetRef: React.RefObject<BottomSheet>;
-  sortBy: SortBy;
-  onSortChange: (sort: SortBy) => void;
-  selectedLocation: string;
-  onLocationChange: (location: string) => void;
-  locationOptions: string[];
+  bottomSheetRef: React.RefObject<BottomSheet | null>;
+  filters: {
+    minRating: number;
+    priceRange: [number, number];
+    verified: boolean;
+    available: boolean;
+  };
+  onApplyFilters: (filters: any) => void;
+  maxPrice?: number;
 }
 
-const FilterBottomSheet = forwardRef<BottomSheet, FilterBottomSheetProps>(({
+export default function FilterBottomSheet({
   bottomSheetRef,
-  sortBy,
-  onSortChange,
-  selectedLocation,
-  onLocationChange,
-  locationOptions,
-}, ref) => {
-  const snapPoints = useMemo(() => ['65%'], []);
+  filters,
+  onApplyFilters,
+  maxPrice = 100000,
+}: FilterBottomSheetProps) {
+  const [localFilters, setLocalFilters] = useState(filters);
 
-  const renderBackdrop = useCallback(
-    (props: BottomSheetDefaultBackdropProps) => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-        pressBehavior="close"
-      />
-    ),
-    []
-  );
-
-  const handleClose = useCallback(() => {
+  const handleApply = () => {
+    onApplyFilters(localFilters);
     bottomSheetRef.current?.close();
-  }, [bottomSheetRef]);
+  };
 
-  const sortOptions: { key: SortBy; label: string; icon: typeof TrendingUp; description: string }[] = [
-    { key: 'popularity', label: 'Popularity', icon: TrendingUp, description: 'Most viewed & rated' },
-    { key: 'price', label: 'Price', icon: DollarSign, description: 'Low to high' },
-    { key: 'location', label: 'Location', icon: MapPin, description: 'Nearest first' },
-  ];
+  const handleReset = () => {
+    const resetFilters = {
+      minRating: 0,
+      priceRange: [0, maxPrice] as [number, number],
+      verified: false,
+      available: false,
+    };
+    setLocalFilters(resetFilters);
+    onApplyFilters(resetFilters);
+  };
 
   return (
     <BottomSheet
-      ref={ref || bottomSheetRef}
+      ref={bottomSheetRef}
       index={-1}
-      snapPoints={snapPoints}
-      enablePanDownToClose={true}
-      backdropComponent={renderBackdrop}
+      snapPoints={['75%', '90%']}
+      enablePanDownToClose
       backgroundStyle={styles.bottomSheetBackground}
       handleIndicatorStyle={styles.handleIndicator}
     >
-      <BottomSheetView style={styles.contentContainer}>
+      <View style={styles.container}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <SlidersHorizontal size={24} color={GREEN} />
-            <Text style={styles.headerTitle}>Filter & Sort</Text>
+            <Sliders size={24} color={COLORS.primary} />
+            <Text style={styles.headerTitle}>Filters</Text>
           </View>
-          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-            <X size={24} color="#6B7280" />
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => bottomSheetRef.current?.close()}
+          >
+            <X size={24} color={COLORS.text} />
           </TouchableOpacity>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView}>
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Sort By</Text>
-            {sortOptions.map((option) => {
-              const Icon = option.icon;
-              const isSelected = sortBy === option.key;
-              return (
+            <Text style={styles.sectionTitle}>Minimum Rating</Text>
+            <View style={styles.ratingOptions}>
+              {[0, 3, 3.5, 4, 4.5].map((rating) => (
                 <TouchableOpacity
-                  key={option.key}
-                  style={[styles.optionCard, isSelected && styles.optionCardSelected]}
-                  onPress={() => onSortChange(option.key)}
-                  activeOpacity={0.7}
+                  key={rating}
+                  style={[
+                    styles.ratingChip,
+                    localFilters.minRating === rating && styles.ratingChipSelected,
+                  ]}
+                  onPress={() =>
+                    setLocalFilters({ ...localFilters, minRating: rating })
+                  }
                 >
-                  <View style={styles.optionLeft}>
-                    <View style={[styles.iconContainer, isSelected && styles.iconContainerSelected]}>
-                      <Icon size={20} color={isSelected ? WHITE : GREEN} />
-                    </View>
-                    <View style={styles.optionText}>
-                      <Text style={[styles.optionLabel, isSelected && styles.optionLabelSelected]}>
-                        {option.label}
-                      </Text>
-                      <Text style={styles.optionDescription}>{option.description}</Text>
-                    </View>
-                  </View>
-                  {isSelected ? (
-                    <CheckCircle2 size={24} color={GREEN} />
-                  ) : (
-                    <Circle size={24} color="#D1D5DB" />
-                  )}
+                  <Text
+                    style={[
+                      styles.ratingChipText,
+                      localFilters.minRating === rating && styles.ratingChipTextSelected,
+                    ]}
+                  >
+                    {rating === 0 ? 'Any' : `${rating}+ ⭐`}
+                  </Text>
                 </TouchableOpacity>
-              );
-            })}
+              ))}
+            </View>
           </View>
 
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Location Filter</Text>
-              {selectedLocation && (
-                <TouchableOpacity onPress={() => onLocationChange('')}>
-                  <Text style={styles.clearText}>Clear</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-            <TouchableOpacity
-              style={[styles.locationChip, selectedLocation === '' && styles.locationChipSelected]}
-              onPress={() => onLocationChange('')}
-            >
-              <Text style={[styles.locationChipText, selectedLocation === '' && styles.locationChipTextSelected]}>
-                All Locations
+              <Text style={styles.sectionTitle}>Price Range</Text>
+              <Text style={styles.priceLabel}>
+                KES {localFilters.priceRange[0].toLocaleString()} - KES{' '}
+                {localFilters.priceRange[1].toLocaleString()}
               </Text>
-            </TouchableOpacity>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.locationList}>
-              {locationOptions.map((location) => {
-                const isSelected = selectedLocation === location;
-                return (
-                  <TouchableOpacity
-                    key={location}
-                    style={[styles.locationChip, isSelected && styles.locationChipSelected]}
-                    onPress={() => onLocationChange(location)}
-                  >
-                    <Text style={[styles.locationChipText, isSelected && styles.locationChipTextSelected]}>
-                      {location}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+            </View>
+            <Slider
+              style={styles.slider}
+              minimumValue={0}
+              maximumValue={maxPrice}
+              step={500}
+              value={localFilters.priceRange[1]}
+              onValueChange={(value) =>
+                setLocalFilters({
+                  ...localFilters,
+                  priceRange: [localFilters.priceRange[0], value],
+                })
+              }
+              minimumTrackTintColor={COLORS.primary}
+              maximumTrackTintColor={COLORS.border}
+              thumbTintColor={COLORS.primary}
+            />
           </View>
 
-          <TouchableOpacity style={styles.applyButton} onPress={handleClose}>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Preferences</Text>
+            
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() =>
+                setLocalFilters({ ...localFilters, verified: !localFilters.verified })
+              }
+            >
+              <View
+                style={[
+                  styles.checkbox,
+                  localFilters.verified && styles.checkboxChecked,
+                ]}
+              >
+                {localFilters.verified && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <View style={styles.checkboxContent}>
+                <Text style={styles.checkboxLabel}>Verified Providers Only</Text>
+                <Text style={styles.checkboxDescription}>
+                  Show only verified and trusted providers
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() =>
+                setLocalFilters({ ...localFilters, available: !localFilters.available })
+              }
+            >
+              <View
+                style={[
+                  styles.checkbox,
+                  localFilters.available && styles.checkboxChecked,
+                ]}
+              >
+                {localFilters.available && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <View style={styles.checkboxContent}>
+                <Text style={styles.checkboxLabel}>Available Now</Text>
+                <Text style={styles.checkboxDescription}>
+                  Show only currently available options
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
+            <Text style={styles.resetButtonText}>Reset</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
             <Text style={styles.applyButtonText}>Apply Filters</Text>
           </TouchableOpacity>
-        </ScrollView>
-      </BottomSheetView>
+        </View>
+      </View>
     </BottomSheet>
   );
-});
-
-FilterBottomSheet.displayName = 'FilterBottomSheet';
-
-export default FilterBottomSheet;
+}
 
 const styles = StyleSheet.create({
   bottomSheetBackground: {
-    backgroundColor: WHITE,
+    backgroundColor: COLORS.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
   },
   handleIndicator: {
-    backgroundColor: '#D1D5DB',
+    backgroundColor: COLORS.border,
     width: 40,
     height: 4,
   },
-  contentContainer: {
+  container: {
     flex: 1,
   },
   header: {
@@ -176,7 +218,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: COLORS.border,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -186,119 +228,142 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: COLORS.text,
   },
   closeButton: {
     padding: 4,
   },
-  scrollView: {
+  content: {
     flex: 1,
+    paddingHorizontal: 20,
   },
   section: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#374151',
+    fontWeight: '600',
+    color: COLORS.text,
     marginBottom: 12,
   },
-  clearText: {
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  priceLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: ORANGE,
+    color: COLORS.primary,
   },
-  optionCard: {
+  ratingOptions: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  optionCardSelected: {
-    backgroundColor: '#ECFDF5',
-    borderColor: GREEN,
-  },
-  optionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#E8F5E8',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconContainerSelected: {
-    backgroundColor: GREEN,
-  },
-  optionText: {
-    flex: 1,
-  },
-  optionLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 2,
-  },
-  optionLabelSelected: {
-    color: GREEN,
-  },
-  optionDescription: {
-    fontSize: 13,
-    color: '#6B7280',
-  },
-  locationList: {
+    flexWrap: 'wrap',
     gap: 8,
   },
-  locationChip: {
-    backgroundColor: WHITE,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 20,
+  ratingChip: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginBottom: 8,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  locationChipSelected: {
-    backgroundColor: GREEN,
-    borderColor: GREEN,
+  ratingChipSelected: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
-  locationChipText: {
+  ratingChipText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: COLORS.textSecondary,
   },
-  locationChipTextSelected: {
-    color: WHITE,
+  ratingChipTextSelected: {
+    color: COLORS.surface,
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    marginTop: 2,
+  },
+  checkboxChecked: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  checkmark: {
+    color: COLORS.surface,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  checkboxContent: {
+    flex: 1,
+  },
+  checkboxLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  checkboxDescription: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
+  },
+  footer: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  resetButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: COLORS.background,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  resetButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
   },
   applyButton: {
-    backgroundColor: GREEN,
+    flex: 2,
+    paddingVertical: 14,
     borderRadius: 12,
-    paddingVertical: 16,
+    backgroundColor: COLORS.primary,
     alignItems: 'center',
-    marginHorizontal: 20,
-    marginBottom: 20,
-    marginTop: 8,
+    elevation: 4,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
   applyButtonText: {
-    color: WHITE,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
+    color: COLORS.surface,
   },
 });

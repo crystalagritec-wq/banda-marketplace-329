@@ -22,8 +22,9 @@ import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ServiceCard from '@/components/ServiceCard';
-import BottomSheet from '@gorhom/bottom-sheet';
 import EmptyState from '@/components/EmptyState';
+import FilterBottomSheet from '@/components/FilterBottomSheet';
+import BottomSheet from '@gorhom/bottom-sheet';
 import { trpc } from '@/lib/trpc';
 import { useLocation } from '@/providers/location-provider';
 import { calculateDistance } from '@/utils/geo-distance';
@@ -74,7 +75,7 @@ export default function ServicesHubScreen() {
 
   const [filters, setFilters] = useState({
     minRating: 0,
-    priceRange: [0, 100000],
+    priceRange: [0, 100000] as [number, number],
     verified: false,
     available: false,
   });
@@ -344,22 +345,12 @@ export default function ServicesHubScreen() {
         />
       )}
 
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={-1}
-        snapPoints={['50%', '75%']}
-        enablePanDownToClose
-      >
-        <View style={styles.filterSheet}>
-          <Text style={styles.filterTitle}>Filters</Text>
-          <TouchableOpacity
-            style={styles.applyButton}
-            onPress={() => bottomSheetRef.current?.close()}
-          >
-            <Text style={styles.applyButtonText}>Apply Filters</Text>
-          </TouchableOpacity>
-        </View>
-      </BottomSheet>
+      <FilterBottomSheet
+        bottomSheetRef={bottomSheetRef}
+        filters={filters}
+        onApplyFilters={setFilters}
+        maxPrice={100000}
+      />
     </View>
   );
 }
@@ -525,26 +516,5 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-  },
-  filterSheet: {
-    padding: 20,
-  },
-  filterTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.text,
-    marginBottom: 20,
-  },
-  applyButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  applyButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.surface,
   },
 });
