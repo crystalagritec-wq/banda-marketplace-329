@@ -181,6 +181,8 @@ import { createBoostProcedure } from "@/backend/trpc/routes/boost/create-boost";
 import { getActiveBoostsProcedure } from "@/backend/trpc/routes/boost/get-active-boosts";
 import { getBoostPackagesProcedure } from "@/backend/trpc/routes/boost/get-boost-packages";
 import { cancelBoostProcedure } from "@/backend/trpc/routes/boost/cancel-boost";
+import { getMarketplaceEquipmentProcedure } from "@/backend/trpc/routes/service-providers/get-marketplace-equipment";
+import { getMarketplaceServicesProcedure } from "@/backend/trpc/routes/service-providers/get-marketplace-services";
 import { createFarmProcedure } from "@/backend/trpc/routes/farm/create-farm";
 import { getFarmsProcedure } from "@/backend/trpc/routes/farm/get-farms";
 import { getFarmDashboardProcedure } from "@/backend/trpc/routes/farm/get-farm-dashboard";
@@ -453,6 +455,8 @@ export const appRouter = createTRPCRouter({
     getSpecializations: getSpecializationsProcedure,
     createMarketplacePost: createMarketplacePostProcedure,
     getMarketplacePosts: getMarketplacePostsProcedure,
+    getMarketplaceServices: getMarketplaceServicesProcedure,
+    getMarketplaceEquipment: getMarketplaceEquipmentProcedure,
     getDashboardStats: getServiceDashboardStatsProcedure,
     createServiceRequest: createServiceRequestProcedure,
     getServiceRequests: getServiceRequestsProcedure,
