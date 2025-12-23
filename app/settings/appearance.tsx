@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Stack } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 import { ArrowLeft, Sun, Moon, Monitor, Type, Wifi } from 'lucide-react-native';
 import { useStorage } from '@/providers/storage-provider';
 import { useTheme } from '@/providers/theme-provider';
@@ -73,7 +72,7 @@ function ThemeCard({ theme, isSelected, onSelect, colors }: {
 
 export default function AppearanceScreen() {
   const router = useRouter();
-  const { getItem, setItem } = useStorage();
+  const { setItem } = useStorage();
   const theme = useTheme();
   const { t } = useTranslation();
 
@@ -103,20 +102,32 @@ export default function AppearanceScreen() {
     try {
       await theme.setMode(themeId as any);
       await setItem('settings_theme', themeId);
-      await updatePrefs.mutateAsync({ category: 'appearance', preferences: { theme: themeId } });
-      console.log('Theme preference saved:', themeId);
+      console.log('Theme preference saved locally:', themeId);
+      
+      try {
+        await updatePrefs.mutateAsync({ category: 'appearance', preferences: { theme: themeId } });
+        console.log('Theme preference synced to server');
+      } catch (serverError) {
+        console.log('Could not sync theme to server (this is ok):', serverError);
+      }
     } catch (error) {
       console.error('Failed to save theme preference:', error);
     }
-  }, [setItem, theme]);
+  }, [setItem, theme, updatePrefs]);
   
   const handleHighContrastToggle = useCallback(async (enabled: boolean) => {
     setHighContrastMode(enabled);
     try {
       await theme.setHighContrast(enabled);
       await setItem('settings_high_contrast', enabled ? '1' : '0');
-      await updatePrefs.mutateAsync({ category: 'accessibility', preferences: { highContrast: enabled } });
-      console.log('High contrast mode:', enabled);
+      console.log('High contrast mode saved locally:', enabled);
+      
+      try {
+        await updatePrefs.mutateAsync({ category: 'accessibility', preferences: { highContrast: enabled } });
+        console.log('High contrast synced to server');
+      } catch (serverError) {
+        console.log('Could not sync to server (this is ok):', serverError);
+      }
     } catch (error) {
       console.error('Failed to save high contrast preference:', error);
       Alert.alert('Update failed', 'Could not update High Contrast preference.');
@@ -128,8 +139,14 @@ export default function AppearanceScreen() {
     try {
       await theme.setLowDataMode(enabled);
       await setItem('settings_low_data_mode', enabled ? '1' : '0');
-      await updatePrefs.mutateAsync({ category: 'accessibility', preferences: { lowDataMode: enabled } });
-      console.log('Low data mode:', enabled);
+      console.log('Low data mode saved locally:', enabled);
+      
+      try {
+        await updatePrefs.mutateAsync({ category: 'accessibility', preferences: { lowDataMode: enabled } });
+        console.log('Low data mode synced to server');
+      } catch (serverError) {
+        console.log('Could not sync to server (this is ok):', serverError);
+      }
     } catch (error) {
       console.error('Failed to save low data mode preference:', error);
       Alert.alert('Update failed', 'Could not update Low Data Mode preference.');
@@ -141,8 +158,14 @@ export default function AppearanceScreen() {
     try {
       await theme.setFontSize(size as any);
       await setItem('settings_font_size', size);
-      await updatePrefs.mutateAsync({ category: 'appearance', preferences: { fontSize: size } });
-      console.log('Font size preference saved:', size);
+      console.log('Font size preference saved locally:', size);
+      
+      try {
+        await updatePrefs.mutateAsync({ category: 'appearance', preferences: { fontSize: size } });
+        console.log('Font size synced to server');
+      } catch (serverError) {
+        console.log('Could not sync to server (this is ok):', serverError);
+      }
     } catch (error) {
       console.error('Failed to save font size preference:', error);
       Alert.alert('Update failed', 'Could not update Font Size preference.');
@@ -154,8 +177,14 @@ export default function AppearanceScreen() {
     try {
       await theme.setLayoutDensity(density as any);
       await setItem('settings_layout_density', density);
-      await updatePrefs.mutateAsync({ category: 'appearance', preferences: { layoutDensity: density } });
-      console.log('Layout density preference saved:', density);
+      console.log('Layout density preference saved locally:', density);
+      
+      try {
+        await updatePrefs.mutateAsync({ category: 'appearance', preferences: { layoutDensity: density } });
+        console.log('Layout density synced to server');
+      } catch (serverError) {
+        console.log('Could not sync to server (this is ok):', serverError);
+      }
     } catch (error) {
       console.error('Failed to save layout density preference:', error);
       Alert.alert('Update failed', 'Could not update Layout Density preference.');
