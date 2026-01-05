@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  Alert,
+  Animated,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,7 +17,11 @@ import {
   Star,
   ShoppingBag,
   Award,
+  ChevronRight,
+  Sparkles,
+  Percent,
 } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
 
 const GREEN = '#2E7D32' as const;
 const ORANGE = '#F57C00' as const;
@@ -35,16 +39,17 @@ interface PromoItem {
   minPurchase?: number;
   category: string;
   featured: boolean;
-  claimed: boolean;
   claimedCount: number;
   maxClaims: number;
+  rating: number;
+  reviews: number;
 }
 
 const mockPromos: PromoItem[] = [
   {
     id: 'p1',
     vendor: 'GreenFarm Ltd',
-    logo: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=200&auto=format&fit=crop',
+    logo: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=200&auto=format&fit=crop',
     title: 'Free Delivery Over KES 2,000',
     description: 'Get free delivery on all farm inputs and equipment when you spend KES 2,000 or more. Valid for all locations within 50km radius.',
     expiry: 'Oct 30',
@@ -53,9 +58,10 @@ const mockPromos: PromoItem[] = [
     minPurchase: 2000,
     category: 'Delivery',
     featured: true,
-    claimed: false,
     claimedCount: 234,
     maxClaims: 500,
+    rating: 4.8,
+    reviews: 234,
   },
   {
     id: 'p2',
@@ -68,9 +74,10 @@ const mockPromos: PromoItem[] = [
     discount: 'KES 100 OFF',
     category: 'Discount',
     featured: true,
-    claimed: false,
     claimedCount: 89,
     maxClaims: 200,
+    rating: 4.6,
+    reviews: 156,
   },
   {
     id: 'p3',
@@ -84,9 +91,10 @@ const mockPromos: PromoItem[] = [
     minPurchase: 5000,
     category: 'Equipment',
     featured: false,
-    claimed: false,
     claimedCount: 45,
     maxClaims: 100,
+    rating: 4.9,
+    reviews: 312,
   },
   {
     id: 'p4',
@@ -99,9 +107,10 @@ const mockPromos: PromoItem[] = [
     discount: 'Buy 2 Get 1',
     category: 'Seeds',
     featured: false,
-    claimed: false,
     claimedCount: 167,
     maxClaims: 300,
+    rating: 4.7,
+    reviews: 189,
   },
   {
     id: 'p5',
@@ -114,9 +123,10 @@ const mockPromos: PromoItem[] = [
     discount: 'Free Service',
     category: 'Services',
     featured: true,
-    claimed: false,
     claimedCount: 78,
     maxClaims: 150,
+    rating: 4.8,
+    reviews: 98,
   },
 ];
 
@@ -126,6 +136,8 @@ export default function OffersPromosScreen() {
   
   const [selectedCategory, setSelectedCategory] = useState('');
   const [claimedOffers, setClaimedOffers] = useState<string[]>([]);
+  
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   const categories = useMemo(() => {
     const cats = new Set(mockPromos.map(p => p.category));
@@ -139,7 +151,6 @@ export default function OffersPromosScreen() {
       filtered = filtered.filter(promo => promo.category === selectedCategory);
     }
     
-    // Sort featured promos first, then by expiry date
     return filtered.sort((a, b) => {
       if (a.featured && !b.featured) return -1;
       if (!a.featured && b.featured) return 1;
@@ -147,26 +158,15 @@ export default function OffersPromosScreen() {
     });
   }, [selectedCategory]);
 
-  const handleShopNow = useCallback((promo: PromoItem) => {
-    Alert.alert(
-      'Shop Now',
-      `Redirecting to ${promo.vendor} store with your ${promo.discount} offer applied.`,
-      [{ text: 'Continue', onPress: () => console.log(`Shopping at ${promo.vendor}`) }]
-    );
-  }, []);
+  const handleOfferPress = useCallback((promo: PromoItem) => {
+    router.push({ pathname: '/offer/[offerId]', params: { offerId: promo.id } });
+  }, [router]);
 
   const handleClaimOffer = useCallback((promo: PromoItem) => {
-    if (claimedOffers.includes(promo.id)) {
-      Alert.alert('Already Claimed', `You have already claimed this offer from ${promo.vendor}`);
-      return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (!claimedOffers.includes(promo.id)) {
+      setClaimedOffers(prev => [...prev, promo.id]);
     }
-    
-    setClaimedOffers(prev => [...prev, promo.id]);
-    Alert.alert(
-      'Offer Claimed!',
-      `${promo.title} has been added to your account. Use it before ${promo.expiry}.`,
-      [{ text: 'OK' }]
-    );
   }, [claimedOffers]);
 
   const getDaysUntilExpiry = useCallback((expiryDate: string) => {
@@ -181,27 +181,53 @@ export default function OffersPromosScreen() {
     return Math.min((claimed / max) * 100, 100);
   }, []);
 
+  const totalSavings = useMemo(() => {
+    return mockPromos.reduce((acc, p) => acc + p.claimedCount * 100, 0);
+  }, []);
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Stack.Screen 
-        options={{ 
-          headerShown: false,
-        }} 
-      />
+      <Stack.Screen options={{ headerShown: false }} />
       
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => router.back()}
-        >
-          <ArrowLeft size={24} color={GREEN} />
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <ArrowLeft size={24} color={ORANGE} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
-          <Gift size={20} color={ORANGE} />
+          <Gift size={22} color={ORANGE} />
           <Text style={styles.headerTitle}>Offers & Promos</Text>
         </View>
         <View style={styles.headerSpacer} />
+      </View>
+
+      {/* Hero Banner */}
+      <View style={styles.heroBanner}>
+        <View style={styles.heroContent}>
+          <View style={styles.heroIconContainer}>
+            <Sparkles size={28} color={WHITE} />
+          </View>
+          <View style={styles.heroText}>
+            <Text style={styles.heroTitle}>Exclusive Deals Await!</Text>
+            <Text style={styles.heroSubtitle}>Save big on farm supplies and services</Text>
+          </View>
+        </View>
+        <View style={styles.heroStats}>
+          <View style={styles.heroStatItem}>
+            <Text style={styles.heroStatValue}>{mockPromos.length}</Text>
+            <Text style={styles.heroStatLabel}>Active Offers</Text>
+          </View>
+          <View style={styles.heroStatDivider} />
+          <View style={styles.heroStatItem}>
+            <Text style={styles.heroStatValue}>{mockPromos.filter(p => p.featured).length}</Text>
+            <Text style={styles.heroStatLabel}>Featured</Text>
+          </View>
+          <View style={styles.heroStatDivider} />
+          <View style={styles.heroStatItem}>
+            <Text style={styles.heroStatValue}>KES {(totalSavings / 1000).toFixed(0)}K+</Text>
+            <Text style={styles.heroStatLabel}>Saved</Text>
+          </View>
+        </View>
       </View>
 
       {/* Category Filter */}
@@ -235,34 +261,41 @@ export default function OffersPromosScreen() {
       </View>
 
       {/* Promos List */}
-      <ScrollView 
+      <Animated.ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.promosContainer}
         showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
       >
         {filteredPromos.map((promo) => {
           const daysLeft = getDaysUntilExpiry(promo.expiryDate);
           const isExpiringSoon = daysLeft <= 3;
           const isClaimed = claimedOffers.includes(promo.id);
+          const progressPercent = getProgressPercentage(promo.claimedCount, promo.maxClaims);
           
           return (
-            <View 
+            <TouchableOpacity 
               key={promo.id} 
               style={[
                 styles.promoCard,
                 promo.featured && styles.promoCardFeatured,
                 isExpiringSoon && styles.promoCardExpiring
               ]}
+              onPress={() => handleOfferPress(promo)}
+              activeOpacity={0.9}
             >
-              {/* Featured Badge */}
+              {/* Badges */}
               {promo.featured && (
                 <View style={styles.featuredBadge}>
                   <Award size={12} color={ORANGE} />
-                  <Text style={styles.featuredBadgeText}>Featured by Vendor</Text>
+                  <Text style={styles.featuredBadgeText}>Featured</Text>
                 </View>
               )}
               
-              {/* Expiring Soon Badge */}
               {isExpiringSoon && (
                 <View style={styles.expiringBadge}>
                   <Clock size={12} color={WHITE} />
@@ -270,96 +303,100 @@ export default function OffersPromosScreen() {
                 </View>
               )}
 
+              {/* Main Content */}
               <View style={styles.promoContent}>
                 {/* Vendor Logo */}
                 <Image source={{ uri: promo.logo }} style={styles.vendorLogo} />
                 
                 <View style={styles.promoInfo}>
-                  <Text style={styles.vendorName}>{promo.vendor}</Text>
+                  {/* Vendor Name & Rating */}
+                  <View style={styles.vendorRow}>
+                    <Text style={styles.vendorName}>{promo.vendor}</Text>
+                    <View style={styles.ratingBadge}>
+                      <Star size={12} color="#FCD34D" fill="#FCD34D" />
+                      <Text style={styles.ratingText}>{promo.rating}</Text>
+                    </View>
+                  </View>
+
+                  {/* Title & Description */}
                   <Text style={styles.promoTitle}>{promo.title}</Text>
-                  <Text style={styles.promoDescription}>{promo.description}</Text>
+                  <Text style={styles.promoDescription} numberOfLines={2}>{promo.description}</Text>
                   
                   {/* Discount Badge */}
-                  <View style={styles.discountContainer}>
+                  <View style={styles.discountRow}>
                     <View style={styles.discountBadge}>
+                      <Percent size={14} color={WHITE} />
                       <Text style={styles.discountText}>{promo.discount}</Text>
                     </View>
                     {promo.minPurchase && (
                       <Text style={styles.minPurchaseText}>
-                        Min. purchase: KES {promo.minPurchase.toLocaleString()}
+                        Min. KES {promo.minPurchase.toLocaleString()}
                       </Text>
                     )}
                   </View>
 
                   {/* Progress Bar */}
-                  <View style={styles.progressContainer}>
+                  <View style={styles.progressSection}>
+                    <View style={styles.progressHeader}>
+                      <Text style={styles.progressLabel}>{promo.claimedCount} claimed</Text>
+                      <Text style={styles.progressRemaining}>{promo.maxClaims - promo.claimedCount} left</Text>
+                    </View>
                     <View style={styles.progressBar}>
-                      <View 
-                        style={[
-                          styles.progressFill, 
-                          { width: `${getProgressPercentage(promo.claimedCount, promo.maxClaims)}%` }
-                        ]} 
+                      <Animated.View 
+                        style={[styles.progressFill, { width: `${progressPercent}%` }]} 
                       />
                     </View>
-                    <Text style={styles.progressText}>
-                      {promo.claimedCount}/{promo.maxClaims} claimed
-                    </Text>
                   </View>
 
                   {/* Expiry Info */}
-                  <View style={styles.expiryContainer}>
-                    <Clock size={14} color="#6B7280" />
+                  <View style={styles.expiryRow}>
+                    <Clock size={14} color={isExpiringSoon ? '#EF4444' : '#6B7280'} />
                     <Text style={[styles.expiryText, isExpiringSoon && styles.expiryTextUrgent]}>
-                      {daysLeft > 0 ? `Expires in ${daysLeft} days` : 'Expired'}
+                      {daysLeft > 0 ? `${daysLeft} days left` : 'Expired'}
                     </Text>
                   </View>
 
                   {/* Action Buttons */}
                   <View style={styles.promoActions}>
                     <TouchableOpacity 
-                      style={styles.shopButton}
-                      onPress={() => handleShopNow(promo)}
-                    >
-                      <ShoppingBag size={14} color={WHITE} />
-                      <Text style={styles.shopButtonText}>Shop Now</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      style={[
-                        styles.claimButton,
-                        isClaimed && styles.claimButtonClaimed
-                      ]}
-                      onPress={() => handleClaimOffer(promo)}
+                      style={[styles.claimButton, isClaimed && styles.claimButtonClaimed]}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleClaimOffer(promo);
+                      }}
                       disabled={isClaimed || daysLeft <= 0}
                     >
-                      <Text style={[
-                        styles.claimButtonText,
-                        isClaimed && styles.claimButtonTextClaimed
-                      ]}>
-                        {isClaimed ? 'Claimed ✓' : daysLeft <= 0 ? 'Expired' : 'Claim Offer'}
+                      <Gift size={16} color={isClaimed ? GREEN : WHITE} />
+                      <Text style={[styles.claimButtonText, isClaimed && styles.claimButtonTextClaimed]}>
+                        {isClaimed ? 'Claimed' : 'Claim'}
                       </Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity style={styles.shopButton}>
+                      <ShoppingBag size={16} color={WHITE} />
+                      <Text style={styles.shopButtonText}>Shop</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity style={styles.detailsButton}>
+                      <ChevronRight size={20} color={GREEN} />
                     </TouchableOpacity>
                   </View>
                 </View>
               </View>
-
-              {/* Rating/Reviews */}
-              <View style={styles.vendorRating}>
-                <Star size={12} color="#FCD34D" fill="#FCD34D" />
-                <Text style={styles.ratingText}>4.{Math.floor(Math.random() * 3) + 6}</Text>
-                <Text style={styles.reviewCount}>({Math.floor(Math.random() * 200) + 50} reviews)</Text>
-              </View>
-            </View>
+            </TouchableOpacity>
           );
         })}
 
         {filteredPromos.length === 0 && (
           <View style={styles.emptyState}>
+            <Gift size={48} color="#9CA3AF" />
             <Text style={styles.emptyStateText}>No offers found</Text>
             <Text style={styles.emptyStateSubtext}>Try selecting a different category</Text>
           </View>
         )}
-      </ScrollView>
+
+        <View style={{ height: 40 }} />
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -381,7 +418,7 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
     borderRadius: 12,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FFF7ED',
   },
   headerTitleContainer: {
     flex: 1,
@@ -398,9 +435,71 @@ const styles = StyleSheet.create({
   headerSpacer: {
     width: 40,
   },
+  heroBanner: {
+    backgroundColor: ORANGE,
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 20,
+    padding: 20,
+  },
+  heroContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 16,
+  },
+  heroIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heroText: {
+    flex: 1,
+  },
+  heroTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: WHITE,
+    marginBottom: 4,
+  },
+  heroSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.85)',
+  },
+  heroStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 12,
+    paddingVertical: 12,
+  },
+  heroStatItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  heroStatValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: WHITE,
+  },
+  heroStatLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+  },
+  heroStatDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
   filterContainer: {
     backgroundColor: WHITE,
     paddingVertical: 12,
+    marginTop: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
@@ -417,7 +516,7 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
   },
   filterPillActive: {
-    backgroundColor: '#FFF3E0',
+    backgroundColor: '#FFF7ED',
     borderColor: ORANGE,
   },
   filterPillText: {
@@ -437,20 +536,18 @@ const styles = StyleSheet.create({
   },
   promoCard: {
     backgroundColor: WHITE,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
-    elevation: 3,
+    elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 8,
     position: 'relative',
   },
   promoCardFeatured: {
     borderWidth: 2,
     borderColor: ORANGE,
-    elevation: 6,
-    shadowOpacity: 0.15,
   },
   promoCardExpiring: {
     borderWidth: 2,
@@ -461,8 +558,8 @@ const styles = StyleSheet.create({
     top: 12,
     right: 12,
     backgroundColor: '#FFF7ED',
-    borderRadius: 12,
-    paddingHorizontal: 8,
+    borderRadius: 10,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     flexDirection: 'row',
     alignItems: 'center',
@@ -471,7 +568,7 @@ const styles = StyleSheet.create({
   },
   featuredBadgeText: {
     color: ORANGE,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
   },
   expiringBadge: {
@@ -479,8 +576,8 @@ const styles = StyleSheet.create({
     top: 12,
     left: 12,
     backgroundColor: '#EF4444',
-    borderRadius: 12,
-    paddingHorizontal: 8,
+    borderRadius: 10,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     flexDirection: 'row',
     alignItems: 'center',
@@ -489,28 +586,43 @@ const styles = StyleSheet.create({
   },
   expiringBadgeText: {
     color: WHITE,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
   },
   promoContent: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
+    gap: 14,
+    marginTop: 20,
   },
   vendorLogo: {
-    width: 60,
-    height: 60,
-    borderRadius: 12,
+    width: 56,
+    height: 56,
+    borderRadius: 14,
     backgroundColor: '#F3F4F6',
   },
   promoInfo: {
     flex: 1,
   },
+  vendorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
   vendorName: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  ratingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  ratingText: {
     fontSize: 12,
     color: '#6B7280',
     fontWeight: '600',
-    marginBottom: 4,
   },
   promoTitle: {
     fontSize: 16,
@@ -520,21 +632,24 @@ const styles = StyleSheet.create({
   },
   promoDescription: {
     fontSize: 13,
-    color: '#374151',
+    color: '#6B7280',
     lineHeight: 18,
     marginBottom: 12,
   },
-  discountContainer: {
+  discountRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     marginBottom: 12,
   },
   discountBadge: {
     backgroundColor: GREEN,
     borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   discountText: {
     color: WHITE,
@@ -543,34 +658,43 @@ const styles = StyleSheet.create({
   },
   minPurchaseText: {
     fontSize: 11,
-    color: '#6B7280',
+    color: '#9CA3AF',
     fontStyle: 'italic',
   },
-  progressContainer: {
-    marginBottom: 8,
+  progressSection: {
+    marginBottom: 10,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  progressLabel: {
+    fontSize: 11,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  progressRemaining: {
+    fontSize: 11,
+    color: '#9CA3AF',
   },
   progressBar: {
     height: 4,
     backgroundColor: '#F3F4F6',
     borderRadius: 2,
     overflow: 'hidden',
-    marginBottom: 4,
   },
   progressFill: {
     height: '100%',
     backgroundColor: ORANGE,
     borderRadius: 2,
   },
-  progressText: {
-    fontSize: 11,
-    color: '#6B7280',
-    textAlign: 'right',
-  },
-  expiryContainer: {
+  expiryRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   expiryText: {
     fontSize: 12,
@@ -584,30 +708,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  shopButton: {
-    backgroundColor: GREEN,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  claimButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    flex: 1,
     justifyContent: 'center',
-  },
-  shopButtonText: {
-    color: WHITE,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  claimButton: {
     backgroundColor: ORANGE,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderRadius: 10,
+    paddingVertical: 10,
+    gap: 6,
   },
   claimButtonClaimed: {
     backgroundColor: '#ECFDF5',
@@ -616,37 +725,44 @@ const styles = StyleSheet.create({
   },
   claimButtonText: {
     color: WHITE,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
   },
   claimButtonTextClaimed: {
     color: GREEN,
   },
-  vendorRating: {
+  shopButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    justifyContent: 'center',
+    backgroundColor: GREEN,
+    borderRadius: 10,
+    paddingVertical: 10,
+    gap: 6,
   },
-  ratingText: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontWeight: '600',
+  shopButtonText: {
+    color: WHITE,
+    fontSize: 13,
+    fontWeight: '700',
   },
-  reviewCount: {
-    fontSize: 11,
-    color: '#9CA3AF',
+  detailsButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: 60,
   },
   emptyStateText: {
     fontSize: 18,
     fontWeight: '700',
     color: '#6B7280',
+    marginTop: 16,
     marginBottom: 8,
   },
   emptyStateSubtext: {

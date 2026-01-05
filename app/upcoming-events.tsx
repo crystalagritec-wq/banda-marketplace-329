@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,20 +6,22 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  Alert,
+  Animated,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ArrowLeft,
   Calendar,
-  Clock,
   MapPin,
   Users,
+  Bell,
+  ChevronRight,
+  Sparkles,
 } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
 
 const GREEN = '#2E7D32' as const;
-const ORANGE = '#F57C00' as const;
 const WHITE = '#FFFFFF' as const;
 
 interface EventItem {
@@ -116,7 +118,7 @@ const mockEvents: EventItem[] = [
     date: 'Dec 8–10',
     dateStart: '2024-12-08',
     dateEnd: '2024-12-10',
-    banner: 'https://images.unsplash.com/photo-1506801310323-534be5e7e4e5?q=80&w=1200&auto=format&fit=crop',
+    banner: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?q=80&w=1200&auto=format&fit=crop',
     description: 'Discover the latest in water-efficient farming technology. Live demos of drip irrigation systems and smart sensors.',
     location: 'Thika Innovation Hub',
     attendees: 245,
@@ -124,15 +126,16 @@ const mockEvents: EventItem[] = [
     category: 'Technology',
     organizer: 'AgriTech Kenya',
   },
-].slice(0, 6);
+];
 
 export default function UpcomingEventsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [joinedEvents, setJoinedEvents] = useState<string[]>([]);
   const [remindedEvents, setRemindedEvents] = useState<string[]>([]);
+  
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   const categories = useMemo(() => {
     const cats = new Set(mockEvents.map(e => e.category));
@@ -146,7 +149,6 @@ export default function UpcomingEventsScreen() {
       filtered = filtered.filter(event => event.category === selectedCategory);
     }
     
-    // Sort ongoing events first, then by date
     return filtered.sort((a, b) => {
       if (a.ongoing && !b.ongoing) return -1;
       if (!a.ongoing && b.ongoing) return 1;
@@ -154,67 +156,68 @@ export default function UpcomingEventsScreen() {
     });
   }, [selectedCategory]);
 
-  const handleJoinEvent = useCallback((event: EventItem) => {
-    if (joinedEvents.includes(event.id)) {
-      Alert.alert('Already Joined', `You have already joined ${event.title}`);
-      return;
-    }
-    
-    setJoinedEvents(prev => [...prev, event.id]);
-    Alert.alert(
-      'Event Joined!', 
-      `You have successfully joined ${event.title}. You'll receive updates and reminders.`,
-      [{ text: 'OK' }]
-    );
-  }, [joinedEvents]);
-
-  const handleLearnMore = useCallback((event: EventItem) => {
-    Alert.alert(
-      event.title,
-      `${event.description}\n\nOrganizer: ${event.organizer}\nLocation: ${event.location}\nAttendees: ${event.attendees}/${event.maxAttendees}`,
-      [{ text: 'Close' }]
-    );
-  }, []);
+  const handleEventPress = useCallback((event: EventItem) => {
+    router.push({ pathname: '/event/[eventId]', params: { eventId: event.id } });
+  }, [router]);
 
   const handleRemindMe = useCallback((event: EventItem) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (remindedEvents.includes(event.id)) {
-      Alert.alert('Reminder Set', `You already have a reminder set for ${event.title}`);
-      return;
+      setRemindedEvents(prev => prev.filter(id => id !== event.id));
+    } else {
+      setRemindedEvents(prev => [...prev, event.id]);
     }
-    
-    setRemindedEvents(prev => [...prev, event.id]);
-    Alert.alert(
-      'Reminder Set!', 
-      `We'll remind you about ${event.title} one day before it starts.`,
-      [{ text: 'OK' }]
-    );
   }, [remindedEvents]);
 
   const getProgressPercentage = useCallback((attendees: number, maxAttendees: number) => {
     return Math.min((attendees / maxAttendees) * 100, 100);
   }, []);
 
+  const ongoingCount = useMemo(() => mockEvents.filter(e => e.ongoing).length, []);
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Stack.Screen 
-        options={{ 
-          headerShown: false,
-        }} 
-      />
+      <Stack.Screen options={{ headerShown: false }} />
       
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => router.back()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft size={24} color={GREEN} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
-          <Calendar size={20} color={GREEN} />
-          <Text style={styles.headerTitle}>Upcoming Events</Text>
+          <Calendar size={22} color={GREEN} />
+          <Text style={styles.headerTitle}>Events</Text>
         </View>
         <View style={styles.headerSpacer} />
+      </View>
+
+      {/* Hero Banner */}
+      <View style={styles.heroBanner}>
+        <View style={styles.heroContent}>
+          <View style={styles.heroIconContainer}>
+            <Sparkles size={28} color={WHITE} />
+          </View>
+          <View style={styles.heroText}>
+            <Text style={styles.heroTitle}>Discover Agricultural Events</Text>
+            <Text style={styles.heroSubtitle}>Workshops, festivals, and networking opportunities</Text>
+          </View>
+        </View>
+        <View style={styles.heroStats}>
+          <View style={styles.heroStatItem}>
+            <Text style={styles.heroStatValue}>{mockEvents.length}</Text>
+            <Text style={styles.heroStatLabel}>Upcoming</Text>
+          </View>
+          <View style={styles.heroStatDivider} />
+          <View style={styles.heroStatItem}>
+            <Text style={styles.heroStatValue}>{ongoingCount}</Text>
+            <Text style={styles.heroStatLabel}>Live Now</Text>
+          </View>
+          <View style={styles.heroStatDivider} />
+          <View style={styles.heroStatItem}>
+            <Text style={styles.heroStatValue}>{categories.length}</Text>
+            <Text style={styles.heroStatLabel}>Categories</Text>
+          </View>
+        </View>
       </View>
 
       {/* Category Filter */}
@@ -248,130 +251,131 @@ export default function UpcomingEventsScreen() {
       </View>
 
       {/* Events List */}
-      <ScrollView 
+      <Animated.ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.eventsContainer}
         showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
       >
-        {filteredEvents.map((event) => (
-          <View 
-            key={event.id} 
-            style={[
-              styles.eventCard,
-              event.ongoing && styles.eventCardOngoing
-            ]}
-          >
-            {/* Event Banner */}
-            <View style={styles.eventBannerContainer}>
-              <Image source={{ uri: event.banner }} style={styles.eventBanner} />
-              
-              {/* Ongoing Badge */}
-              {event.ongoing && (
-                <View style={styles.ongoingBadge}>
-                  <View style={styles.ongoingDot} />
-                  <Text style={styles.ongoingText}>LIVE NOW</Text>
+        {filteredEvents.map((event) => {
+          const isReminded = remindedEvents.includes(event.id);
+          const progressPercent = getProgressPercentage(event.attendees, event.maxAttendees);
+          
+          return (
+            <TouchableOpacity 
+              key={event.id} 
+              style={[styles.eventCard, event.ongoing && styles.eventCardOngoing]}
+              onPress={() => handleEventPress(event)}
+              activeOpacity={0.9}
+            >
+              {/* Event Banner */}
+              <View style={styles.eventBannerContainer}>
+                <Image source={{ uri: event.banner }} style={styles.eventBanner} />
+                <View style={styles.bannerOverlay} />
+                
+                {/* Ongoing Badge */}
+                {event.ongoing && (
+                  <View style={styles.ongoingBadge}>
+                    <View style={styles.ongoingDot} />
+                    <Text style={styles.ongoingText}>LIVE NOW</Text>
+                  </View>
+                )}
+                
+                {/* Category Badge */}
+                <View style={styles.categoryBadge}>
+                  <Text style={styles.categoryBadgeText}>{event.category}</Text>
                 </View>
-              )}
-              
-              {/* Category Badge */}
-              <View style={styles.categoryBadge}>
-                <Text style={styles.categoryBadgeText}>{event.category}</Text>
-              </View>
-            </View>
 
-            {/* Event Info */}
-            <View style={styles.eventInfo}>
-              <Text style={styles.eventTitle}>{event.title}</Text>
-              
-              <View style={styles.eventMeta}>
-                <View style={styles.eventMetaRow}>
-                  <Calendar size={14} color="#6B7280" />
-                  <Text style={styles.eventDate}>{event.date}</Text>
+                {/* Attendees Preview */}
+                <View style={styles.attendeesPreview}>
+                  <Users size={14} color={WHITE} />
+                  <Text style={styles.attendeesPreviewText}>{event.attendees.toLocaleString()}</Text>
                 </View>
+              </View>
+
+              {/* Event Info */}
+              <View style={styles.eventInfo}>
+                <Text style={styles.eventTitle}>{event.title}</Text>
                 
-                <View style={styles.eventMetaRow}>
-                  <MapPin size={14} color="#6B7280" />
-                  <Text style={styles.eventLocation}>{event.location}</Text>
+                <View style={styles.eventMeta}>
+                  <View style={styles.eventMetaItem}>
+                    <View style={[styles.metaIcon, { backgroundColor: '#ECFDF5' }]}>
+                      <Calendar size={14} color={GREEN} />
+                    </View>
+                    <Text style={styles.metaText}>{event.date}</Text>
+                  </View>
+                  
+                  <View style={styles.eventMetaItem}>
+                    <View style={[styles.metaIcon, { backgroundColor: '#EDE9FE' }]}>
+                      <MapPin size={14} color="#7C3AED" />
+                    </View>
+                    <Text style={styles.metaText} numberOfLines={1}>{event.location}</Text>
+                  </View>
                 </View>
+
+                <Text style={styles.eventDescription} numberOfLines={2}>{event.description}</Text>
                 
-                <View style={styles.eventMetaRow}>
-                  <Users size={14} color="#6B7280" />
-                  <Text style={styles.eventAttendees}>
-                    {event.attendees}/{event.maxAttendees} attending
+                <Text style={styles.eventOrganizer}>By {event.organizer}</Text>
+
+                {/* Progress Bar */}
+                <View style={styles.progressSection}>
+                  <View style={styles.progressHeader}>
+                    <Text style={styles.progressLabel}>Attendance</Text>
+                    <Text style={styles.progressPercent}>{Math.round(progressPercent)}% full</Text>
+                  </View>
+                  <View style={styles.progressBar}>
+                    <Animated.View 
+                      style={[
+                        styles.progressFill, 
+                        { width: `${progressPercent}%` },
+                        event.ongoing && styles.progressFillOngoing
+                      ]} 
+                    />
+                  </View>
+                  <Text style={styles.spotsLeft}>
+                    {event.maxAttendees - event.attendees} spots remaining
                   </Text>
                 </View>
-              </View>
 
-              <Text style={styles.eventDescription}>{event.description}</Text>
-              
-              <Text style={styles.eventOrganizer}>Organized by {event.organizer}</Text>
-
-              {/* Progress Bar */}
-              <View style={styles.progressContainer}>
-                <View style={styles.progressBar}>
-                  <View 
-                    style={[
-                      styles.progressFill, 
-                      { width: `${getProgressPercentage(event.attendees, event.maxAttendees)}%` }
-                    ]} 
-                  />
+                {/* Action Buttons */}
+                <View style={styles.eventActions}>
+                  <TouchableOpacity 
+                    style={[styles.remindButton, isReminded && styles.remindButtonActive]}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleRemindMe(event);
+                    }}
+                  >
+                    <Bell size={16} color={isReminded ? GREEN : '#6B7280'} fill={isReminded ? GREEN : 'transparent'} />
+                    <Text style={[styles.remindButtonText, isReminded && styles.remindButtonTextActive]}>
+                      {isReminded ? 'Reminded' : 'Remind Me'}
+                    </Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity style={styles.viewButton}>
+                    <Text style={styles.viewButtonText}>View Details</Text>
+                    <ChevronRight size={16} color={WHITE} />
+                  </TouchableOpacity>
                 </View>
-                <Text style={styles.progressText}>
-                  {Math.round(getProgressPercentage(event.attendees, event.maxAttendees))}% full
-                </Text>
               </View>
-
-              {/* Action Buttons */}
-              <View style={styles.eventActions}>
-                <TouchableOpacity 
-                  style={[
-                    styles.joinButton,
-                    joinedEvents.includes(event.id) && styles.joinButtonJoined
-                  ]}
-                  onPress={() => handleJoinEvent(event)}
-                >
-                  <Text style={[
-                    styles.joinButtonText,
-                    joinedEvents.includes(event.id) && styles.joinButtonTextJoined
-                  ]}>
-                    {joinedEvents.includes(event.id) ? 'Joined ✓' : 'Join'}
-                  </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.learnButton}
-                  onPress={() => handleLearnMore(event)}
-                >
-                  <Text style={styles.learnButtonText}>Learn More</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={[
-                    styles.remindButton,
-                    remindedEvents.includes(event.id) && styles.remindButtonSet
-                  ]}
-                  onPress={() => handleRemindMe(event)}
-                >
-                  <Clock size={14} color={remindedEvents.includes(event.id) ? GREEN : ORANGE} />
-                  <Text style={[
-                    styles.remindButtonText,
-                    remindedEvents.includes(event.id) && styles.remindButtonTextSet
-                  ]}>
-                    {remindedEvents.includes(event.id) ? 'Reminder Set' : 'Remind Me'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        ))}
+            </TouchableOpacity>
+          );
+        })}
 
         {filteredEvents.length === 0 && (
           <View style={styles.emptyState}>
+            <Calendar size={48} color="#9CA3AF" />
             <Text style={styles.emptyStateText}>No events found</Text>
             <Text style={styles.emptyStateSubtext}>Try selecting a different category</Text>
           </View>
         )}
-      </ScrollView>
+
+        <View style={{ height: 40 }} />
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -410,9 +414,71 @@ const styles = StyleSheet.create({
   headerSpacer: {
     width: 40,
   },
+  heroBanner: {
+    backgroundColor: GREEN,
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 20,
+    padding: 20,
+  },
+  heroContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 16,
+  },
+  heroIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heroText: {
+    flex: 1,
+  },
+  heroTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: WHITE,
+    marginBottom: 4,
+  },
+  heroSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.85)',
+  },
+  heroStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 12,
+    paddingVertical: 12,
+  },
+  heroStatItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  heroStatValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: WHITE,
+  },
+  heroStatLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+  },
+  heroStatDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
   filterContainer: {
     backgroundColor: WHITE,
     paddingVertical: 12,
+    marginTop: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
@@ -449,19 +515,17 @@ const styles = StyleSheet.create({
   },
   eventCard: {
     backgroundColor: WHITE,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
-    elevation: 3,
+    elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 8,
   },
   eventCardOngoing: {
     borderWidth: 2,
     borderColor: GREEN,
-    elevation: 6,
-    shadowOpacity: 0.15,
   },
   eventBannerContainer: {
     position: 'relative',
@@ -472,11 +536,15 @@ const styles = StyleSheet.create({
     height: '100%',
     resizeMode: 'cover',
   },
+  bannerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
   ongoingBadge: {
     position: 'absolute',
     top: 12,
     left: 12,
-    backgroundColor: GREEN,
+    backgroundColor: '#EF4444',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -492,22 +560,39 @@ const styles = StyleSheet.create({
   },
   ongoingText: {
     color: WHITE,
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
   },
   categoryBadge: {
     position: 'absolute',
     top: 12,
     right: 12,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
   categoryBadgeText: {
+    color: GREEN,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  attendeesPreview: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  attendeesPreviewText: {
     color: WHITE,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   eventInfo: {
     padding: 16,
@@ -522,27 +607,27 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 12,
   },
-  eventMetaRow: {
+  eventMetaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
-  eventDate: {
-    fontSize: 14,
-    color: '#6B7280',
+  metaIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  metaText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#4B5563',
     fontWeight: '600',
-  },
-  eventLocation: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  eventAttendees: {
-    fontSize: 14,
-    color: '#6B7280',
   },
   eventDescription: {
     fontSize: 14,
-    color: '#374151',
+    color: '#6B7280',
     lineHeight: 20,
     marginBottom: 8,
   },
@@ -550,105 +635,95 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9CA3AF',
     fontStyle: 'italic',
-    marginBottom: 12,
+    marginBottom: 14,
   },
-  progressContainer: {
-    marginBottom: 16,
+  progressSection: {
+    marginBottom: 14,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  progressLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  progressPercent: {
+    fontSize: 12,
+    color: GREEN,
+    fontWeight: '700',
   },
   progressBar: {
     height: 6,
     backgroundColor: '#F3F4F6',
     borderRadius: 3,
     overflow: 'hidden',
-    marginBottom: 4,
   },
   progressFill: {
     height: '100%',
     backgroundColor: GREEN,
     borderRadius: 3,
   },
-  progressText: {
-    fontSize: 12,
-    color: '#6B7280',
-    textAlign: 'right',
+  progressFillOngoing: {
+    backgroundColor: '#EF4444',
+  },
+  spotsLeft: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginTop: 4,
   },
   eventActions: {
     flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  joinButton: {
-    backgroundColor: GREEN,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    flex: 1,
-    minWidth: 80,
-  },
-  joinButtonJoined: {
-    backgroundColor: '#ECFDF5',
-    borderWidth: 1,
-    borderColor: GREEN,
-  },
-  joinButtonText: {
-    color: WHITE,
-    fontSize: 14,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  joinButtonTextJoined: {
-    color: GREEN,
-  },
-  learnButton: {
-    backgroundColor: WHITE,
-    borderWidth: 1,
-    borderColor: GREEN,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    flex: 1,
-    minWidth: 100,
-  },
-  learnButtonText: {
-    color: GREEN,
-    fontSize: 14,
-    fontWeight: '700',
-    textAlign: 'center',
+    gap: 10,
   },
   remindButton: {
-    backgroundColor: '#FFF3E0',
-    borderWidth: 1,
-    borderColor: ORANGE,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    flex: 1,
-    minWidth: 120,
     justifyContent: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 10,
+    paddingVertical: 12,
+    gap: 6,
   },
-  remindButtonSet: {
+  remindButtonActive: {
     backgroundColor: '#ECFDF5',
-    borderColor: GREEN,
   },
   remindButtonText: {
-    color: ORANGE,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
+    color: '#6B7280',
   },
-  remindButtonTextSet: {
+  remindButtonTextActive: {
     color: GREEN,
+  },
+  viewButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: GREEN,
+    borderRadius: 10,
+    paddingVertical: 12,
+    gap: 4,
+  },
+  viewButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: WHITE,
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: 60,
   },
   emptyStateText: {
     fontSize: 18,
     fontWeight: '700',
     color: '#6B7280',
+    marginTop: 16,
     marginBottom: 8,
   },
   emptyStateSubtext: {
