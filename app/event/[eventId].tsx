@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,36 +6,29 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  Animated,
   Share,
-  Linking,
+  Alert,
 } from 'react-native';
-import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ArrowLeft,
   Calendar,
-  Clock,
   MapPin,
   Users,
+  Clock,
   Share2,
-  Heart,
   Bell,
-  CheckCircle,
-  ChevronRight,
-  Star,
-  Ticket,
-  Navigation,
-  Phone,
-  Mail,
-  Globe,
+  CheckCircle2,
+  Award,
+  Sparkles,
+  ExternalLink,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
-
 const GREEN = '#2E7D32' as const;
-const ORANGE = '#F57C00' as const;
 const WHITE = '#FFFFFF' as const;
+const ORANGE = '#F57C00' as const;
 
 interface EventItem {
   id: string;
@@ -46,324 +39,224 @@ interface EventItem {
   banner: string;
   description: string;
   location: string;
-  address: string;
   attendees: number;
   maxAttendees: number;
   ongoing?: boolean;
   category: string;
   organizer: string;
   organizerLogo: string;
-  organizerPhone: string;
-  organizerEmail: string;
-  organizerWebsite: string;
-  ticketPrice: number;
-  highlights: string[];
   schedule: { time: string; activity: string }[];
-  speakers: { name: string; role: string; avatar: string }[];
+  highlights: string[];
+  requirements: string[];
+  contact: {
+    email: string;
+    phone: string;
+    website?: string;
+  };
 }
 
 const mockEvents: Record<string, EventItem> = {
-  'e1': {
+  e1: {
     id: 'e1',
     title: 'Harvest Festival 2024',
     date: 'Oct 10–14',
     dateStart: '2024-10-10',
     dateEnd: '2024-10-14',
     banner: 'https://images.unsplash.com/photo-1501004318641-b39e6451bec6?q=80&w=1200&auto=format&fit=crop',
-    description: 'Join us for the biggest agricultural celebration of the year! Experience live demonstrations, networking opportunities with industry leaders, and exclusive discounts up to 35% on seasonal produce. This five-day festival brings together farmers, suppliers, and agricultural enthusiasts from across East Africa.',
-    location: 'Nairobi Agricultural Center',
-    address: 'Uhuru Gardens, Lang\'ata Road, Nairobi',
+    description: 'Join us for the biggest agricultural celebration of the year! Experience a week of farming excellence with up to 35% off seasonal produce, live demonstrations from expert farmers, networking opportunities with industry leaders, and hands-on workshops. This is your chance to connect with the agricultural community and discover the latest innovations in farming.',
+    location: 'Nairobi Agricultural Center, Nairobi CBD',
     attendees: 1250,
     maxAttendees: 2000,
     ongoing: true,
     category: 'Festival',
     organizer: 'Kenya Agricultural Board',
     organizerLogo: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=200&auto=format&fit=crop',
-    organizerPhone: '+254 700 123 456',
-    organizerEmail: 'events@kab.co.ke',
-    organizerWebsite: 'https://kab.co.ke',
-    ticketPrice: 500,
+    schedule: [
+      { time: '09:00 AM', activity: 'Opening Ceremony & Keynote Speech' },
+      { time: '11:00 AM', activity: 'Product Exhibition & Market Tours' },
+      { time: '01:00 PM', activity: 'Lunch Break & Networking' },
+      { time: '02:30 PM', activity: 'Live Farming Demonstrations' },
+      { time: '04:00 PM', activity: 'Panel Discussion: Future of Agriculture' },
+      { time: '06:00 PM', activity: 'Evening Mixer & Awards Ceremony' },
+    ],
     highlights: [
-      'Up to 35% off seasonal produce',
+      '35% discount on seasonal produce',
+      'Meet 100+ verified vendors',
       'Live farming demonstrations',
-      'Networking with industry leaders',
-      'Free soil testing services',
-      'Kids activity zone',
+      'Expert consultation sessions',
+      'Networking opportunities',
+      'Agricultural innovation showcase',
     ],
-    schedule: [
-      { time: '08:00 AM', activity: 'Registration & Welcome Coffee' },
-      { time: '09:00 AM', activity: 'Opening Ceremony' },
-      { time: '10:00 AM', activity: 'Keynote: Future of Agriculture' },
-      { time: '12:00 PM', activity: 'Lunch Break & Networking' },
-      { time: '02:00 PM', activity: 'Workshop Sessions' },
-      { time: '05:00 PM', activity: 'Product Showcase' },
+    requirements: [
+      'Valid ID for registration',
+      'Farming business card (if applicable)',
+      'Comfortable footwear for tours',
+      'Notebook for workshops',
     ],
-    speakers: [
-      { name: 'Dr. Sarah Wanjiku', role: 'Agricultural Scientist', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop' },
-      { name: 'John Mwangi', role: 'Farming Expert', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop' },
-      { name: 'Grace Achieng', role: 'Sustainability Lead', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&auto=format&fit=crop' },
-    ],
-  },
-  'e2': {
-    id: 'e2',
-    title: 'Tractor Hire Week',
-    date: 'Nov 5–9',
-    dateStart: '2024-11-05',
-    dateEnd: '2024-11-09',
-    banner: 'https://images.unsplash.com/photo-1506801310323-534be5e7e4e5?q=80&w=1200&auto=format&fit=crop',
-    description: 'Special discounts on tractor rentals and farm machinery. Get 15% off your next booking plus free maintenance consultation. Perfect opportunity for small-scale farmers to access premium equipment at affordable rates.',
-    location: 'Mombasa Equipment Hub',
-    address: 'Industrial Area, Mombasa',
-    attendees: 340,
-    maxAttendees: 500,
-    category: 'Equipment',
-    organizer: 'AgriMachinery Ltd',
-    organizerLogo: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=200&auto=format&fit=crop',
-    organizerPhone: '+254 711 234 567',
-    organizerEmail: 'rentals@agrimachinery.co.ke',
-    organizerWebsite: 'https://agrimachinery.co.ke',
-    ticketPrice: 0,
-    highlights: [
-      '15% off all tractor rentals',
-      'Free maintenance consultation',
-      'Flexible payment plans',
-      'On-site training available',
-    ],
-    schedule: [
-      { time: '09:00 AM', activity: 'Equipment Showcase Opens' },
-      { time: '11:00 AM', activity: 'Live Demonstrations' },
-      { time: '02:00 PM', activity: 'One-on-One Consultations' },
-      { time: '04:00 PM', activity: 'Special Offers Announcement' },
-    ],
-    speakers: [
-      { name: 'Peter Ochieng', role: 'Equipment Specialist', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop' },
-    ],
+    contact: {
+      email: 'info@kenyaagriboard.co.ke',
+      phone: '+254 700 123 456',
+      website: 'www.harvestfestival.co.ke',
+    },
   },
 };
 
-export default function EventDetailsScreen() {
+export default function EventDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
   
-  const [isJoined, setIsJoined] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
   const [isReminded, setIsReminded] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(false);
-  
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  const event = mockEvents[eventId || 'e1'] || mockEvents['e1'];
+  const event = useMemo(() => {
+    return mockEvents[eventId as string] || mockEvents.e1;
+  }, [eventId]);
 
-  useEffect(() => {
-    if (event.ongoing) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.2,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-    }
-  }, [event.ongoing, pulseAnim]);
+  const getDaysUntilEvent = useCallback(() => {
+    const today = new Date();
+    const start = new Date(event.dateStart);
+    const diffTime = start.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  }, [event]);
 
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, 200],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
+  const daysLeft = getDaysUntilEvent();
+  const progressPercent = Math.min((event.attendees / event.maxAttendees) * 100, 100);
 
-  const imageScale = scrollY.interpolate({
-    inputRange: [-100, 0],
-    outputRange: [1.5, 1],
-    extrapolate: 'clamp',
-  });
+  const handleRegister = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    setIsRegistered(true);
+    Alert.alert(
+      'Registration Successful!',
+      `You're registered for ${event.title}. We'll send you a confirmation email shortly.`,
+      [{ text: 'OK' }]
+    );
+  }, [event.title]);
 
-  const getProgressPercentage = useCallback((attendees: number, maxAttendees: number) => {
-    return Math.min((attendees / maxAttendees) * 100, 100);
-  }, []);
-
-  const handleJoin = useCallback(() => {
+  const handleRemind = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setIsJoined(!isJoined);
-  }, [isJoined]);
-
-  const handleReminder = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsReminded(!isReminded);
-  }, [isReminded]);
-
-  const handleFavorite = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setIsFavorite(!isFavorite);
-  }, [isFavorite]);
+    if (!isReminded) {
+      Alert.alert('Reminder Set', `We'll notify you before ${event.title} starts.`);
+    }
+  }, [isReminded, event.title]);
 
   const handleShare = useCallback(async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       await Share.share({
-        message: `Check out ${event.title} happening ${event.date} at ${event.location}!`,
+        message: `Check out ${event.title}! ${event.date} at ${event.location}. Join ${event.attendees} attendees!`,
       });
     } catch (error) {
       console.log('Share error:', error);
     }
   }, [event]);
 
-  const handleDirections = useCallback(() => {
-    const url = `https://maps.google.com/?q=${encodeURIComponent(event.address)}`;
-    Linking.openURL(url);
-  }, [event.address]);
-
-  const handleCall = useCallback(() => {
-    Linking.openURL(`tel:${event.organizerPhone}`);
-  }, [event.organizerPhone]);
-
-  const handleEmail = useCallback(() => {
-    Linking.openURL(`mailto:${event.organizerEmail}`);
-  }, [event.organizerEmail]);
-
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <Stack.Screen options={{ headerShown: false }} />
+      
+      {/* Header Image */}
+      <View style={styles.headerImageContainer}>
+        <Image source={{ uri: event.banner }} style={styles.headerImage} />
+        <View style={styles.headerOverlay} />
+        
+        {/* Back Button */}
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => router.back()}
+        >
+          <ArrowLeft size={24} color={WHITE} />
+        </TouchableOpacity>
 
-      {/* Animated Header */}
-      <Animated.View style={[styles.animatedHeader, { opacity: headerOpacity }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity style={styles.headerBackButton} onPress={() => router.back()}>
-            <ArrowLeft size={24} color={WHITE} />
-          </TouchableOpacity>
-          <Text style={styles.animatedHeaderTitle} numberOfLines={1}>{event.title}</Text>
-          <View style={styles.headerActions}>
-            <TouchableOpacity onPress={handleShare}>
-              <Share2 size={22} color={WHITE} />
-            </TouchableOpacity>
+        {/* Share Button */}
+        <TouchableOpacity 
+          style={styles.shareButton} 
+          onPress={handleShare}
+        >
+          <Share2 size={20} color={WHITE} />
+        </TouchableOpacity>
+
+        {/* Status Badges */}
+        {event.ongoing && (
+          <View style={styles.liveBadge}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveBadgeText}>LIVE NOW</Text>
           </View>
-        </View>
-      </Animated.View>
-
-      {/* Fixed Back Button */}
-      <TouchableOpacity 
-        style={[styles.floatingBackButton, { top: insets.top + 12 }]} 
-        onPress={() => router.back()}
-      >
-        <ArrowLeft size={24} color={WHITE} />
-      </TouchableOpacity>
-
-      <Animated.ScrollView
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
         )}
-        scrollEventThrottle={16}
+
+        <View style={styles.categoryBadge}>
+          <Text style={styles.categoryBadgeText}>{event.category}</Text>
+        </View>
+      </View>
+
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero Image */}
-        <Animated.View style={[styles.heroContainer, { transform: [{ scale: imageScale }] }]}>
-          <Image source={{ uri: event.banner }} style={styles.heroImage} />
-          <View style={styles.heroOverlay} />
+        {/* Event Info */}
+        <View style={styles.mainContent}>
+          <Text style={styles.title}>{event.title}</Text>
           
-          {event.ongoing && (
-            <Animated.View style={[styles.liveBadge, { transform: [{ scale: pulseAnim }] }]}>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveText}>HAPPENING NOW</Text>
-            </Animated.View>
-          )}
-
-          <View style={styles.categoryBadge}>
-            <Text style={styles.categoryText}>{event.category}</Text>
-          </View>
-
-          <View style={styles.heroActions}>
-            <TouchableOpacity 
-              style={[styles.heroActionButton, isFavorite && styles.heroActionButtonActive]} 
-              onPress={handleFavorite}
-            >
-              <Heart size={20} color={isFavorite ? '#EF4444' : WHITE} fill={isFavorite ? '#EF4444' : 'transparent'} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.heroActionButton} onPress={handleShare}>
-              <Share2 size={20} color={WHITE} />
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-
-        {/* Content */}
-        <View style={styles.content}>
-          {/* Title Section */}
-          <View style={styles.titleSection}>
-            <Text style={styles.eventTitle}>{event.title}</Text>
-            
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Users size={16} color={GREEN} />
-                <Text style={styles.statText}>{event.attendees.toLocaleString()} attending</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Star size={16} color="#FCD34D" fill="#FCD34D" />
-                <Text style={styles.statText}>4.8 rating</Text>
-              </View>
+          {/* Organizer */}
+          <View style={styles.organizerRow}>
+            <Image source={{ uri: event.organizerLogo }} style={styles.organizerLogo} />
+            <View style={styles.organizerInfo}>
+              <Text style={styles.organizerLabel}>Organized by</Text>
+              <Text style={styles.organizerName}>{event.organizer}</Text>
+            </View>
+            <View style={styles.verifiedBadge}>
+              <CheckCircle2 size={16} color={GREEN} />
             </View>
           </View>
 
           {/* Quick Info Cards */}
-          <View style={styles.quickInfoContainer}>
+          <View style={styles.quickInfoGrid}>
             <View style={styles.quickInfoCard}>
               <View style={[styles.quickInfoIcon, { backgroundColor: '#ECFDF5' }]}>
                 <Calendar size={20} color={GREEN} />
               </View>
-              <View style={styles.quickInfoText}>
-                <Text style={styles.quickInfoLabel}>Date</Text>
-                <Text style={styles.quickInfoValue}>{event.date}</Text>
-              </View>
+              <Text style={styles.quickInfoLabel}>Date</Text>
+              <Text style={styles.quickInfoValue}>{event.date}</Text>
             </View>
 
             <View style={styles.quickInfoCard}>
-              <View style={[styles.quickInfoIcon, { backgroundColor: '#FEF3C7' }]}>
-                <Clock size={20} color={ORANGE} />
-              </View>
-              <View style={styles.quickInfoText}>
-                <Text style={styles.quickInfoLabel}>Time</Text>
-                <Text style={styles.quickInfoValue}>8:00 AM - 6:00 PM</Text>
-              </View>
-            </View>
-
-            <TouchableOpacity style={styles.quickInfoCard} onPress={handleDirections}>
               <View style={[styles.quickInfoIcon, { backgroundColor: '#EDE9FE' }]}>
                 <MapPin size={20} color="#7C3AED" />
               </View>
-              <View style={styles.quickInfoText}>
-                <Text style={styles.quickInfoLabel}>Location</Text>
-                <Text style={styles.quickInfoValue} numberOfLines={1}>{event.location}</Text>
+              <Text style={styles.quickInfoLabel}>Location</Text>
+              <Text style={styles.quickInfoValue} numberOfLines={1}>{event.location.split(',')[0]}</Text>
+            </View>
+
+            <View style={styles.quickInfoCard}>
+              <View style={[styles.quickInfoIcon, { backgroundColor: '#FFF7ED' }]}>
+                <Users size={20} color={ORANGE} />
               </View>
-              <ChevronRight size={18} color="#9CA3AF" />
-            </TouchableOpacity>
+              <Text style={styles.quickInfoLabel}>Attendees</Text>
+              <Text style={styles.quickInfoValue}>{event.attendees}</Text>
+            </View>
+
+            <View style={styles.quickInfoCard}>
+              <View style={[styles.quickInfoIcon, { backgroundColor: '#FEF2F2' }]}>
+                <Clock size={20} color="#EF4444" />
+              </View>
+              <Text style={styles.quickInfoLabel}>Days Left</Text>
+              <Text style={styles.quickInfoValue}>{daysLeft > 0 ? daysLeft : 'Live'}</Text>
+            </View>
           </View>
 
           {/* Attendance Progress */}
           <View style={styles.progressSection}>
             <View style={styles.progressHeader}>
-              <Text style={styles.sectionTitle}>Attendance</Text>
-              <Text style={styles.progressPercentage}>
-                {Math.round(getProgressPercentage(event.attendees, event.maxAttendees))}% full
-              </Text>
+              <Text style={styles.sectionTitle}>Registration Status</Text>
+              <Text style={styles.progressPercent}>{Math.round(progressPercent)}% Full</Text>
             </View>
-            <View style={styles.progressBarLarge}>
-              <View 
-                style={[
-                  styles.progressFillLarge, 
-                  { width: `${getProgressPercentage(event.attendees, event.maxAttendees)}%` }
-                ]} 
-              />
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
             </View>
-            <Text style={styles.progressSubtext}>
-              {event.maxAttendees - event.attendees} spots remaining
+            <Text style={styles.spotsText}>
+              {event.maxAttendees - event.attendees} spots remaining out of {event.maxAttendees}
             </Text>
           </View>
 
@@ -375,139 +268,101 @@ export default function EventDetailsScreen() {
 
           {/* Highlights */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Event Highlights</Text>
-            <View style={styles.highlightsList}>
-              {event.highlights.map((highlight, index) => (
-                <View key={index} style={styles.highlightItem}>
-                  <View style={styles.highlightBullet}>
-                    <CheckCircle size={16} color={GREEN} />
-                  </View>
-                  <Text style={styles.highlightText}>{highlight}</Text>
-                </View>
-              ))}
+            <View style={styles.sectionHeader}>
+              <Sparkles size={20} color={ORANGE} />
+              <Text style={styles.sectionTitle}>Event Highlights</Text>
             </View>
+            {event.highlights.map((highlight, index) => (
+              <View key={index} style={styles.listItem}>
+                <View style={styles.listItemBullet}>
+                  <CheckCircle2 size={16} color={GREEN} />
+                </View>
+                <Text style={styles.listItemText}>{highlight}</Text>
+              </View>
+            ))}
           </View>
 
           {/* Schedule */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Event Schedule</Text>
-            <View style={styles.scheduleList}>
-              {event.schedule.map((item, index) => (
-                <View key={index} style={styles.scheduleItem}>
-                  <View style={styles.scheduleTime}>
-                    <Text style={styles.scheduleTimeText}>{item.time}</Text>
-                  </View>
-                  <View style={styles.scheduleConnector}>
-                    <View style={styles.scheduleConnectorDot} />
-                    {index < event.schedule.length - 1 && <View style={styles.scheduleConnectorLine} />}
-                  </View>
-                  <View style={styles.scheduleContent}>
-                    <Text style={styles.scheduleActivity}>{item.activity}</Text>
-                  </View>
+            <View style={styles.sectionHeader}>
+              <Clock size={20} color={GREEN} />
+              <Text style={styles.sectionTitle}>Event Schedule</Text>
+            </View>
+            {event.schedule.map((item, index) => (
+              <View key={index} style={styles.scheduleItem}>
+                <View style={styles.scheduleTime}>
+                  <Text style={styles.scheduleTimeText}>{item.time}</Text>
                 </View>
-              ))}
-            </View>
-          </View>
-
-          {/* Speakers */}
-          {event.speakers.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Featured Speakers</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.speakersList}>
-                {event.speakers.map((speaker, index) => (
-                  <View key={index} style={styles.speakerCard}>
-                    <Image source={{ uri: speaker.avatar }} style={styles.speakerAvatar} />
-                    <Text style={styles.speakerName}>{speaker.name}</Text>
-                    <Text style={styles.speakerRole}>{speaker.role}</Text>
-                  </View>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
-          {/* Organizer */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Organized By</Text>
-            <View style={styles.organizerCard}>
-              <Image source={{ uri: event.organizerLogo }} style={styles.organizerLogo} />
-              <View style={styles.organizerInfo}>
-                <Text style={styles.organizerName}>{event.organizer}</Text>
-                <View style={styles.organizerActions}>
-                  <TouchableOpacity style={styles.organizerAction} onPress={handleCall}>
-                    <Phone size={16} color={GREEN} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.organizerAction} onPress={handleEmail}>
-                    <Mail size={16} color={GREEN} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.organizerAction} onPress={() => Linking.openURL(event.organizerWebsite)}>
-                    <Globe size={16} color={GREEN} />
-                  </TouchableOpacity>
+                <View style={styles.scheduleActivity}>
+                  <View style={styles.scheduleMarker} />
+                  <Text style={styles.scheduleActivityText}>{item.activity}</Text>
                 </View>
               </View>
-            </View>
+            ))}
           </View>
 
-          {/* Location Map Preview */}
+          {/* Requirements */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Location</Text>
-            <TouchableOpacity style={styles.mapCard} onPress={handleDirections}>
-              <View style={styles.mapPlaceholder}>
-                <MapPin size={32} color={GREEN} />
-                <Text style={styles.mapText}>{event.location}</Text>
-                <Text style={styles.mapAddress}>{event.address}</Text>
+            <View style={styles.sectionHeader}>
+              <Award size={20} color="#7C3AED" />
+              <Text style={styles.sectionTitle}>What to Bring</Text>
+            </View>
+            {event.requirements.map((req, index) => (
+              <View key={index} style={styles.listItem}>
+                <View style={styles.listItemNumber}>
+                  <Text style={styles.listItemNumberText}>{index + 1}</Text>
+                </View>
+                <Text style={styles.listItemText}>{req}</Text>
               </View>
-              <View style={styles.directionsButton}>
-                <Navigation size={16} color={WHITE} />
-                <Text style={styles.directionsText}>Get Directions</Text>
+            ))}
+          </View>
+
+          {/* Contact */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Contact Information</Text>
+            <View style={styles.contactCard}>
+              <View style={styles.contactItem}>
+                <Text style={styles.contactLabel}>Email</Text>
+                <Text style={styles.contactValue}>{event.contact.email}</Text>
               </View>
-            </TouchableOpacity>
+              <View style={styles.contactItem}>
+                <Text style={styles.contactLabel}>Phone</Text>
+                <Text style={styles.contactValue}>{event.contact.phone}</Text>
+              </View>
+              {event.contact.website && (
+                <TouchableOpacity style={styles.contactItem}>
+                  <Text style={styles.contactLabel}>Website</Text>
+                  <View style={styles.websiteRow}>
+                    <Text style={styles.websiteLink}>{event.contact.website}</Text>
+                    <ExternalLink size={16} color={GREEN} />
+                  </View>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           <View style={{ height: 120 }} />
         </View>
-      </Animated.ScrollView>
+      </ScrollView>
 
-      {/* Bottom Action Bar */}
+      {/* Bottom Actions */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
-        <View style={styles.priceSection}>
-          {event.ticketPrice > 0 ? (
-            <>
-              <Text style={styles.priceLabel}>Entry Fee</Text>
-              <Text style={styles.priceValue}>KES {event.ticketPrice.toLocaleString()}</Text>
-            </>
-          ) : (
-            <>
-              <Text style={styles.priceLabel}>Entry</Text>
-              <Text style={[styles.priceValue, { color: GREEN }]}>FREE</Text>
-            </>
-          )}
-        </View>
+        <TouchableOpacity 
+          style={[styles.remindButton, isReminded && styles.remindButtonActive]}
+          onPress={handleRemind}
+        >
+          <Bell size={20} color={isReminded ? GREEN : '#6B7280'} fill={isReminded ? GREEN : 'transparent'} />
+        </TouchableOpacity>
 
-        <View style={styles.bottomActions}>
-          <TouchableOpacity 
-            style={[styles.reminderButton, isReminded && styles.reminderButtonActive]} 
-            onPress={handleReminder}
-          >
-            <Bell size={20} color={isReminded ? GREEN : '#6B7280'} fill={isReminded ? GREEN : 'transparent'} />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.joinButton, isJoined && styles.joinButtonJoined]}
-            onPress={handleJoin}
-          >
-            {isJoined ? (
-              <>
-                <CheckCircle size={20} color={GREEN} />
-                <Text style={styles.joinButtonTextJoined}>Joined</Text>
-              </>
-            ) : (
-              <>
-                <Ticket size={20} color={WHITE} />
-                <Text style={styles.joinButtonText}>Join Event</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity 
+          style={[styles.registerButton, isRegistered && styles.registerButtonDisabled]}
+          onPress={handleRegister}
+          disabled={isRegistered}
+        >
+          <Text style={styles.registerButtonText}>
+            {isRegistered ? '✓ Registered' : 'Register Now'}
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -518,164 +373,140 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8FAFC',
   },
-  animatedHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 100,
-    backgroundColor: GREEN,
-    paddingTop: 48,
-    paddingBottom: 12,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-  headerBackButton: {
-    padding: 4,
-  },
-  animatedHeaderTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '700',
-    color: WHITE,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  floatingBackButton: {
-    position: 'absolute',
-    left: 16,
-    zIndex: 50,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  heroContainer: {
+  headerImageContainer: {
     height: 280,
     position: 'relative',
   },
-  heroImage: {
+  headerImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
   },
-  heroOverlay: {
+  headerOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.25)',
   },
-  liveBadge: {
+  backButton: {
     position: 'absolute',
-    top: 60,
-    right: 16,
-    backgroundColor: '#EF4444',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  liveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: WHITE,
-  },
-  liveText: {
-    color: WHITE,
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  categoryBadge: {
-    position: 'absolute',
-    bottom: 16,
+    top: 16,
     left: 16,
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  categoryText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: GREEN,
-  },
-  heroActions: {
-    position: 'absolute',
-    bottom: 16,
-    right: 16,
-    flexDirection: 'row',
-    gap: 12,
-  },
-  heroActionButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  heroActionButtonActive: {
-    backgroundColor: 'rgba(255,255,255,0.95)',
-  },
-  content: {
-    backgroundColor: WHITE,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    marginTop: -24,
-    paddingTop: 24,
-  },
-  titleSection: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  eventTitle: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#1F2937',
-    marginBottom: 12,
-    letterSpacing: -0.5,
-  },
-  statsRow: {
-    flexDirection: 'row',
+  shareButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  statItem: {
+  liveBadge: {
+    position: 'absolute',
+    top: 80,
+    left: 16,
+    backgroundColor: '#EF4444',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  statText: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontWeight: '600',
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: WHITE,
   },
-  statDivider: {
-    width: 1,
-    height: 16,
+  liveBadgeText: {
+    color: WHITE,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  categoryBadge: {
+    position: 'absolute',
+    top: 80,
+    right: 16,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  categoryBadgeText: {
+    color: GREEN,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  mainContent: {
+    padding: 20,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#1F2937',
+    marginBottom: 16,
+    lineHeight: 36,
+  },
+  organizerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: WHITE,
+    padding: 14,
+    borderRadius: 16,
+    marginBottom: 20,
+  },
+  organizerLogo: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     backgroundColor: '#E5E7EB',
-    marginHorizontal: 16,
   },
-  quickInfoContainer: {
-    paddingHorizontal: 20,
+  organizerInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  organizerLabel: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginBottom: 2,
+  },
+  organizerName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  verifiedBadge: {
+    backgroundColor: '#ECFDF5',
+    borderRadius: 8,
+    padding: 6,
+  },
+  quickInfoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
     marginBottom: 24,
   },
   quickInfoCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 16,
+    flex: 1,
+    minWidth: '46%',
+    backgroundColor: WHITE,
     padding: 16,
-    gap: 14,
+    borderRadius: 16,
+    alignItems: 'center',
   },
   quickInfoIcon: {
     width: 44,
@@ -683,23 +514,23 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  quickInfoText: {
-    flex: 1,
+    marginBottom: 10,
   },
   quickInfoLabel: {
     fontSize: 12,
     color: '#9CA3AF',
-    fontWeight: '500',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   quickInfoValue: {
-    fontSize: 15,
+    fontSize: 16,
+    fontWeight: '800',
     color: '#1F2937',
-    fontWeight: '700',
+    textAlign: 'center',
   },
   progressSection: {
-    paddingHorizontal: 20,
+    backgroundColor: WHITE,
+    padding: 16,
+    borderRadius: 16,
     marginBottom: 24,
   },
   progressHeader: {
@@ -708,274 +539,174 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  progressPercentage: {
-    fontSize: 14,
-    color: GREEN,
-    fontWeight: '700',
-  },
-  progressBarLarge: {
-    height: 10,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 5,
-    overflow: 'hidden',
-  },
-  progressFillLarge: {
-    height: '100%',
-    backgroundColor: GREEN,
-    borderRadius: 5,
-  },
-  progressSubtext: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginTop: 8,
-  },
-  section: {
-    paddingHorizontal: 20,
-    marginBottom: 28,
-  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
     color: '#1F2937',
+  },
+  progressPercent: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: GREEN,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: GREEN,
+    borderRadius: 4,
+  },
+  spotsText: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     marginBottom: 14,
   },
   description: {
     fontSize: 15,
-    color: '#4B5563',
     lineHeight: 24,
+    color: '#4B5563',
   },
-  highlightsList: {
-    gap: 12,
-  },
-  highlightItem: {
+  listItem: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    paddingLeft: 4,
   },
-  highlightBullet: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  listItemBullet: {
+    marginRight: 12,
+    marginTop: 2,
+  },
+  listItemNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: '#ECFDF5',
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 12,
   },
-  highlightText: {
+  listItemNumberText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: GREEN,
+  },
+  listItemText: {
     flex: 1,
     fontSize: 14,
-    color: '#374151',
-    fontWeight: '500',
-  },
-  scheduleList: {
-    gap: 0,
+    lineHeight: 22,
+    color: '#4B5563',
   },
   scheduleItem: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    marginBottom: 16,
   },
   scheduleTime: {
-    width: 80,
+    width: 90,
+    paddingTop: 2,
   },
   scheduleTimeText: {
     fontSize: 13,
+    fontWeight: '700',
     color: '#6B7280',
-    fontWeight: '600',
-  },
-  scheduleConnector: {
-    alignItems: 'center',
-    width: 24,
-  },
-  scheduleConnectorDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: GREEN,
-    borderWidth: 3,
-    borderColor: '#ECFDF5',
-  },
-  scheduleConnectorLine: {
-    width: 2,
-    height: 40,
-    backgroundColor: '#E5E7EB',
-    marginTop: 4,
-  },
-  scheduleContent: {
-    flex: 1,
-    paddingLeft: 12,
-    paddingBottom: 24,
   },
   scheduleActivity: {
-    fontSize: 14,
-    color: '#1F2937',
-    fontWeight: '600',
-  },
-  speakersList: {
-    marginHorizontal: -20,
-    paddingHorizontal: 20,
-  },
-  speakerCard: {
-    alignItems: 'center',
-    marginRight: 20,
-    width: 100,
-  },
-  speakerAvatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    marginBottom: 10,
-    borderWidth: 3,
-    borderColor: '#ECFDF5',
-  },
-  speakerName: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#1F2937',
-    textAlign: 'center',
-    marginBottom: 2,
-  },
-  speakerRole: {
-    fontSize: 11,
-    color: '#6B7280',
-    textAlign: 'center',
-  },
-  organizerCard: {
+    flex: 1,
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 16,
+    alignItems: 'flex-start',
+  },
+  scheduleMarker: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: GREEN,
+    marginTop: 6,
+    marginRight: 12,
+  },
+  scheduleActivityText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 22,
+    color: '#1F2937',
+  },
+  contactCard: {
+    backgroundColor: WHITE,
     padding: 16,
+    borderRadius: 16,
     gap: 14,
   },
-  organizerLogo: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    backgroundColor: '#E5E7EB',
+  contactItem: {
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
-  organizerInfo: {
-    flex: 1,
+  contactLabel: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginBottom: 4,
   },
-  organizerName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 8,
-  },
-  organizerActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  organizerAction: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#ECFDF5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  mapCard: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  mapPlaceholder: {
-    height: 140,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#E5E7EB',
-  },
-  mapText: {
+  contactValue: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#1F2937',
-    marginTop: 12,
   },
-  mapAddress: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  directionsButton: {
+  websiteRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: GREEN,
-    paddingVertical: 14,
     gap: 8,
   },
-  directionsText: {
+  websiteLink: {
     fontSize: 15,
-    fontWeight: '700',
-    color: WHITE,
+    fontWeight: '600',
+    color: GREEN,
   },
   bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: WHITE,
-    paddingTop: 16,
-    paddingHorizontal: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  priceSection: {},
-  priceLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginBottom: 2,
-  },
-  priceValue: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#1F2937',
-  },
-  bottomActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    backgroundColor: WHITE,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
   },
-  reminderButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+  remindButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  reminderButtonActive: {
+  remindButtonActive: {
     backgroundColor: '#ECFDF5',
   },
-  joinButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  registerButton: {
+    flex: 1,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: GREEN,
-    paddingHorizontal: 28,
-    paddingVertical: 14,
-    borderRadius: 14,
-    gap: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  joinButtonJoined: {
+  registerButtonDisabled: {
     backgroundColor: '#ECFDF5',
-    borderWidth: 2,
-    borderColor: GREEN,
   },
-  joinButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
+  registerButtonText: {
+    fontSize: 17,
+    fontWeight: '800',
     color: WHITE,
-  },
-  joinButtonTextJoined: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: GREEN,
   },
 });

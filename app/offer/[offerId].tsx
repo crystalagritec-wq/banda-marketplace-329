@@ -1,447 +1,323 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
+  ScrollView,
   TouchableOpacity,
   Image,
-  Animated,
   Share,
+  Alert,
 } from 'react-native';
-import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ArrowLeft,
-  Clock,
-  Share2,
-  Heart,
   Gift,
-  CheckCircle,
-  Copy,
-  ShoppingBag,
+  Clock,
   Star,
-  Users,
-  Tag,
+  Share2,
+  ShoppingBag,
+  Award,
   Percent,
+  CheckCircle2,
   AlertCircle,
-  ChevronRight,
-  Sparkles,
+  ExternalLink,
+  Copy,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import * as Clipboard from 'expo-clipboard';
 
 const GREEN = '#2E7D32' as const;
-const ORANGE = '#F57C00' as const;
 const WHITE = '#FFFFFF' as const;
+const ORANGE = '#F57C00' as const;
 
 interface PromoItem {
   id: string;
   vendor: string;
-  vendorLogo: string;
-  vendorRating: number;
-  vendorReviews: number;
+  vendorId: string;
+  logo: string;
+  coverImage: string;
   title: string;
   description: string;
-  longDescription: string;
   expiry: string;
   expiryDate: string;
   discount: string;
-  discountValue: number;
-  discountType: 'percentage' | 'fixed' | 'freebie';
   minPurchase?: number;
   maxDiscount?: number;
   category: string;
   featured: boolean;
   claimedCount: number;
   maxClaims: number;
-  code: string;
+  rating: number;
+  reviews: number;
+  promoCode: string;
   terms: string[];
-  applicableProducts: string[];
-  banner: string;
+  howToUse: string[];
+  validProducts: string[];
 }
 
 const mockPromos: Record<string, PromoItem> = {
-  'p1': {
+  p1: {
     id: 'p1',
     vendor: 'GreenFarm Ltd',
-    vendorLogo: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=200&auto=format&fit=crop',
-    vendorRating: 4.8,
-    vendorReviews: 234,
+    vendorId: 'vendor123',
+    logo: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=200&auto=format&fit=crop',
+    coverImage: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?q=80&w=1200&auto=format&fit=crop',
     title: 'Free Delivery Over KES 2,000',
-    description: 'Get free delivery on all farm inputs and equipment when you spend KES 2,000 or more.',
-    longDescription: 'Enjoy complimentary delivery on all orders above KES 2,000. This exclusive offer applies to our entire catalog of farm inputs, seeds, fertilizers, and equipment. Valid for all locations within 50km radius of our distribution centers in Nairobi, Mombasa, and Kisumu.',
+    description: 'Get free delivery on all farm inputs and equipment when you spend KES 2,000 or more. Valid for all locations within 50km radius. This offer includes all categories of products including seeds, fertilizers, pesticides, and farming equipment.',
     expiry: 'Oct 30',
     expiryDate: '2024-10-30',
     discount: 'Free Delivery',
-    discountValue: 100,
-    discountType: 'freebie',
     minPurchase: 2000,
+    maxDiscount: 500,
     category: 'Delivery',
     featured: true,
     claimedCount: 234,
     maxClaims: 500,
-    code: 'FREEDEL2K',
+    rating: 4.8,
+    reviews: 234,
+    promoCode: 'FREEDEL2K',
     terms: [
-      'Valid on orders above KES 2,000',
-      'Delivery within 50km radius only',
+      'Minimum purchase of KES 2,000 required',
+      'Valid only within 50km radius',
       'Cannot be combined with other offers',
-      'Valid until October 30, 2024',
-      'One use per customer',
+      'One-time use per customer',
+      'Applies to standard delivery only',
     ],
-    applicableProducts: ['Seeds', 'Fertilizers', 'Farm Tools', 'Equipment'],
-    banner: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?q=80&w=1200&auto=format&fit=crop',
-  },
-  'p2': {
-    id: 'p2',
-    vendor: 'AgriHub Kenya',
-    vendorLogo: 'https://images.unsplash.com/photo-1520975867597-0f4c3b7ae441?w=200&auto=format&fit=crop',
-    vendorRating: 4.6,
-    vendorReviews: 156,
-    title: 'KES 100 Welcome Voucher',
-    description: 'New customers get KES 100 off their first purchase.',
-    longDescription: 'Welcome to AgriHub Kenya! As a new customer, enjoy KES 100 off your very first order. Perfect for trying our premium selection of certified seeds, organic fertilizers, and quality farm supplies. Start your farming journey with savings!',
-    expiry: 'Nov 12',
-    expiryDate: '2024-11-12',
-    discount: 'KES 100 OFF',
-    discountValue: 100,
-    discountType: 'fixed',
-    category: 'Discount',
-    featured: true,
-    claimedCount: 89,
-    maxClaims: 200,
-    code: 'WELCOME100',
-    terms: [
-      'For new customers only',
-      'Valid on first purchase',
-      'No minimum order required',
-      'Valid until November 12, 2024',
-      'Cannot be combined with other vouchers',
+    howToUse: [
+      'Add items worth KES 2,000 or more to your cart',
+      'Enter promo code FREEDEL2K at checkout',
+      'Delivery fee will be automatically waived',
+      'Complete your purchase',
     ],
-    applicableProducts: ['All Products'],
-    banner: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?q=80&w=1200&auto=format&fit=crop',
-  },
-  'p3': {
-    id: 'p3',
-    vendor: 'FarmTech Solutions',
-    vendorLogo: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=200&auto=format&fit=crop',
-    vendorRating: 4.9,
-    vendorReviews: 312,
-    title: '20% Off Smart Irrigation',
-    description: 'Upgrade to smart irrigation systems with 20% discount.',
-    longDescription: 'Transform your farm with cutting-edge smart irrigation technology. Our automated systems help you save water, reduce labor costs, and maximize crop yields. This limited-time offer includes professional installation and a comprehensive 1-year warranty on all components.',
-    expiry: 'Nov 25',
-    expiryDate: '2024-11-25',
-    discount: '20% OFF',
-    discountValue: 20,
-    discountType: 'percentage',
-    minPurchase: 5000,
-    maxDiscount: 10000,
-    category: 'Equipment',
-    featured: false,
-    claimedCount: 45,
-    maxClaims: 100,
-    code: 'SMART20',
-    terms: [
-      'Minimum purchase of KES 5,000',
-      'Maximum discount of KES 10,000',
-      'Includes free installation',
-      '1-year warranty included',
-      'Valid until November 25, 2024',
+    validProducts: [
+      'All Seeds & Seedlings',
+      'Farm Inputs',
+      'Equipment & Machinery',
+      'Irrigation Systems',
+      'Pest Control Products',
     ],
-    applicableProducts: ['Drip Irrigation', 'Sprinklers', 'Smart Controllers', 'Sensors'],
-    banner: 'https://images.unsplash.com/photo-1506801310323-534be5e7e4e5?q=80&w=1200&auto=format&fit=crop',
   },
 };
 
-export default function OfferDetailsScreen() {
+export default function OfferDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { offerId } = useLocalSearchParams<{ offerId: string }>();
   
   const [isClaimed, setIsClaimed] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [codeCopied, setCodeCopied] = useState(false);
-  
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const countdownAnim = useRef(new Animated.Value(1)).current;
 
-  const promo = mockPromos[offerId || 'p1'] || mockPromos['p1'];
+  const offer = useMemo(() => {
+    return mockPromos[offerId as string] || mockPromos.p1;
+  }, [offerId]);
 
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(countdownAnim, {
-          toValue: 1.1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(countdownAnim, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, [countdownAnim]);
-
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, 200],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
-
-  const imageScale = scrollY.interpolate({
-    inputRange: [-100, 0],
-    outputRange: [1.5, 1],
-    extrapolate: 'clamp',
-  });
-
-  const getDaysUntilExpiry = useCallback((expiryDate: string) => {
+  const getDaysUntilExpiry = useCallback(() => {
     const today = new Date();
-    const expiry = new Date(expiryDate);
+    const expiry = new Date(offer.expiryDate);
     const diffTime = expiry.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
-  }, []);
+  }, [offer]);
 
-  const getProgressPercentage = useCallback((claimed: number, max: number) => {
-    return Math.min((claimed / max) * 100, 100);
-  }, []);
+  const daysLeft = getDaysUntilExpiry();
+  const isExpiringSoon = daysLeft <= 3 && daysLeft > 0;
+  const progressPercent = Math.min((offer.claimedCount / offer.maxClaims) * 100, 100);
 
   const handleClaim = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setIsClaimed(true);
-  }, []);
+    Alert.alert(
+      'Offer Claimed!',
+      `Use code ${offer.promoCode} at checkout. The code has been copied to your clipboard.`,
+      [{ text: 'OK' }]
+    );
+    Clipboard.setStringAsync(offer.promoCode);
+  }, [offer.promoCode]);
 
-  const handleFavorite = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setIsFavorite(!isFavorite);
-  }, [isFavorite]);
+  const handleCopyCode = useCallback(async () => {
+    await Clipboard.setStringAsync(offer.promoCode);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert('Copied!', 'Promo code copied to clipboard');
+  }, [offer.promoCode]);
 
-  const handleCopyCode = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setCodeCopied(true);
-    setTimeout(() => setCodeCopied(false), 2000);
-  }, []);
+  const handleShopNow = useCallback(() => {
+    router.push({ pathname: '/vendor/[vendorId]', params: { vendorId: offer.vendorId } });
+  }, [router, offer.vendorId]);
 
   const handleShare = useCallback(async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       await Share.share({
-        message: `Check out this offer: ${promo.title} from ${promo.vendor}! Use code ${promo.code} to save. Expires ${promo.expiry}.`,
+        message: `Check out this offer from ${offer.vendor}: ${offer.title}! Use code ${offer.promoCode}`,
       });
     } catch (error) {
       console.log('Share error:', error);
     }
-  }, [promo]);
-
-  const handleShopNow = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push('/(tabs)/marketplace');
-  }, [router]);
-
-  const daysLeft = getDaysUntilExpiry(promo.expiryDate);
-  const isExpiringSoon = daysLeft <= 3;
+  }, [offer]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <Stack.Screen options={{ headerShown: false }} />
+      
+      {/* Header Image */}
+      <View style={styles.headerImageContainer}>
+        <Image source={{ uri: offer.coverImage }} style={styles.headerImage} />
+        <View style={styles.headerOverlay} />
+        
+        {/* Back Button */}
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => router.back()}
+        >
+          <ArrowLeft size={24} color={WHITE} />
+        </TouchableOpacity>
 
-      {/* Animated Header */}
-      <Animated.View style={[styles.animatedHeader, { opacity: headerOpacity }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity style={styles.headerBackButton} onPress={() => router.back()}>
-            <ArrowLeft size={24} color={WHITE} />
-          </TouchableOpacity>
-          <Text style={styles.animatedHeaderTitle} numberOfLines={1}>{promo.title}</Text>
-          <View style={styles.headerActions}>
-            <TouchableOpacity onPress={handleShare}>
-              <Share2 size={22} color={WHITE} />
-            </TouchableOpacity>
+        {/* Share Button */}
+        <TouchableOpacity 
+          style={styles.shareButton} 
+          onPress={handleShare}
+        >
+          <Share2 size={20} color={WHITE} />
+        </TouchableOpacity>
+
+        {/* Status Badges */}
+        {offer.featured && (
+          <View style={styles.featuredBadge}>
+            <Award size={14} color={WHITE} />
+            <Text style={styles.featuredBadgeText}>FEATURED</Text>
           </View>
-        </View>
-      </Animated.View>
-
-      {/* Fixed Back Button */}
-      <TouchableOpacity 
-        style={[styles.floatingBackButton, { top: insets.top + 12 }]} 
-        onPress={() => router.back()}
-      >
-        <ArrowLeft size={24} color={WHITE} />
-      </TouchableOpacity>
-
-      <Animated.ScrollView
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
         )}
-        scrollEventThrottle={16}
+
+        {isExpiringSoon && (
+          <View style={styles.urgentBadge}>
+            <AlertCircle size={14} color={WHITE} />
+            <Text style={styles.urgentBadgeText}>EXPIRES SOON</Text>
+          </View>
+        )}
+      </View>
+
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero Image */}
-        <Animated.View style={[styles.heroContainer, { transform: [{ scale: imageScale }] }]}>
-          <Image source={{ uri: promo.banner }} style={styles.heroImage} />
-          <View style={styles.heroOverlay} />
-          
-          {/* Discount Badge */}
-          <View style={styles.discountBadgeLarge}>
-            <Percent size={20} color={WHITE} />
-            <Text style={styles.discountBadgeText}>{promo.discount}</Text>
-          </View>
-
-          {promo.featured && (
-            <View style={styles.featuredBadge}>
-              <Sparkles size={14} color={ORANGE} />
-              <Text style={styles.featuredText}>Featured</Text>
-            </View>
-          )}
-
-          <View style={styles.heroActions}>
-            <TouchableOpacity 
-              style={[styles.heroActionButton, isFavorite && styles.heroActionButtonActive]} 
-              onPress={handleFavorite}
-            >
-              <Heart size={20} color={isFavorite ? '#EF4444' : WHITE} fill={isFavorite ? '#EF4444' : 'transparent'} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.heroActionButton} onPress={handleShare}>
-              <Share2 size={20} color={WHITE} />
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-
-        {/* Content */}
-        <View style={styles.content}>
+        {/* Main Content */}
+        <View style={styles.mainContent}>
           {/* Vendor Info */}
-          <TouchableOpacity style={styles.vendorCard}>
-            <Image source={{ uri: promo.vendorLogo }} style={styles.vendorLogo} />
+          <View style={styles.vendorRow}>
+            <Image source={{ uri: offer.logo }} style={styles.vendorLogo} />
             <View style={styles.vendorInfo}>
-              <Text style={styles.vendorName}>{promo.vendor}</Text>
-              <View style={styles.vendorRating}>
+              <Text style={styles.vendorName}>{offer.vendor}</Text>
+              <View style={styles.ratingRow}>
                 <Star size={14} color="#FCD34D" fill="#FCD34D" />
-                <Text style={styles.vendorRatingText}>{promo.vendorRating}</Text>
-                <Text style={styles.vendorReviews}>({promo.vendorReviews} reviews)</Text>
+                <Text style={styles.ratingText}>{offer.rating}</Text>
+                <Text style={styles.reviewsText}>({offer.reviews} reviews)</Text>
               </View>
             </View>
-            <ChevronRight size={20} color="#9CA3AF" />
-          </TouchableOpacity>
-
-          {/* Title Section */}
-          <View style={styles.titleSection}>
-            <Text style={styles.promoTitle}>{promo.title}</Text>
-            <Text style={styles.promoDescription}>{promo.longDescription}</Text>
+            <TouchableOpacity style={styles.vendorButton}>
+              <Text style={styles.vendorButtonText}>Visit</Text>
+              <ExternalLink size={14} color={GREEN} />
+            </TouchableOpacity>
           </View>
 
-          {/* Urgency Banner */}
-          <Animated.View 
-            style={[
-              styles.urgencyBanner, 
-              isExpiringSoon && styles.urgencyBannerUrgent,
-              { transform: [{ scale: isExpiringSoon ? countdownAnim : 1 }] }
-            ]}
-          >
-            <Clock size={18} color={isExpiringSoon ? '#EF4444' : ORANGE} />
-            <Text style={[styles.urgencyText, isExpiringSoon && styles.urgencyTextUrgent]}>
-              {daysLeft > 0 ? `${daysLeft} days left to claim this offer!` : 'Offer expired'}
-            </Text>
-          </Animated.View>
+          {/* Title & Category */}
+          <Text style={styles.title}>{offer.title}</Text>
+          <View style={styles.categoryTag}>
+            <Text style={styles.categoryTagText}>{offer.category}</Text>
+          </View>
+
+          {/* Discount Card */}
+          <View style={styles.discountCard}>
+            <View style={styles.discountHeader}>
+              <Percent size={28} color={WHITE} />
+              <Text style={styles.discountValue}>{offer.discount}</Text>
+            </View>
+            {offer.minPurchase && (
+              <Text style={styles.discountCondition}>
+                Min. purchase: KES {offer.minPurchase.toLocaleString()}
+              </Text>
+            )}
+            {offer.maxDiscount && (
+              <Text style={styles.discountCondition}>
+                Max. discount: KES {offer.maxDiscount.toLocaleString()}
+              </Text>
+            )}
+          </View>
 
           {/* Promo Code */}
-          <View style={styles.codeSection}>
+          <View style={styles.promoCodeSection}>
             <Text style={styles.sectionTitle}>Promo Code</Text>
-            <View style={styles.codeCard}>
-              <View style={styles.codeLeft}>
-                <Tag size={20} color={GREEN} />
-                <Text style={styles.codeText}>{promo.code}</Text>
-              </View>
+            <View style={styles.promoCodeCard}>
+              <Text style={styles.promoCode}>{offer.promoCode}</Text>
               <TouchableOpacity 
-                style={[styles.copyButton, codeCopied && styles.copyButtonCopied]} 
+                style={styles.copyButton}
                 onPress={handleCopyCode}
               >
-                {codeCopied ? (
-                  <>
-                    <CheckCircle size={16} color={GREEN} />
-                    <Text style={styles.copyButtonTextCopied}>Copied!</Text>
-                  </>
-                ) : (
-                  <>
-                    <Copy size={16} color={WHITE} />
-                    <Text style={styles.copyButtonText}>Copy</Text>
-                  </>
-                )}
+                <Copy size={18} color={GREEN} />
+                <Text style={styles.copyButtonText}>Copy</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Offer Details */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Offer Details</Text>
-            <View style={styles.detailsGrid}>
-              <View style={styles.detailCard}>
-                <View style={[styles.detailIcon, { backgroundColor: '#ECFDF5' }]}>
-                  <Percent size={18} color={GREEN} />
-                </View>
-                <Text style={styles.detailLabel}>Discount</Text>
-                <Text style={styles.detailValue}>{promo.discount}</Text>
-              </View>
-              
-              {promo.minPurchase && (
-                <View style={styles.detailCard}>
-                  <View style={[styles.detailIcon, { backgroundColor: '#FEF3C7' }]}>
-                    <ShoppingBag size={18} color={ORANGE} />
-                  </View>
-                  <Text style={styles.detailLabel}>Min. Purchase</Text>
-                  <Text style={styles.detailValue}>KES {promo.minPurchase.toLocaleString()}</Text>
-                </View>
-              )}
-              
-              {promo.maxDiscount && (
-                <View style={styles.detailCard}>
-                  <View style={[styles.detailIcon, { backgroundColor: '#EDE9FE' }]}>
-                    <Gift size={18} color="#7C3AED" />
-                  </View>
-                  <Text style={styles.detailLabel}>Max. Savings</Text>
-                  <Text style={styles.detailValue}>KES {promo.maxDiscount.toLocaleString()}</Text>
-                </View>
-              )}
-              
-              <View style={styles.detailCard}>
-                <View style={[styles.detailIcon, { backgroundColor: '#FEE2E2' }]}>
-                  <Clock size={18} color="#EF4444" />
-                </View>
-                <Text style={styles.detailLabel}>Expires</Text>
-                <Text style={styles.detailValue}>{promo.expiry}</Text>
-              </View>
+          {/* Expiry & Claims */}
+          <View style={styles.statsGrid}>
+            <View style={styles.statCard}>
+              <Clock size={20} color={isExpiringSoon ? '#EF4444' : '#6B7280'} />
+              <Text style={styles.statLabel}>Expires In</Text>
+              <Text style={[styles.statValue, isExpiringSoon && styles.statValueUrgent]}>
+                {daysLeft > 0 ? `${daysLeft} days` : 'Expired'}
+              </Text>
+            </View>
+
+            <View style={styles.statCard}>
+              <Gift size={20} color={ORANGE} />
+              <Text style={styles.statLabel}>Claimed</Text>
+              <Text style={styles.statValue}>{offer.claimedCount}/{offer.maxClaims}</Text>
             </View>
           </View>
 
-          {/* Claims Progress */}
-          <View style={styles.section}>
-            <View style={styles.claimsHeader}>
-              <Text style={styles.sectionTitle}>Claims</Text>
-              <View style={styles.claimsCount}>
-                <Users size={14} color="#6B7280" />
-                <Text style={styles.claimsCountText}>{promo.claimedCount} claimed</Text>
-              </View>
+          {/* Progress Bar */}
+          <View style={styles.progressSection}>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
             </View>
-            <View style={styles.progressBarLarge}>
-              <View 
-                style={[
-                  styles.progressFillLarge, 
-                  { width: `${getProgressPercentage(promo.claimedCount, promo.maxClaims)}%` }
-                ]} 
-              />
-            </View>
-            <Text style={styles.progressSubtext}>
-              {promo.maxClaims - promo.claimedCount} remaining out of {promo.maxClaims} total
+            <Text style={styles.progressText}>
+              {offer.maxClaims - offer.claimedCount} claims remaining
             </Text>
           </View>
 
-          {/* Applicable Products */}
+          {/* Description */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Applicable Products</Text>
+            <Text style={styles.sectionTitle}>About This Offer</Text>
+            <Text style={styles.description}>{offer.description}</Text>
+          </View>
+
+          {/* How to Use */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <CheckCircle2 size={20} color={GREEN} />
+              <Text style={styles.sectionTitle}>How to Use</Text>
+            </View>
+            {offer.howToUse.map((step, index) => (
+              <View key={index} style={styles.stepItem}>
+                <View style={styles.stepNumber}>
+                  <Text style={styles.stepNumberText}>{index + 1}</Text>
+                </View>
+                <Text style={styles.stepText}>{step}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Valid Products */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <ShoppingBag size={20} color={ORANGE} />
+              <Text style={styles.sectionTitle}>Valid Products</Text>
+            </View>
             <View style={styles.productsGrid}>
-              {promo.applicableProducts.map((product, index) => (
-                <View key={index} style={styles.productPill}>
-                  <Text style={styles.productPillText}>{product}</Text>
+              {offer.validProducts.map((product, index) => (
+                <View key={index} style={styles.productTag}>
+                  <Text style={styles.productTagText}>{product}</Text>
                 </View>
               ))}
             </View>
@@ -449,45 +325,40 @@ export default function OfferDetailsScreen() {
 
           {/* Terms & Conditions */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Terms & Conditions</Text>
-            <View style={styles.termsList}>
-              {promo.terms.map((term, index) => (
-                <View key={index} style={styles.termItem}>
-                  <View style={styles.termBullet}>
-                    <AlertCircle size={14} color="#6B7280" />
-                  </View>
-                  <Text style={styles.termText}>{term}</Text>
-                </View>
-              ))}
+            <View style={styles.sectionHeader}>
+              <AlertCircle size={20} color="#6B7280" />
+              <Text style={styles.sectionTitle}>Terms & Conditions</Text>
             </View>
+            {offer.terms.map((term, index) => (
+              <View key={index} style={styles.termItem}>
+                <View style={styles.termBullet} />
+                <Text style={styles.termText}>{term}</Text>
+              </View>
+            ))}
           </View>
 
-          <View style={{ height: 140 }} />
+          <View style={{ height: 120 }} />
         </View>
-      </Animated.ScrollView>
+      </ScrollView>
 
-      {/* Bottom Action Bar */}
+      {/* Bottom Actions */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
         <TouchableOpacity 
           style={[styles.claimButton, isClaimed && styles.claimButtonClaimed]}
           onPress={handleClaim}
           disabled={isClaimed || daysLeft <= 0}
         >
-          {isClaimed ? (
-            <>
-              <CheckCircle size={22} color={GREEN} />
-              <Text style={styles.claimButtonTextClaimed}>Offer Claimed</Text>
-            </>
-          ) : (
-            <>
-              <Gift size={22} color={WHITE} />
-              <Text style={styles.claimButtonText}>Claim Offer</Text>
-            </>
-          )}
+          <Gift size={20} color={isClaimed ? GREEN : WHITE} />
+          <Text style={[styles.claimButtonText, isClaimed && styles.claimButtonTextClaimed]}>
+            {isClaimed ? 'Claimed' : 'Claim Offer'}
+          </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.shopButton} onPress={handleShopNow}>
-          <ShoppingBag size={22} color={WHITE} />
+        <TouchableOpacity 
+          style={styles.shopButton}
+          onPress={handleShopNow}
+        >
+          <ShoppingBag size={20} color={WHITE} />
           <Text style={styles.shopButtonText}>Shop Now</Text>
         </TouchableOpacity>
       </View>
@@ -500,81 +371,46 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8FAFC',
   },
-  animatedHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 100,
-    backgroundColor: ORANGE,
-    paddingTop: 48,
-    paddingBottom: 12,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-  headerBackButton: {
-    padding: 4,
-  },
-  animatedHeaderTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '700',
-    color: WHITE,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  floatingBackButton: {
-    position: 'absolute',
-    left: 16,
-    zIndex: 50,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  heroContainer: {
+  headerImageContainer: {
     height: 240,
     position: 'relative',
   },
-  heroImage: {
+  headerImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
   },
-  heroOverlay: {
+  headerOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
   },
-  discountBadgeLarge: {
+  backButton: {
     position: 'absolute',
-    top: 60,
+    top: 16,
     left: 16,
-    backgroundColor: ORANGE,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    flexDirection: 'row',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
   },
-  discountBadgeText: {
-    color: WHITE,
-    fontSize: 18,
-    fontWeight: '800',
+  shareButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   featuredBadge: {
     position: 'absolute',
-    top: 60,
-    right: 16,
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    top: 80,
+    left: 16,
+    backgroundColor: ORANGE,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -582,144 +418,147 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  featuredText: {
-    color: ORANGE,
-    fontSize: 12,
-    fontWeight: '700',
+  featuredBadgeText: {
+    color: WHITE,
+    fontSize: 11,
+    fontWeight: '800',
   },
-  heroActions: {
+  urgentBadge: {
     position: 'absolute',
-    bottom: 16,
+    top: 80,
     right: 16,
+    backgroundColor: '#EF4444',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     flexDirection: 'row',
-    gap: 12,
-  },
-  heroActionButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
     alignItems: 'center',
+    gap: 6,
   },
-  heroActionButtonActive: {
-    backgroundColor: 'rgba(255,255,255,0.95)',
+  urgentBadgeText: {
+    color: WHITE,
+    fontSize: 11,
+    fontWeight: '800',
   },
-  content: {
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  mainContent: {
+    padding: 20,
+  },
+  vendorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: WHITE,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    marginTop: -24,
-    paddingTop: 20,
-  },
-  vendorCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 20,
-    marginBottom: 16,
     padding: 14,
-    backgroundColor: '#F9FAFB',
     borderRadius: 16,
-    gap: 12,
+    marginBottom: 16,
   },
   vendorLogo: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 52,
+    height: 52,
+    borderRadius: 14,
     backgroundColor: '#E5E7EB',
   },
   vendorInfo: {
     flex: 1,
+    marginLeft: 12,
   },
   vendorName: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
     color: '#1F2937',
     marginBottom: 4,
   },
-  vendorRating: {
+  ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  vendorRatingText: {
-    fontSize: 13,
+  ratingText: {
+    fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
-  },
-  vendorReviews: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  titleSection: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  promoTitle: {
-    fontSize: 24,
-    fontWeight: '800',
     color: '#1F2937',
-    marginBottom: 10,
-    letterSpacing: -0.5,
   },
-  promoDescription: {
-    fontSize: 15,
-    color: '#4B5563',
-    lineHeight: 23,
+  reviewsText: {
+    fontSize: 13,
+    color: '#9CA3AF',
   },
-  urgencyBanner: {
+  vendorButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 20,
-    marginBottom: 20,
-    paddingVertical: 14,
-    backgroundColor: '#FFF7ED',
-    borderRadius: 14,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: '#FFEDD5',
+    gap: 4,
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
   },
-  urgencyBannerUrgent: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FECACA',
-  },
-  urgencyText: {
-    fontSize: 14,
+  vendorButtonText: {
+    fontSize: 13,
     fontWeight: '700',
-    color: ORANGE,
+    color: GREEN,
   },
-  urgencyTextUrgent: {
-    color: '#EF4444',
-  },
-  codeSection: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 17,
+  title: {
+    fontSize: 26,
     fontWeight: '800',
     color: '#1F2937',
     marginBottom: 12,
+    lineHeight: 34,
   },
-  codeCard: {
+  categoryTag: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#FFF7ED',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  categoryTagText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: ORANGE,
+  },
+  discountCard: {
+    backgroundColor: GREEN,
+    padding: 24,
+    borderRadius: 20,
+    marginBottom: 20,
+  },
+  discountHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  discountValue: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: WHITE,
+  },
+  discountCondition: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+    marginBottom: 4,
+  },
+  promoCodeSection: {
+    marginBottom: 20,
+  },
+  promoCodeCard: {
+    backgroundColor: WHITE,
+    padding: 16,
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#ECFDF5',
-    borderRadius: 14,
-    padding: 16,
     borderWidth: 2,
     borderColor: GREEN,
     borderStyle: 'dashed',
   },
-  codeLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  codeText: {
-    fontSize: 20,
+  promoCode: {
+    fontSize: 24,
     fontWeight: '800',
     color: GREEN,
     letterSpacing: 2,
@@ -727,159 +566,165 @@ const styles = StyleSheet.create({
   copyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: GREEN,
-    paddingHorizontal: 16,
+    gap: 6,
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 10,
-    gap: 6,
-  },
-  copyButtonCopied: {
-    backgroundColor: '#ECFDF5',
-    borderWidth: 1,
-    borderColor: GREEN,
   },
   copyButtonText: {
-    color: WHITE,
     fontSize: 14,
     fontWeight: '700',
-  },
-  copyButtonTextCopied: {
     color: GREEN,
   },
-  section: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  detailsGrid: {
+  statsGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 12,
+    marginBottom: 16,
   },
-  detailCard: {
-    width: '47%',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 14,
-    padding: 14,
+  statCard: {
+    flex: 1,
+    backgroundColor: WHITE,
+    padding: 16,
+    borderRadius: 16,
     alignItems: 'center',
   },
-  detailIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  detailLabel: {
+  statLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#9CA3AF',
+    marginTop: 8,
     marginBottom: 4,
   },
-  detailValue: {
-    fontSize: 15,
-    fontWeight: '700',
+  statValue: {
+    fontSize: 18,
+    fontWeight: '800',
     color: '#1F2937',
   },
-  claimsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+  statValueUrgent: {
+    color: '#EF4444',
   },
-  claimsCount: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  progressSection: {
+    backgroundColor: WHITE,
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 24,
   },
-  claimsCountText: {
-    fontSize: 13,
-    color: '#6B7280',
-    fontWeight: '600',
-  },
-  progressBarLarge: {
-    height: 10,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 5,
+  progressBar: {
+    height: 6,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 3,
     overflow: 'hidden',
+    marginBottom: 8,
   },
-  progressFillLarge: {
+  progressFill: {
     height: '100%',
     backgroundColor: ORANGE,
-    borderRadius: 5,
+    borderRadius: 3,
   },
-  progressSubtext: {
-    fontSize: 13,
+  progressText: {
+    fontSize: 12,
     color: '#6B7280',
-    marginTop: 8,
+    textAlign: 'center',
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1F2937',
+    marginBottom: 12,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 14,
+  },
+  description: {
+    fontSize: 15,
+    lineHeight: 24,
+    color: '#4B5563',
+  },
+  stepItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 14,
+  },
+  stepNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: GREEN,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  stepNumberText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: WHITE,
+  },
+  stepText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 22,
+    color: '#4B5563',
   },
   productsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
   },
-  productPill: {
-    backgroundColor: '#ECFDF5',
+  productTag: {
+    backgroundColor: '#FFF7ED',
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderRadius: 10,
   },
-  productPillText: {
+  productTagText: {
     fontSize: 13,
     fontWeight: '600',
-    color: GREEN,
-  },
-  termsList: {
-    gap: 12,
+    color: ORANGE,
   },
   termItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
+    marginBottom: 10,
   },
   termBullet: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#9CA3AF',
+    marginTop: 8,
+    marginRight: 12,
   },
   termText: {
     flex: 1,
     fontSize: 14,
-    color: '#4B5563',
-    lineHeight: 20,
+    lineHeight: 22,
+    color: '#6B7280',
   },
   bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: WHITE,
-    paddingTop: 16,
     paddingHorizontal: 20,
+    paddingTop: 16,
+    backgroundColor: WHITE,
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
   },
   claimButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: ORANGE,
-    paddingVertical: 16,
-    borderRadius: 14,
-    gap: 10,
   },
   claimButtonClaimed: {
     backgroundColor: '#ECFDF5',
@@ -887,13 +732,11 @@ const styles = StyleSheet.create({
     borderColor: GREEN,
   },
   claimButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '800',
     color: WHITE,
   },
   claimButtonTextClaimed: {
-    fontSize: 16,
-    fontWeight: '700',
     color: GREEN,
   },
   shopButton: {
@@ -901,14 +744,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: GREEN,
-    paddingVertical: 16,
-    borderRadius: 14,
-    gap: 10,
   },
   shopButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '800',
     color: WHITE,
   },
 });
