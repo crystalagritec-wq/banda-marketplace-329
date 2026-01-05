@@ -1,8 +1,10 @@
 import createContextHook from '@nkzw/create-context-hook';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useStorage } from '@/providers/storage-provider';
-import { Product, GeoCoordinates } from '@/constants/products';
+import { Product } from '@/constants/products';
 import { trpcClient } from '@/lib/trpc';
+
+export type CartItemType = 'product' | 'service_booking' | 'equipment_rental';
 
 export interface CartItem {
   product: Product;
@@ -10,6 +12,49 @@ export interface CartItem {
   sellerId?: string;
   sellerName?: string;
   sellerLocation?: string;
+  itemType?: CartItemType;
+  bookingDate?: string;
+  bookingTime?: string;
+  duration?: number;
+  durationUnit?: 'hour' | 'day' | 'project';
+  jobDetails?: string;
+  rentalStartDate?: string;
+  rentalEndDate?: string;
+  totalDays?: number;
+  rentalPrice?: number;
+  securityDeposit?: number;
+  deliveryOption?: 'pickup' | 'delivery';
+}
+
+export interface ServiceCartItem {
+  id: string;
+  name: string;
+  category: string;
+  providerName: string;
+  price: number;
+  image?: string;
+  bookingDate: string;
+  bookingTime: string;
+  duration: number;
+  durationUnit: 'hour' | 'day' | 'project';
+  jobDetails: string;
+  location: string;
+}
+
+export interface EquipmentRentalCartItem {
+  id: string;
+  name: string;
+  category: string;
+  pricePerDay: number;
+  image?: string;
+  rentalStartDate: string;
+  rentalEndDate: string;
+  totalDays: number;
+  rentalPrice: number;
+  securityDeposit: number;
+  deliveryOption: 'pickup' | 'delivery';
+  deliveryAddress?: string;
+  location: string;
 }
 
 
@@ -143,11 +188,11 @@ export const [CartProvider, useCart] = createContextHook(() => {
     } finally {
       setIsLoading(false);
     }
-  }, [storage]);
+  }, [storage, agriPayBalance]);
 
   useEffect(() => {
     loadCartData();
-  }, []);
+  }, [loadCartData]);
 
   const saveCartItems = useCallback(async (items: CartItem[]) => {
     if (!Array.isArray(items)) return;
@@ -214,6 +259,81 @@ export const [CartProvider, useCart] = createContextHook(() => {
   const clearCart = useCallback(() => {
     setCartItems([]);
     saveCartItems([]);
+  }, [saveCartItems]);
+
+  const addServiceToCart = useCallback((service: ServiceCartItem) => {
+    console.log('[Cart] Adding service to cart:', service.name);
+    const serviceProduct: Product = {
+      id: `service-${service.id}-${Date.now()}`,
+      name: service.name,
+      price: service.price,
+      category: service.category,
+      vendor: service.providerName,
+      location: service.location,
+      coordinates: { lat: 0, lng: 0 },
+      rating: 0,
+      image: service.image || 'https://images.unsplash.com/photo-1521791136064-7986c2920216?w=400',
+      inStock: true,
+      unit: service.durationUnit,
+    };
+    
+    setCartItems(prev => {
+      const newItem: CartItem = {
+        product: serviceProduct,
+        quantity: 1,
+        sellerId: `provider-${service.providerName.toLowerCase().replace(/\s+/g, '-')}`,
+        sellerName: service.providerName,
+        sellerLocation: service.location,
+        itemType: 'service_booking',
+        bookingDate: service.bookingDate,
+        bookingTime: service.bookingTime,
+        duration: service.duration,
+        durationUnit: service.durationUnit,
+        jobDetails: service.jobDetails,
+      };
+      const newItems = [...prev, newItem];
+      saveCartItems(newItems);
+      return newItems;
+    });
+  }, [saveCartItems]);
+
+  const addEquipmentRentalToCart = useCallback((equipment: EquipmentRentalCartItem) => {
+    console.log('[Cart] Adding equipment rental to cart:', equipment.name);
+    const totalPrice = equipment.rentalPrice + equipment.securityDeposit + (equipment.deliveryOption === 'delivery' ? 1500 : 0);
+    
+    const equipmentProduct: Product = {
+      id: `rental-${equipment.id}-${Date.now()}`,
+      name: `${equipment.name} (Rental)`,
+      price: totalPrice,
+      category: equipment.category,
+      vendor: 'Equipment Owner',
+      location: equipment.location,
+      coordinates: { lat: 0, lng: 0 },
+      rating: 0,
+      image: equipment.image || 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400',
+      inStock: true,
+      unit: 'rental',
+    };
+    
+    setCartItems(prev => {
+      const newItem: CartItem = {
+        product: equipmentProduct,
+        quantity: 1,
+        sellerId: `equipment-owner-${equipment.id}`,
+        sellerName: 'Equipment Owner',
+        sellerLocation: equipment.location,
+        itemType: 'equipment_rental',
+        rentalStartDate: equipment.rentalStartDate,
+        rentalEndDate: equipment.rentalEndDate,
+        totalDays: equipment.totalDays,
+        rentalPrice: equipment.rentalPrice,
+        securityDeposit: equipment.securityDeposit,
+        deliveryOption: equipment.deliveryOption,
+      };
+      const newItems = [...prev, newItem];
+      saveCartItems(newItems);
+      return newItems;
+    });
   }, [saveCartItems]);
 
   const groupedBySeller = useMemo(() => {
@@ -401,6 +521,8 @@ export const [CartProvider, useCart] = createContextHook(() => {
     updateAgriPayBalance,
     depositAgriPay,
     withdrawAgriPay,
+    addServiceToCart,
+    addEquipmentRentalToCart,
   }), [
     cartItems,
     paymentMethods,
@@ -418,5 +540,7 @@ export const [CartProvider, useCart] = createContextHook(() => {
     updateAgriPayBalance,
     depositAgriPay,
     withdrawAgriPay,
+    addServiceToCart,
+    addEquipmentRentalToCart,
   ]);
 });

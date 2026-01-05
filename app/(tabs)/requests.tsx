@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Image,
 } from 'react-native';
 import {
   Search,
@@ -19,6 +18,12 @@ import {
   Star,
   CheckCircle2,
   AlertCircle,
+  Wrench,
+  Tractor,
+  Stethoscope,
+  Hammer,
+  ChevronRight,
+  Users,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -114,6 +119,14 @@ const mockRequests: Request[] = [
 ];
 
 const categories = ['All', 'Seeds', 'Services', 'Inputs', 'Produce', 'Equipment', 'Livestock'];
+
+const POPULAR_SERVICES = [
+  { id: '1', name: 'Tractor Operators', icon: Tractor, count: 30, color: '#2E7D32' },
+  { id: '2', name: 'Farm Labor', icon: Users, count: 120, color: '#1976D2' },
+  { id: '3', name: 'Veterinarians', icon: Stethoscope, count: 15, color: '#D32F2F' },
+  { id: '4', name: 'Plumbers', icon: Wrench, count: 45, color: '#7B1FA2' },
+  { id: '5', name: 'Mechanics', icon: Hammer, count: 38, color: '#F57C00' },
+];
 
 export default function RequestsScreen() {
   const insets = useSafeAreaInsets();
@@ -221,6 +234,47 @@ export default function RequestsScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
+
+        {/* Find Labor & Skills Section */}
+        <View style={styles.laborSection}>
+          <View style={styles.laborHeader}>
+            <View>
+              <Text style={styles.laborTitle}>Find Labor & Skills</Text>
+              <Text style={styles.laborSubtitle}>200+ service providers available</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.viewAllButton}
+              onPress={() => router.push('/labor-search' as any)}
+              testID="view-all-services"
+            >
+              <Text style={styles.viewAllText}>View All</Text>
+              <ChevronRight size={16} color="#2D5016" />
+            </TouchableOpacity>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.laborContent}
+          >
+            {POPULAR_SERVICES.map((service) => {
+              const IconComponent = service.icon;
+              return (
+                <TouchableOpacity
+                  key={service.id}
+                  style={styles.serviceCard}
+                  onPress={() => router.push(`/labor-search?category=${encodeURIComponent(service.name)}` as any)}
+                  testID={`service-${service.id}`}
+                >
+                  <View style={[styles.serviceIconContainer, { backgroundColor: `${service.color}15` }]}>
+                    <IconComponent size={24} color={service.color} />
+                  </View>
+                  <Text style={styles.serviceName} numberOfLines={1}>{service.name}</Text>
+                  <Text style={styles.serviceCount}>{service.count} available</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
 
         {/* Status Filter */}
         <View style={styles.statusContainer}>
@@ -658,5 +712,72 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#9CA3AF',
     textAlign: 'center',
+  },
+  laborSection: {
+    backgroundColor: 'white',
+    marginHorizontal: 20,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+  },
+  laborHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  laborTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  laborSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewAllText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2D5016',
+  },
+  laborContent: {
+    gap: 12,
+  },
+  serviceCard: {
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 12,
+    minWidth: 100,
+  },
+  serviceIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  serviceName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#111827',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  serviceCount: {
+    fontSize: 11,
+    color: '#6B7280',
   },
 });
