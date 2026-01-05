@@ -330,7 +330,7 @@ export default function ServicesHubScreen() {
         </View>
       ) : services.length === 0 ? (
         <EmptyState
-          icon="briefcase"
+          type="search"
           title="No services found"
           message="Try adjusting your filters or search in a different location"
         />
