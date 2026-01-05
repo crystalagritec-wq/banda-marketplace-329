@@ -37,6 +37,8 @@ import SideMenu from '@/components/SideMenu';
 import CartModal from '@/components/CartModal';
 import LoadingAnimation from '@/components/LoadingAnimation';
 import CartFeedback from '@/components/CartFeedback';
+import ServiceCard from '@/components/ServiceCard';
+import EquipmentCard from '@/components/EquipmentCard';
 
 import { useLoading } from '@/hooks/useLoading';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
@@ -341,8 +343,22 @@ export default function MarketplaceScreen() {
     limit: 50,
   });
 
-  const filteredProducts = useMemo(() => {
+  const { data: servicesData } = trpc.serviceProviders.getMarketplaceServices.useQuery({
+    county: selectedLocation || undefined,
+    searchQuery: searchQuery || undefined,
+    limit: 30,
+  });
+
+  const { data: equipmentData } = trpc.serviceProviders.getMarketplaceEquipment.useQuery({
+    county: selectedLocation || undefined,
+    searchQuery: searchQuery || undefined,
+    limit: 30,
+  });
+
+  const allItems = useMemo(() => {
     const products = marketplaceData?.data || [];
+    const services = servicesData?.services || [];
+    const equipment = equipmentData?.equipment || [];
     
     const productsWithDistance = products.map((product: any) => {
       let distance: number | null = null;
@@ -379,8 +395,30 @@ export default function MarketplaceScreen() {
       };
     });
 
+    const servicesWithType = services.map((service: any) => ({
+      ...service,
+      itemType: 'service' as const,
+      distanceKm: userLocation?.coordinates && service.coordinates
+        ? calculateDistance(userLocation.coordinates, service.coordinates)
+        : null,
+    }));
+
+    const equipmentWithType = equipment.map((item: any) => ({
+      ...item,
+      itemType: 'equipment' as const,
+      distanceKm: userLocation?.coordinates && item.coordinates
+        ? calculateDistance(userLocation.coordinates, item.coordinates)
+        : null,
+    }));
+
+    const allItemsArray = [
+      ...productsWithDistance.map((p: any) => ({ ...p, itemType: 'product' as const })),
+      ...servicesWithType,
+      ...equipmentWithType,
+    ];
+
     if (sortBy === 'location' && userLocation?.coordinates) {
-      productsWithDistance.sort((a: Product, b: Product) => {
+      allItemsArray.sort((a: any, b: any) => {
         if (a.distanceKm !== null && b.distanceKm !== null) {
           return a.distanceKm - b.distanceKm;
         }
@@ -390,8 +428,8 @@ export default function MarketplaceScreen() {
       });
     }
     
-    return productsWithDistance;
-  }, [marketplaceData, sortBy, userLocation]);
+    return allItemsArray;
+  }, [marketplaceData, servicesData, equipmentData, sortBy, userLocation]);
 
   const handleScrollBanner = useCallback((e: any) => {
     try {
@@ -418,14 +456,14 @@ export default function MarketplaceScreen() {
     return `${pad(h)}:${pad(m)}:${pad(s)}`;
   }, [flashTime]);
 
-  const flashProducts = useMemo(() => filteredProducts.filter((p: Product) => p.discount > 0).slice(0, 12), [filteredProducts]);
-  const trendingProducts = useMemo(() => filteredProducts.slice(0, 6), [filteredProducts]);
+  const flashProducts = useMemo(() => allItems.filter((p: any) => p.itemType === 'product' && p.discount > 0).slice(0, 12), [allItems]);
+  const trendingProducts = useMemo(() => allItems.filter((p: any) => p.itemType === 'product').slice(0, 6), [allItems]);
 
   const locationOptions = useMemo(() => {
     const set = new Set<string>();
-    filteredProducts.forEach((p: Product) => set.add(p.location));
+    allItems.forEach((p: any) => set.add(p.location));
     return Array.from(set).slice(0, 8);
-  }, [filteredProducts]);
+  }, [allItems]);
 
 
   const events: EventItem[] = useMemo(() => ([
@@ -714,8 +752,8 @@ export default function MarketplaceScreen() {
         </View>
 
         <View style={styles.allProductsHeader}>
-          <Text style={styles.sectionHeadingSmall}>{i18n.allProducts}</Text>
-          <Text style={styles.productCount}>{filteredProducts.length} {i18n.items}</Text>
+          <Text style={styles.sectionHeadingSmall}>Browse All Items</Text>
+          <Text style={styles.productCount}>{allItems.length} {i18n.items}</Text>
         </View>
 
         <View style={styles.filterSortBar}>
@@ -757,25 +795,67 @@ export default function MarketplaceScreen() {
 
         <View style={styles.flashListContainer}>
           <FlashList
-            data={filteredProducts}
-            renderItem={({ item: product }) => (
-              <ProductCard
-                product={product}
-                onToggleFavorite={(id) => onToggleFavorite(id)}
-                isFavorite={favorites.includes(product.id)}
-                onOpen={openDetails}
-                onAddToCart={handleAddToCart}
-                addLabel={i18n.add}
-                distanceKm={product.distanceKm}
-              />
-            )}
-            keyExtractor={(item) => item.id}
+            data={allItems}
+            renderItem={({ item }) => {
+              if (item.itemType === 'product') {
+                return (
+                  <ProductCard
+                    product={item}
+                    onToggleFavorite={(id) => onToggleFavorite(id)}
+                    isFavorite={favorites.includes(item.id)}
+                    onOpen={openDetails}
+                    onAddToCart={handleAddToCart}
+                    addLabel={i18n.add}
+                    distanceKm={item.distanceKm}
+                  />
+                );
+              } else if (item.itemType === 'service') {
+                return (
+                  <ServiceCard
+                    id={item.id}
+                    name={item.name}
+                    category={item.category}
+                    providerName={item.providerName}
+                    priceFrom={item.priceFrom}
+                    location={item.location}
+                    rating={item.rating}
+                    image={item.image}
+                    verified={item.verified}
+                    availability={item.availability}
+                    onPress={(id) => router.push(`/service-details?id=${id}`)}
+                    onRequestService={(id) => router.push(`/service-details?id=${id}`)}
+                    onToggleFavorite={(id) => onToggleFavorite(id)}
+                    isFavorite={favorites.includes(item.id)}
+                  />
+                );
+              } else {
+                return (
+                  <EquipmentCard
+                    id={item.id}
+                    name={item.name}
+                    category={item.category}
+                    pricePerDay={item.pricePerDay}
+                    location={item.location}
+                    rating={item.rating}
+                    image={item.image}
+                    verified={item.verified}
+                    available={item.available}
+                    condition={item.condition}
+                    onPress={(id) => router.push(`/equipment-details?id=${id}`)}
+                    onRentEquipment={(id) => router.push(`/equipment-details?id=${id}`)}
+                    onToggleFavorite={(id) => onToggleFavorite(id)}
+                    isFavorite={favorites.includes(item.id)}
+                  />
+                );
+              }
+            }}
+            keyExtractor={(item) => `${item.itemType}-${item.id}`}
             numColumns={2}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.flashListContent}
             ListEmptyComponent={
               <View style={styles.emptyState}>
-                <Text style={styles.emptyStateText}>No products found</Text>
+                <Text style={styles.emptyStateText}>No items found</Text>
                 <Text style={styles.emptyStateSubtext}>Try adjusting your search or filters</Text>
               </View>
             }
