@@ -484,12 +484,12 @@ export async function testDatabaseConnection(): Promise<{ success: boolean; erro
       const errorDetails = typeof error === 'object' && error !== null ? (error as any).details : '';
       const errorHint = typeof error === 'object' && error !== null ? (error as any).hint : '';
       
-      console.error('❌ Database connection test failed:', {
-        message: errorMessage,
-        details: errorDetails || 'No additional details',
-        hint: errorHint || '',
-        code: errorCode || ''
-      });
+      console.error('❌ Database connection test failed:');
+      console.error('  Message:', errorMessage);
+      console.error('  Code:', errorCode || 'N/A');
+      console.error('  Details:', errorDetails || 'N/A');
+      console.error('  Hint:', errorHint || 'N/A');
+      console.error('  Full error:', JSON.stringify(error, null, 2));
       
       // Handle specific error cases
       if (errorCode === '42P01' || errorCode === 'PGRST116' || errorMessage?.includes('relation "users" does not exist') || errorMessage?.includes('Could not find the table')) {
@@ -533,11 +533,10 @@ export async function testDatabaseConnection(): Promise<{ success: boolean; erro
     const errorMessage = error?.message || (typeof error === 'string' ? error : 'Unknown error');
     const errorString = typeof error === 'object' ? JSON.stringify(error, null, 2) : String(error);
     
-    console.error('❌ Database connection test error:', {
-      message: errorMessage,
-      details: errorString,
-      stack: error?.stack
-    });
+    console.error('❌ Database connection test error:');
+    console.error('  Message:', errorMessage);
+    console.error('  Details:', errorString);
+    console.error('  Stack:', error?.stack || 'No stack trace');
     
     // Handle network errors at the fetch level
     if (errorMessage?.includes('Failed to fetch') || error?.name === 'TypeError') {
