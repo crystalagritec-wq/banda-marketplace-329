@@ -46,6 +46,7 @@ import { useLocation } from '@/providers/location-provider';
 import { calculateDistance } from '@/utils/geo-distance';
 import { convertToCartProduct } from '@/utils/vendor-helpers';
 import { useTranslation } from '@/hooks/useTranslation';
+import { mockProducts } from '@/constants/products';
 
 const WHITE = '#FFFFFF' as const;
 const GREEN = '#2D5016' as const;
@@ -356,42 +357,54 @@ export default function MarketplaceScreen() {
   });
 
   const allItems = useMemo(() => {
-    const products = marketplaceData?.data || [];
+    // Use mockProducts as fallback if backend returns empty list
+    const products = (marketplaceData?.data && marketplaceData.data.length > 0) 
+      ? marketplaceData.data 
+      : mockProducts;
+
     const services = servicesData?.services || [];
     const equipment = equipmentData?.equipment || [];
     
     const productsWithDistance = products.map((product: any) => {
       let distance: number | null = null;
-      if (userLocation?.coordinates && product.location_lat && product.location_lng) {
+      // Handle both DB fields (location_lat/lng) and Mock fields (coordinates object)
+      const lat = product.location_lat ?? product.coordinates?.lat;
+      const lng = product.location_lng ?? product.coordinates?.lng;
+
+      if (userLocation?.coordinates && lat && lng) {
         distance = calculateDistance(
           userLocation.coordinates,
-          { lat: product.location_lat, lng: product.location_lng }
+          { lat, lng }
         );
       }
       return {
         ...product,
         id: product.id,
-        name: product.title,
+        // Handle both DB 'title' and Mock 'name'
+        name: product.title || product.name,
         price: product.price,
-        vendor: product.vendor_name || 'Unknown Vendor',
-        vendor_id: product.user_id || product.vendor_id,
-        location: product.location_county || product.location_city || 'Unknown',
+        // Handle both DB 'vendor_name' and Mock 'vendor'
+        vendor: product.vendor_name || product.vendor || 'Unknown Vendor',
+        vendor_id: product.user_id || product.vendor_id || 'unknown',
+        // Handle both DB location fields and Mock 'location' string
+        location: product.location_county || product.location_city || product.location || 'Unknown',
         rating: product.rating || 0,
-        image: product.images?.[0] || 'https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400',
+        // Handle both DB 'images' array and Mock 'image' string
+        image: product.images?.[0] || product.image || 'https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400',
         category: product.category,
-        discount: product.negotiable ? 10 : 0,
-        verified: product.status === 'active',
-        coordinates: product.location_lat && product.location_lng ? {
-          lat: product.location_lat,
-          lng: product.location_lng
+        discount: product.discount || (product.negotiable ? 10 : 0),
+        verified: product.status === 'active' || product.verified,
+        coordinates: lat && lng ? {
+          lat,
+          lng
         } : null,
         distanceKm: distance,
-        stock: product.stock,
+        stock: product.stock ?? (product.inStock ? 50 : 0),
         unit: product.unit || 'unit',
-        inStock: product.stock > 0,
-        vendorVerified: product.vendor_verified || product.status === 'active',
+        inStock: (product.stock > 0) || product.inStock,
+        vendorVerified: product.vendor_verified || product.vendorVerified || product.status === 'active',
         negotiable: product.negotiable,
-        fastDelivery: false,
+        fastDelivery: product.fastDelivery || false,
       };
     });
 

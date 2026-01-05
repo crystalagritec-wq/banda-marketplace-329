@@ -20,9 +20,9 @@ import {
   Share2,
   Heart,
   CheckCircle2,
-
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import ServiceBookingModal from '@/components/ServiceBookingModal';
 
 const { width } = Dimensions.get('window');
 
@@ -43,6 +43,7 @@ export default function ServiceDetailsScreen() {
   const params = useLocalSearchParams();
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<string>('basic');
+  const [showBookingModal, setShowBookingModal] = useState(false);
 
   const service = useMemo(() => ({
     id: params.id as string || '1',
@@ -108,7 +109,12 @@ export default function ServiceDetailsScreen() {
     if (Haptics) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-    router.push('/service-requests-management');
+    setShowBookingModal(true);
+  };
+
+  const handleBookingComplete = () => {
+    setShowBookingModal(false);
+    router.push('/(tabs)/cart');
   };
 
   const handleToggleFavorite = () => {
@@ -292,6 +298,24 @@ export default function ServiceDetailsScreen() {
           <Text style={styles.requestButtonText}>Request Service</Text>
         </TouchableOpacity>
       </View>
+
+      <ServiceBookingModal
+        visible={showBookingModal}
+        onClose={() => setShowBookingModal(false)}
+        service={{
+          id: service.id,
+          name: service.name,
+          category: service.category,
+          providerName: service.providerName,
+          priceFrom: selectedPackageData?.price || 0,
+          location: service.location,
+          rating: service.rating,
+          image: service.images[0],
+          // Using package price as project rate for simplicity in this context
+          projectRate: selectedPackageData?.price,
+        }}
+        onBookingComplete={handleBookingComplete}
+      />
     </View>
   );
 }

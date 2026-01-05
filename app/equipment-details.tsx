@@ -24,6 +24,7 @@ import {
   ShoppingCart,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import EquipmentRentalModal from '@/components/EquipmentRentalModal';
 
 const { width } = Dimensions.get('window');
 
@@ -44,6 +45,7 @@ export default function EquipmentDetailsScreen() {
   const params = useLocalSearchParams();
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedDuration, setSelectedDuration] = useState<number>(1);
+  const [showRentalModal, setShowRentalModal] = useState(false);
 
   const equipment = useMemo(() => ({
     id: params.id as string || '1',
@@ -101,6 +103,11 @@ export default function EquipmentDetailsScreen() {
     if (Haptics) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
+    setShowRentalModal(true);
+  };
+
+  const handleRentalComplete = () => {
+    setShowRentalModal(false);
     router.push('/(tabs)/cart');
   };
 
@@ -320,6 +327,23 @@ export default function EquipmentDetailsScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      <EquipmentRentalModal
+        visible={showRentalModal}
+        onClose={() => setShowRentalModal(false)}
+        equipment={{
+          id: equipment.id,
+          name: equipment.name,
+          category: equipment.category,
+          pricePerDay: equipment.pricePerDay,
+          location: equipment.location,
+          rating: equipment.rating,
+          image: equipment.images[0],
+          condition: equipment.condition,
+          securityDeposit: 5000, // From mock data rental terms
+        }}
+        onRentalComplete={handleRentalComplete}
+      />
     </View>
   );
 }
